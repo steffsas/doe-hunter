@@ -9,7 +9,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: golangci-lint
+      - name: lint lib
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          working-directory: ./lib
