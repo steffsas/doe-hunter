@@ -13,6 +13,7 @@ func CheckOnCertificateError(err error) bool {
 		return false
 	}
 
+	// nolint: errorlint
 	switch err.(type) {
 	case *tls.CertificateVerificationError:
 		return true

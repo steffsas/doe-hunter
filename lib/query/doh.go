@@ -2,6 +2,7 @@ package query
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
@@ -14,6 +15,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
+	"github.com/steffsas/doe-hunter/lib/helper"
 	"golang.org/x/net/http2"
 )
 
@@ -26,7 +28,7 @@ const HTTP_VERSION_1 = "HTTP/1.1"
 const HTTP_VERSION_2 = "HTTP2"
 const HTTP_VERSION_3 = "HTTP3"
 
-const DEFAULT_DOH_TIMEOUT = 5000
+const DEFAULT_DOH_TIMEOUT = 5000 * time.Millisecond
 const DEFAULT_DOH_PORT = 443
 
 type HttpHandler interface {
@@ -130,9 +132,9 @@ func (q *DoHQuery) Query() (response *DoHQueryResponse, err error) {
 	}
 
 	if q.Timeout >= 0 {
-		q.HttpHandler.SetTimeout(time.Duration(q.Timeout) * time.Millisecond)
+		q.HttpHandler.SetTimeout(q.Timeout)
 	} else {
-		q.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT * time.Millisecond)
+		q.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT)
 	}
 
 	// set the transport based on the HTTP version
@@ -181,22 +183,23 @@ func (q *DoHQuery) Query() (response *DoHQueryResponse, err error) {
 	b64 = make([]byte, base64.RawURLEncoding.EncodedLen(len(buf)))
 	base64.RawURLEncoding.Encode(b64, buf)
 
-	endpoint := fmt.Sprintf("https://%s:%d", q.Host, q.Port)
+	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(q.Host, q.Port))
 	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
 
 	if q.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
-		httpReq, _ := http.NewRequest(HTTP_GET, fullGetURI, nil)
+		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
 		response.HttpRequest = httpReq
 		response.ResponseMsg, response.HttpResponse, response.RTT, err = q.doHttpRequest(httpReq)
+
 		return
 	} else if q.POSTFallback || q.Method == HTTP_POST {
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
 		body := bytes.NewReader(buf)
-		httpReq, _ := http.NewRequest(HTTP_POST, fullPostURI, body)
+		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
@@ -229,14 +232,14 @@ func (q *DoHQuery) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *ht
 	}
 
 	if httpRes.StatusCode != http.StatusOK {
-		err = fmt.Errorf("DoH query failed: \n %s", string(content))
+		err = fmt.Errorf("DoH query failed with status code %d: \n %s", httpRes.StatusCode, string(content))
 		return
 	}
 
 	r = new(dns.Msg)
 	err = r.Unpack(content)
 	if err != nil {
-		err = fmt.Errorf("could not unpack DNS response: %v", err)
+		return
 	}
 
 	return
