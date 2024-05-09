@@ -86,7 +86,9 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	if err != nil {
 		return res, err
 	}
-	defer session.CloseWithError(0, "")
+	defer func() {
+		session.CloseWithError(0, "")
+	}()
 
 	// open a stream
 	stream, err := session.OpenStream()
