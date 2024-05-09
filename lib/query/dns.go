@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -173,4 +174,12 @@ func NewConventionalDNSQuery() *ConventionalDNSQuery {
 	query.Port = DEFAULT_DNS_PORT
 
 	return query
+}
+
+func getBackOffHandler(maxBackoffTime time.Duration) *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = maxBackoffTime
+	b.MaxInterval = maxBackoffTime
+
+	return b
 }
