@@ -86,8 +86,9 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	if err != nil {
 		return res, err
 	}
+	// for linting wrapped in a anon function
 	defer func() {
-		session.CloseWithError(0, "")
+		_ = session.CloseWithError(0, "")
 	}()
 
 	// open a stream
