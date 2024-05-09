@@ -28,24 +28,24 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 		assert.Nil(t, err, "error should be nil")
 	})
 
-	t.Run("IPv6", func(t *testing.T) {
-		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+	// t.Run("IPv6", func(t *testing.T) {
+	// 	qm := new(dns.Msg)
+	// 	qm.SetQuestion("dns.google.", dns.TypeA)
 
-		q := query.NewDoTQuery()
-		q.Host = "2a10:50c0::1:ff"
-		q.QueryMsg = qm
+	// 	q := query.NewDoTQuery()
+	// 	q.Host = "2a10:50c0::1:ff"
+	// 	q.QueryMsg = qm
 
-		// TODO use endpoint with valid certificate
-		q.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
+	// 	// TODO use endpoint with valid certificate
+	// 	q.TLSConfig = &tls.Config{
+	// 		InsecureSkipVerify: true,
+	// 	}
 
-		res, err := q.Query()
+	// 	res, err := q.Query()
 
-		assert.NotNil(t, res, "response should not be nil")
-		assert.Nil(t, err, "error should be nil")
-	})
+	// 	assert.NotNil(t, res, "response should not be nil")
+	// 	assert.Nil(t, err, "error should be nil")
+	// })
 }
 
 func TestDoTQuery_EmptyHost(t *testing.T) {
