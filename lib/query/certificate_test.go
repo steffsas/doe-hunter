@@ -63,20 +63,21 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
 	})
 
-	t.Run("IPv6", func(t *testing.T) {
-		q := query.NewCertificateQuery()
-		q.Port = 443
-		q.Host = "2a00:1450:4001:813::2003" // www.google.de
-		q.TLSConfig = &tls.Config{
-			ServerName: "www.google.de", // required for IP addresses SNI
-		}
+	// exclude IPv6 test since it does not work on GitHub Actions
+	// t.Run("IPv6", func(t *testing.T) {
+	// 	q := query.NewCertificateQuery()
+	// 	q.Port = 443
+	// 	q.Host = "2a00:1450:4001:813::2003" // www.google.de
+	// 	q.TLSConfig = &tls.Config{
+	// 		ServerName: "www.google.de", // required for IP addresses SNI
+	// 	}
 
-		res, err := q.Query()
+	// 	res, err := q.Query()
 
-		assert.Nil(t, err, "should not have returned an error")
-		assert.NotNil(t, res, "should have returned a response")
-		assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
-	})
+	// 	assert.Nil(t, err, "should not have returned an error")
+	// 	assert.NotNil(t, res, "should have returned a response")
+	// 	assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
+	// })
 }
 
 func TestCertificateQuery_ShouldNotFailOnNoCertificates(t *testing.T) {
