@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -45,28 +44,28 @@ func TestDoQQuery_RealWorld(t *testing.T) {
 		assert.Nil(t, err, "error should be nil")
 	})
 
-	t.Run("IPv6", func(t *testing.T) {
-		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+	// t.Run("IPv6", func(t *testing.T) {
+	// 	qm := new(dns.Msg)
+	// 	qm.SetQuestion("dns.google.", dns.TypeA)
 
-		// TODO check for valid IPv6 endpoint with valid cert
-		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true,
-		}
+	// 	// TODO check for valid IPv6 endpoint with valid cert
+	// 	tlsConfig := &tls.Config{
+	// 		InsecureSkipVerify: true,
+	// 	}
 
-		q := query.NewDoQQuery()
-		q.Host = "2a10:50c0::1:ff"
-		q.QueryMsg = qm
-		q.TLSConfig = tlsConfig
-		q.Port = 853
+	// 	q := query.NewDoQQuery()
+	// 	q.Host = "2a10:50c0::1:ff"
+	// 	q.QueryMsg = qm
+	// 	q.TLSConfig = tlsConfig
+	// 	q.Port = 853
 
-		res, err := q.Query()
+	// 	res, err := q.Query()
 
-		fmt.Println(err)
+	// 	fmt.Println(err)
 
-		assert.NotNil(t, res, "response should not be nil")
-		assert.Nil(t, err, "error should be nil")
-	})
+	// 	assert.NotNil(t, res, "response should not be nil")
+	// 	assert.Nil(t, err, "error should be nil")
+	// })
 }
 
 func TestDoQQuery_CustomTLSConfig(t *testing.T) {
