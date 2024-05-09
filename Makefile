@@ -1,5 +1,5 @@
 GO ?= go
-GOBIN ?= $$($(GO) env GOPATH)/bin
+GOBIN ?= $$($(GO) env GOPATH)/
 GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.58.1
 
@@ -16,8 +16,8 @@ get-golangcilint:
 test:
 	go test ./lib/... 
 
-.PHONY: check-coverage
-check-coverage: test
+.PHONY: test-coverage
+test-coverage: test
 	go test ./lib/... -coverprofile=./profile.cov -cover
 	${GOBIN}/go-test-coverage --config=./.testcoverage.yml
 

@@ -50,23 +50,33 @@ func TestGetFullHostFromPort_EmptyHost(t *testing.T) {
 }
 
 func TestCheckOnCertificateError_CertificateError(t *testing.T) {
-	tlsCertErr := &tls.CertificateVerificationError{}
+	tlsCertErrP := &tls.CertificateVerificationError{}
 
-	ok := helper.CheckOnCertificateError(tlsCertErr)
+	ok := helper.CheckOnCertificateError(tlsCertErrP)
 	assert.True(t, ok, "should be a certificate error")
 }
 
 func TestCheckOnCertificateError_UnkownAuthorityError(t *testing.T) {
-	tlsCertErr := &x509.UnknownAuthorityError{}
+	tlsCertErrP := &x509.UnknownAuthorityError{}
 
-	ok := helper.CheckOnCertificateError(tlsCertErr)
+	ok := helper.CheckOnCertificateError(tlsCertErrP)
+	assert.True(t, ok, "should be a certificate error")
+
+	tlsCertErr := x509.UnknownAuthorityError{}
+
+	ok = helper.CheckOnCertificateError(tlsCertErr)
 	assert.True(t, ok, "should be a certificate error")
 }
 
 func TestCheckOnCertificateError_CertificateInvalidError(t *testing.T) {
-	tlsCertErr := &x509.CertificateInvalidError{}
+	tlsCertErrP := &x509.CertificateInvalidError{}
 
-	ok := helper.CheckOnCertificateError(tlsCertErr)
+	ok := helper.CheckOnCertificateError(tlsCertErrP)
+	assert.True(t, ok, "should be a certificate error")
+
+	tlsCertErr := x509.CertificateInvalidError{}
+
+	ok = helper.CheckOnCertificateError(tlsCertErr)
 	assert.True(t, ok, "should be a certificate error")
 }
 
@@ -74,5 +84,10 @@ func TestCheckOnCertificateError_NoCertError(t *testing.T) {
 	err := fmt.Errorf("some error")
 
 	ok := helper.CheckOnCertificateError(err)
+	assert.False(t, ok, "should not be a certificate error")
+}
+
+func TestCheckOnCertificateError_NilError(t *testing.T) {
+	ok := helper.CheckOnCertificateError(nil)
 	assert.False(t, ok, "should not be a certificate error")
 }
