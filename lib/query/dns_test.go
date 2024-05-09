@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const COMMON_IP = "8.8.8.8"
+
 type mockedQueryHandler struct {
 	mock.Mock
 }
@@ -47,7 +49,7 @@ func getDefaultQuery() *query.ConventionalDNSQuery {
 	dnsQuery.QueryHandler = query.NewDefaultQueryHandler()
 	dnsQuery.QueryMsg = q
 	dnsQuery.Sleeper = sleeper
-	dnsQuery.Host = "8.8.8.8"
+	dnsQuery.Host = COMMON_IP
 
 	return dnsQuery
 }
@@ -68,7 +70,7 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 
 	t.Run("IPv4", func(t *testing.T) {
 		dq := getDefaultQuery()
-		dq.Host = "8.8.8.8"
+		dq.Host = COMMON_IP
 		dq.Port = 53
 
 		res, err := dq.Query()

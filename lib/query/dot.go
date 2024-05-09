@@ -47,10 +47,11 @@ func (q *DoTQuery) Query() (response *DoTQueryResponse, err error) {
 	var res *dns.Msg
 	res, response.RTT, err = q.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.QueryMsg, DNS_DOT_PROTOCOL, q.Timeout, q.TLSConfig)
 	if err != nil {
-		certErr := CheckOnCertificateError(err)
-		if certErr {
-			fmt.Println("TODO retry with certificate verification skip")
-		}
+		// TODO retry on certificate error
+		// certErr := CheckOnCertificateError(err)
+		// if certErr {
+		// 	// fmt.Println("TODO retry with certificate verification skip")
+		// }
 		return response, err
 	}
 

@@ -13,11 +13,12 @@ import (
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
-const DEFAULT_DOQ_TIMEOUT = 5000
+const DEFAULT_DOQ_TIMEOUT time.Duration = 5000 * time.Millisecond
 
 // see https://www.rfc-editor.org/rfc/rfc9250.html#section-4.1.1
 const DEFAULT_DOQ_PORT = 853
 
+// nolint: gochecknoglobals
 var DOQ_TLS_PROTOCOLS = []string{"doq", "dq"}
 
 type QuicConn interface {
@@ -71,10 +72,10 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	// set quic config with timeout
 	if q.QuicConfig == nil {
 		q.QuicConfig = &quic.Config{
-			HandshakeIdleTimeout: time.Duration(q.Timeout) * time.Millisecond,
+			HandshakeIdleTimeout: q.Timeout,
 		}
 	} else {
-		q.QuicConfig.HandshakeIdleTimeout = time.Duration(q.Timeout) * time.Millisecond
+		q.QuicConfig.HandshakeIdleTimeout = q.Timeout
 	}
 
 	session, err := q.DialHandler.DialAddr(
@@ -94,7 +95,7 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	// open a stream
 	stream, err := session.OpenStream()
 	if err != nil {
-		return res, fmt.Errorf("open new stream to %s: %v", q.Host, err)
+		return
 	}
 
 	// prepare message according to RFC9250
@@ -104,7 +105,7 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	// pack DNS query message
 	packedMessage, err := q.QueryMsg.Pack()
 	if err != nil {
-		return res, fmt.Errorf("packing DNS message for %s: %v", q.Host, err)
+		return
 	}
 
 	// All DNS messages (queries and responses) sent over DoQ connections
@@ -117,7 +118,7 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	_, err = stream.Write(prefixedMsg)
 	if err != nil {
 		stream.Close()
-		return res, fmt.Errorf("could not write DNS query on stream to %s: %v", q.Host, err)
+		return
 	}
 
 	// The client MUST send the DNS query over the selected stream, and MUST
@@ -129,10 +130,10 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	// read DNS response message
 	response, err := io.ReadAll(stream)
 	if err != nil {
-		return res, fmt.Errorf("could not read DNS response from stream of %s: %v", q.Host, err)
+		return
 	}
 	if len(response) == 0 {
-		return res, fmt.Errorf("empty response from %s", q.Host)
+		return res, fmt.Errorf("empty response")
 	}
 
 	// unpack DNS response message
@@ -140,7 +141,7 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 	// remove 2-byte prefix
 	err = responseMsg.Unpack(response[2:])
 	if err != nil {
-		return res, fmt.Errorf("could not unpack DNS response from %s: %v", q.Host, err)
+		return
 	}
 
 	res.ResponseMsg = responseMsg

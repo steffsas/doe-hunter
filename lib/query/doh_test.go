@@ -2,7 +2,6 @@ package query_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -16,6 +15,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+const exampleUri = "/dns-query{?dns}"
 
 type mockedHttpHandler struct {
 	mock.Mock
@@ -41,11 +42,11 @@ func (m *mockedHttpHandler) GetTimeout() time.Duration {
 
 func mockDnsMsgHttpResponse() *http.Response {
 	aRR := new(dns.A)
-	aRR.Hdr = dns.RR_Header{Name: "dns.google.", Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 300}
+	aRR.Hdr = dns.RR_Header{Name: dnsGoogle, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 300}
 	aRR.A = net.IPv4(8, 8, 8, 8)
 
 	responseMsg := new(dns.Msg)
-	responseMsg.SetQuestion("dns.google.", dns.TypeA)
+	responseMsg.SetQuestion(dnsGoogle, dns.TypeA)
 	responseMsg.Answer = make([]dns.RR, 1)
 	responseMsg.Answer[0] = aRR
 
@@ -73,7 +74,7 @@ func getMockedHttpHandler() *mockedHttpHandler {
 
 func TestGetPathParamFromDoHPath_EmptyPath(t *testing.T) {
 	t.Run("single param", func(t *testing.T) {
-		path, param, err := query.GetPathParamFromDoHPath("/dns-query{?dns}")
+		path, param, err := query.GetPathParamFromDoHPath(exampleUri)
 
 		assert.Nil(t, err, "error should be nil")
 		assert.Equal(t, "/dns-query", path)
@@ -101,7 +102,7 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	// see dig @94.140.14.140 _dns.resolver.arpa. type64
 	host := "94.140.14.14"
 	port := 443
-	uri := "/dns-query{?dns}"
+	uri := exampleUri
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
@@ -218,15 +219,15 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 func TestDoHQuery_HTTPVersion(t *testing.T) {
 	t.Run("invalid version", func(t *testing.T) {
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.HTTPVersion = "false"
 		q.HttpHandler = handler
@@ -240,16 +241,16 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 
 	t.Run("http version in request", func(t *testing.T) {
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 		handler.On("SetTransport", mock.Anything).Return()
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.HTTPVersion = query.HTTP_VERSION_1
 		q.HttpHandler = handler
@@ -265,15 +266,15 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 func TestDoHQuery_HTTPMethod(t *testing.T) {
 	t.Run("invalid method", func(t *testing.T) {
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.Method = "INVALID"
 		q.HttpHandler = handler
@@ -287,16 +288,16 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 
 	t.Run("http method in request", func(t *testing.T) {
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 		handler.On("SetTransport", mock.Anything).Return()
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.Method = query.HTTP_POST
 		q.HttpHandler = handler
@@ -317,7 +318,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
 
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 		queryMsg.Extra = make([]dns.RR, 1000)
 
 		for i := 0; i < 1000; i++ {
@@ -325,7 +326,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		}
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
 		q.URI = "/dns-query{?dns,other}"
 		q.QueryMsg = queryMsg
@@ -351,7 +352,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
 
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 		queryMsg.Extra = make([]dns.RR, 1000)
 
 		for i := 0; i < 1000; i++ {
@@ -359,7 +360,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		}
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 443
 		q.URI = "/dns-query{?dns,other}"
 		q.QueryMsg = queryMsg
@@ -381,11 +382,11 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion("dns.google.", dns.TypeA)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
-		q.URI = "/dns-query{?dns}"
+		q.Host = dnsGoogle
+		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.HttpHandler = handler
 
@@ -402,9 +403,9 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = -1
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.HttpHandler = handler
 
 		res, err := q.Query()
@@ -419,9 +420,9 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		q := query.NewDoHQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.Port = 65536
-		q.URI = "/dns-query{?dns}"
+		q.URI = exampleUri
 		q.HttpHandler = handler
 
 		res, err := q.Query()
@@ -437,17 +438,15 @@ func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	queryMsg := new(dns.Msg)
-	queryMsg.SetQuestion("dns.google.", dns.TypeA)
+	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoHQuery()
-	q.Host = "dns.google"
-	q.URI = "/dns-query{?dns}"
+	q.Host = dnsGoogle
+	q.URI = exampleUri
 	q.QueryMsg = queryMsg
 	q.HttpHandler = handler
 
 	res, err := q.Query()
-
-	fmt.Println(err)
 
 	// c.Arguments.Assert(t, DEFAULT_DOH_TIMEOUT*time.Millisecond)
 
@@ -461,10 +460,10 @@ func TestDoHQuery_NoHostProvided(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	queryMsg := new(dns.Msg)
-	queryMsg.SetQuestion("dns.google.", dns.TypeA)
+	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoHQuery()
-	q.URI = "/dns-query{?dns}"
+	q.URI = exampleUri
 	q.QueryMsg = queryMsg
 	q.HttpHandler = handler
 
@@ -480,10 +479,10 @@ func TestDoHQuery_EmptyURI(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	queryMsg := new(dns.Msg)
-	queryMsg.SetQuestion("dns.google.", dns.TypeA)
+	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoHQuery()
-	q.Host = "dns.google"
+	q.Host = dnsGoogle
 	q.URI = ""
 	q.QueryMsg = queryMsg
 	q.HttpHandler = handler
@@ -500,8 +499,8 @@ func TestDoHQuery_NilQueryMsg(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	q := query.NewDoHQuery()
-	q.Host = "dns.google"
-	q.URI = "/dns-query{?dns}"
+	q.Host = dnsGoogle
+	q.URI = exampleUri
 	q.HttpHandler = handler
 
 	res, err := q.Query()
@@ -515,10 +514,10 @@ func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	queryMsg := new(dns.Msg)
-	queryMsg.SetQuestion("dns.google.", dns.TypeA)
+	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoHQuery()
-	q.Host = "dns.google"
+	q.Host = dnsGoogle
 	// should be /dns-query{?dns}
 	q.URI = "/dns-query?dns"
 	q.QueryMsg = queryMsg
@@ -533,12 +532,12 @@ func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
 
 func TestDoHQuery_NilHttpHandler(t *testing.T) {
 	queryMsg := new(dns.Msg)
-	queryMsg.SetQuestion("dns.google.", dns.TypeA)
+	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoHQuery()
-	q.Host = "dns.google"
+	q.Host = dnsGoogle
 	q.Port = 443
-	q.URI = "/dns-query{?dns}"
+	q.URI = exampleUri
 	q.QueryMsg = queryMsg
 	q.HttpHandler = nil
 

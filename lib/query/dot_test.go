@@ -16,7 +16,7 @@ import (
 func TestDoTQuery_RealWorld(t *testing.T) {
 	t.Run("IPv4", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
 		q.Host = "94.140.14.140"
@@ -30,7 +30,7 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 
 	// t.Run("IPv6", func(t *testing.T) {
 	// 	qm := new(dns.Msg)
-	// 	qm.SetQuestion("dns.google.", dns.TypeA)
+	// 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 	// 	q := query.NewDoTQuery()
 	// 	q.Host = "2a10:50c0::1:ff"
@@ -50,7 +50,7 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 
 func TestDoTQuery_EmptyHost(t *testing.T) {
 	qm := new(dns.Msg)
-	qm.SetQuestion("dns.google.", dns.TypeA)
+	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 	q := query.NewDoTQuery()
 	q.Host = ""
@@ -67,14 +67,14 @@ func TestDoTQuery_QueryMsg(t *testing.T) {
 	response := new(dns.Msg)
 
 	qm := new(dns.Msg)
-	qm.SetQuestion("dns.google.", dns.TypeA)
+	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
 	t.Run("valid query msg", func(t *testing.T) {
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.QueryHandler = handler
 
@@ -87,7 +87,7 @@ func TestDoTQuery_QueryMsg(t *testing.T) {
 
 	t.Run("nil query msg", func(t *testing.T) {
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = nil
 		q.QueryHandler = handler
 
@@ -101,7 +101,7 @@ func TestDoTQuery_QueryMsg(t *testing.T) {
 
 func TestDoTQuery_NilQueryMsg(t *testing.T) {
 	q := query.NewDoTQuery()
-	q.Host = "dns.google"
+	q.Host = dnsGoogle
 	q.QueryMsg = nil
 
 	res, err := q.Query()
@@ -119,10 +119,10 @@ func TestDoTQuery_Handler(t *testing.T) {
 
 	t.Run("valid query handler", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.QueryHandler = handler
 
@@ -135,10 +135,10 @@ func TestDoTQuery_Handler(t *testing.T) {
 
 	t.Run("nil query handler", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.QueryHandler = nil
 
@@ -158,10 +158,10 @@ func TestDoTQuery_Port(t *testing.T) {
 
 	t.Run("valid port", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.Port = 853
 		q.QueryHandler = handler
@@ -175,10 +175,10 @@ func TestDoTQuery_Port(t *testing.T) {
 
 	t.Run("too large port", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.Port = 65536
 		q.QueryHandler = handler
@@ -192,10 +192,10 @@ func TestDoTQuery_Port(t *testing.T) {
 
 	t.Run("negative port", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.Port = -1
 		q.QueryHandler = handler
@@ -216,10 +216,10 @@ func TestDoTQuery_Host(t *testing.T) {
 
 	t.Run("valid host", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.QueryHandler = handler
 
@@ -232,7 +232,7 @@ func TestDoTQuery_Host(t *testing.T) {
 
 	t.Run("invalid host", func(t *testing.T) {
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
 		q.Host = ""
@@ -257,10 +257,10 @@ func TestDoTQuery_CertificateError(t *testing.T) {
 		handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), certError)
 
 		qm := new(dns.Msg)
-		qm.SetQuestion("dns.google.", dns.TypeA)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoTQuery()
-		q.Host = "dns.google"
+		q.Host = dnsGoogle
 		q.QueryMsg = qm
 		q.QueryHandler = handler
 

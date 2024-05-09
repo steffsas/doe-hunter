@@ -11,7 +11,7 @@ import (
 )
 
 func TestNewDDRQuery(t *testing.T) {
-	//p := &DDRParser{}
+	// p := &DDRParser{}
 
 	q := query.NewDDRQuery("8.8.8.8", 53)
 	// TODO remove later on
