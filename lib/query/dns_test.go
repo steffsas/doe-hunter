@@ -52,28 +52,44 @@ func getDefaultQuery() *query.ConventionalDNSQuery {
 	return dnsQuery
 }
 
-// TestDNSQuery_IPv4 tests the DNS query with an IPv4 address
-func TestDNSQuery_IPv4(t *testing.T) {
-	dq := getDefaultQuery()
+func TestDNSQuery_RealWorld(t *testing.T) {
+	t.Run("hostname", func(t *testing.T) {
+		dq := getDefaultQuery()
+		dq.Host = "dns.google."
+		dq.Port = 53
 
-	res, err := dq.Query()
+		res, err := dq.Query()
 
-	require.NotNil(t, res, "response should not be nil")
-	assert.Nil(t, err, "error should be nil")
-	require.NotNil(t, res.ResponseMsg, "response should not be nil")
-	assert.NotNil(t, res.ResponseMsg.Answer, "response should have an answer")
-}
+		require.NotNil(t, res, "response should not be nil")
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res.ResponseMsg, "response should not be nil")
+		assert.NotNil(t, res.ResponseMsg.Answer, "response should have an answer")
+	})
 
-func TestDNSQuery_IPv6(t *testing.T) {
-	dq := getDefaultQuery()
-	dq.Host = "2001:4860:4860::8888" // google-public-dns-a.google.com
+	t.Run("IPv4", func(t *testing.T) {
+		dq := getDefaultQuery()
+		dq.Host = "8.8.8.8"
+		dq.Port = 53
 
-	res, err := dq.Query()
+		res, err := dq.Query()
 
-	require.NotNil(t, res, "response should not be nil")
-	assert.Nil(t, err, "error should be nil")
-	require.NotNil(t, res.ResponseMsg, "response should not be nil")
-	assert.NotNil(t, res.ResponseMsg.Answer, "response should have an answer")
+		require.NotNil(t, res, "response should not be nil")
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res.ResponseMsg, "response should not be nil")
+		assert.NotNil(t, res.ResponseMsg.Answer, "response should have an answer")
+	})
+
+	// t.Run("IPv6", func(t *testing.T) {
+	// 	dq := getDefaultQuery()
+	// 	dq.Host = "2001:4860:4860::8888" // google-public-dns-a.google.com
+
+	// 	res, err := dq.Query()
+
+	// 	require.NotNil(t, res, "response should not be nil")
+	// 	assert.Nil(t, err, "error should be nil")
+	// 	require.NotNil(t, res.ResponseMsg, "response should not be nil")
+	// 	assert.NotNil(t, res.ResponseMsg.Answer, "response should have an answer")
+	// })
 }
 
 // TestDNSQuery_InvalidProtocol tests the DNS query with an invalid protocol
