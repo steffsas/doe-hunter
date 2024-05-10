@@ -22,3 +22,5 @@
 
 # coverage files
 *.cov
+
+.vscode
