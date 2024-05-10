@@ -13,9 +13,9 @@ import (
 func TestNewDDRQuery(t *testing.T) {
 	// p := &DDRParser{}
 
-	q := query.NewDDRQuery("8.8.8.8", 53)
+	q := query.NewDDRQueryWithServer("8.8.8.8", 53)
 	// TODO remove later on
-	q.Protocol = "tcp"
+	q.QueryObj.Protocol = "tcp"
 	res, err := q.Query()
 
 	assert.Nil(t, err, "should not have returned an error")

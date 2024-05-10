@@ -16,7 +16,7 @@ type DNSResponse struct {
 }
 
 type DNSQuery struct {
-	// Host is the DoQ server to query
+	// Host is the nameserver to query
 	Host string `json:"host"`
 	// QueryMsg is the DNS message to send
 	QueryMsg *dns.Msg `json:"query_msg"`

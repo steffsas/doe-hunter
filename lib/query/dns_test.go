@@ -38,18 +38,17 @@ func (ts *mockedSleeper) Sleep(d time.Duration) {
 	ts.Called(d)
 }
 
-func getDefaultQuery() *query.ConventionalDNSQuery {
+func getDefaultQuery() *query.ConventionalDNSQueryHandler {
 	sleeper := &mockedSleeper{}
 	sleeper.On("Sleep", mock.Anything).Return()
 
 	q := &dns.Msg{}
 	q.SetQuestion("google.com.", dns.TypeA)
 
-	dnsQuery := query.NewConventionalDNSQuery()
-	dnsQuery.QueryHandler = query.NewDefaultQueryHandler()
-	dnsQuery.QueryMsg = q
+	dnsQuery := query.NewConventionalDNSQueryHandler()
+	dnsQuery.QueryObj.QueryMsg = q
 	dnsQuery.Sleeper = sleeper
-	dnsQuery.Host = COMMON_IP
+	dnsQuery.QueryObj.Host = COMMON_IP
 
 	return dnsQuery
 }
@@ -57,8 +56,8 @@ func getDefaultQuery() *query.ConventionalDNSQuery {
 func TestDNSQuery_RealWorld(t *testing.T) {
 	t.Run("hostname", func(t *testing.T) {
 		dq := getDefaultQuery()
-		dq.Host = "dns.google."
-		dq.Port = 53
+		dq.QueryObj.Host = "dns.google."
+		dq.QueryObj.Port = 53
 
 		res, err := dq.Query()
 
@@ -70,8 +69,8 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 
 	t.Run("IPv4", func(t *testing.T) {
 		dq := getDefaultQuery()
-		dq.Host = COMMON_IP
-		dq.Port = 53
+		dq.QueryObj.Host = COMMON_IP
+		dq.QueryObj.Port = 53
 
 		res, err := dq.Query()
 
@@ -97,7 +96,7 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 // TestDNSQuery_InvalidProtocol tests the DNS query with an invalid protocol
 func TestDNSQuery_InvalidProtocol(t *testing.T) {
 	dq := getDefaultQuery()
-	dq.Protocol = "invalid"
+	dq.QueryObj.Protocol = "invalid"
 
 	_, err := dq.Query()
 	assert.NotNil(t, err, "should have returned an error")
@@ -126,12 +125,12 @@ func TestDNSQuery_UDPAttempts(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.MaxUDPRetries = 3
+		dq.QueryObj.MaxUDPRetries = 3
 
 		res, err := dq.Query()
 
 		assert.NotNil(t, err, "should have returned an error")
-		assert.Equal(t, dq.MaxUDPRetries, res.UDPAttempts, "should have exactly max UDP attempts")
+		assert.Equal(t, dq.QueryObj.MaxUDPRetries, res.UDPAttempts, "should have exactly max UDP attempts")
 		assert.Nil(t, res.ResponseMsg, "should not have returned a DNS response")
 	})
 }
@@ -149,7 +148,7 @@ func TestDNSQuery_UDPRetries(t *testing.T) {
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, dq.MaxUDPRetries, query.DEFAULT_UDP_RETRIES, "should fall back to default retries")
+		assert.Equal(t, dq.QueryObj.MaxUDPRetries, query.DEFAULT_UDP_RETRIES, "should fall back to default retries")
 		assert.Equal(t, response, res.ResponseMsg, "should have returned the response")
 	})
 
@@ -161,12 +160,12 @@ func TestDNSQuery_UDPRetries(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.MaxUDPRetries = -1
+		dq.QueryObj.MaxUDPRetries = -1
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_UDP_RETRIES, dq.MaxUDPRetries, "should fall back to default retries")
+		assert.Equal(t, query.DEFAULT_UDP_RETRIES, dq.QueryObj.MaxUDPRetries, "should fall back to default retries")
 		assert.Equal(t, response, res.ResponseMsg, "should have returned the response")
 	})
 }
@@ -180,7 +179,7 @@ func TestDNSQuery_TCPAttempts(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
@@ -195,13 +194,13 @@ func TestDNSQuery_TCPAttempts(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_TCP
-		dq.MaxTCPRetries = 3
+		dq.QueryObj.Protocol = query.DNS_TCP
+		dq.QueryObj.MaxTCPRetries = 3
 
 		res, err := dq.Query()
 
 		assert.NotNil(t, err, "should have returned an error")
-		assert.Equal(t, dq.MaxTCPRetries, res.TCPAttempts, "should have exactly max TCP attempts")
+		assert.Equal(t, dq.QueryObj.MaxTCPRetries, res.TCPAttempts, "should have exactly max TCP attempts")
 		assert.Nil(t, res.ResponseMsg, "should not have returned a response")
 	})
 }
@@ -215,12 +214,12 @@ func TestDNSQuery_TCPRetries(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_TCP_RETRIES, dq.MaxTCPRetries, "should fall back to default retries")
+		assert.Equal(t, query.DEFAULT_TCP_RETRIES, dq.QueryObj.MaxTCPRetries, "should fall back to default retries")
 		assert.Equal(t, response, res.ResponseMsg, "should have returned the response")
 	})
 
@@ -232,13 +231,13 @@ func TestDNSQuery_TCPRetries(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_TCP
-		dq.MaxTCPRetries = -1
+		dq.QueryObj.Protocol = query.DNS_TCP
+		dq.QueryObj.MaxTCPRetries = -1
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_TCP_RETRIES, dq.MaxTCPRetries, "should fall back to default retries")
+		assert.Equal(t, query.DEFAULT_TCP_RETRIES, dq.QueryObj.MaxTCPRetries, "should fall back to default retries")
 		assert.Equal(t, response, res.ResponseMsg, "should have returned the response")
 	})
 }
@@ -253,13 +252,13 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.AutoFallbackTCP = true
-		dq.Protocol = query.DNS_UDP
+		dq.QueryObj.AutoFallbackTCP = true
+		dq.QueryObj.Protocol = query.DNS_UDP
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, dq.MaxUDPRetries, res.UDPAttempts, "should have tried UDP max times")
+		assert.Equal(t, dq.QueryObj.MaxUDPRetries, res.UDPAttempts, "should have tried UDP max times")
 		assert.Equal(t, 1, res.TCPAttempts, "should have exactly one TCP attempt")
 		assert.Equal(t, response, res.ResponseMsg, "should have returned the response")
 	})
@@ -273,13 +272,13 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.AutoFallbackTCP = false
-		dq.Protocol = query.DNS_UDP
+		dq.QueryObj.AutoFallbackTCP = false
+		dq.QueryObj.Protocol = query.DNS_UDP
 
 		res, err := dq.Query()
 
 		assert.NotNil(t, err, "should have returned an error (no response)")
-		assert.Equal(t, dq.MaxUDPRetries, res.UDPAttempts, "should have tried UDP max times")
+		assert.Equal(t, dq.QueryObj.MaxUDPRetries, res.UDPAttempts, "should have tried UDP max times")
 		assert.Equal(t, 0, res.TCPAttempts, "should have no TCP attempt")
 		assert.Nil(t, res.ResponseMsg, "should not have returned a response")
 	})
@@ -296,7 +295,7 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.AutoFallbackTCP = true
+		dq.QueryObj.AutoFallbackTCP = true
 
 		res, err := dq.Query()
 
@@ -318,7 +317,7 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.AutoFallbackTCP = false
+		dq.QueryObj.AutoFallbackTCP = false
 
 		res, err := dq.Query()
 
@@ -338,7 +337,7 @@ func TestDNSQuery_Protocol(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_UDP
+		dq.QueryObj.Protocol = query.DNS_UDP
 
 		res, err := dq.Query()
 
@@ -356,7 +355,7 @@ func TestDNSQuery_Protocol(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
@@ -374,7 +373,7 @@ func TestDNSQuery_EmptyHost(t *testing.T) {
 
 	dq := getDefaultQuery()
 	dq.QueryHandler = handler
-	dq.Host = ""
+	dq.QueryObj.Host = ""
 
 	res, err := dq.Query()
 
@@ -392,7 +391,7 @@ func TestDNSQuery_NilQueryMessage(t *testing.T) {
 
 	dq := getDefaultQuery()
 	dq.QueryHandler = handler
-	dq.QueryMsg = nil
+	dq.QueryObj.QueryMsg = nil
 
 	res, err := dq.Query()
 
@@ -424,7 +423,7 @@ func TestDNSQuery_Port(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Port = -1
+		dq.QueryObj.Port = -1
 
 		res, err := dq.Query()
 
@@ -442,7 +441,7 @@ func TestDNSQuery_Port(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Port = 70000
+		dq.QueryObj.Port = 70000
 
 		res, err := dq.Query()
 
@@ -460,7 +459,7 @@ func TestDNSQuery_Port(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Port = 0
+		dq.QueryObj.Port = 0
 
 		res, err := dq.Query()
 
@@ -480,12 +479,12 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.TimeoutUDP = -1
+		dq.QueryObj.TimeoutUDP = -1
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_UDP_TIMEOUT, dq.TimeoutUDP, "should have used the default UDP timeout")
+		assert.Equal(t, query.DEFAULT_UDP_TIMEOUT, dq.QueryObj.TimeoutUDP, "should have used the default UDP timeout")
 		require.NotNil(t, res, "response should not be nil")
 	})
 
@@ -497,13 +496,13 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.TimeoutUDP = 0
+		dq.QueryObj.TimeoutUDP = 0
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 0*time.Millisecond, dq.TimeoutUDP, "should have used the zero timeout value")
+		assert.Equal(t, 0*time.Millisecond, dq.QueryObj.TimeoutUDP, "should have used the zero timeout value")
 	})
 
 	t.Run("use timeout over UDPTimeout", func(t *testing.T) {
@@ -514,14 +513,14 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Timeout = 1000 * time.Millisecond
-		dq.TimeoutUDP = -1
+		dq.QueryObj.Timeout = 1000 * time.Millisecond
+		dq.QueryObj.TimeoutUDP = -1
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 1000*time.Millisecond, dq.TimeoutUDP, "should have used the timeout value")
+		assert.Equal(t, 1000*time.Millisecond, dq.QueryObj.TimeoutUDP, "should have used the timeout value")
 	})
 }
 
@@ -534,13 +533,13 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.TimeoutTCP = -1
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.TimeoutTCP = -1
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_TCP_TIMEOUT, dq.TimeoutTCP, "should have used the default TCP timeout")
+		assert.Equal(t, query.DEFAULT_TCP_TIMEOUT, dq.QueryObj.TimeoutTCP, "should have used the default TCP timeout")
 		require.NotNil(t, res, "response should not be nil")
 	})
 
@@ -552,14 +551,14 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.TimeoutTCP = 0
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.TimeoutTCP = 0
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 0*time.Millisecond, dq.TimeoutTCP, "should have used the zero timeout value")
+		assert.Equal(t, 0*time.Millisecond, dq.QueryObj.TimeoutTCP, "should have used the zero timeout value")
 	})
 
 	t.Run("use timeout over TCPTimeout", func(t *testing.T) {
@@ -570,14 +569,14 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 
 		dq := getDefaultQuery()
 		dq.QueryHandler = handler
-		dq.Timeout = 1000 * time.Millisecond
-		dq.TimeoutTCP = -1
-		dq.Protocol = query.DNS_TCP
+		dq.QueryObj.Timeout = 1000 * time.Millisecond
+		dq.QueryObj.TimeoutTCP = -1
+		dq.QueryObj.Protocol = query.DNS_TCP
 
 		res, err := dq.Query()
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 1000*time.Millisecond, dq.TimeoutTCP, "should have used the timeout value")
+		assert.Equal(t, 1000*time.Millisecond, dq.QueryObj.TimeoutTCP, "should have used the timeout value")
 	})
 }

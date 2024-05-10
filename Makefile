@@ -1,10 +1,11 @@
 GO ?= go
-GOBIN ?= $$($(GO) env GOPATH)/
-GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
+GOBIN ?= $$($(GO) env GOPATH)
+GOLANGCI_LINT ?= $(GOBIN)/bin/golangci-lint
+GOTESTCOVERAGE ?= $(GOBIN)/bin/go-test-coverage
 GOLANGCI_LINT_VERSION ?= v1.58.1
 
-.PHONY: install-go-test-coverage
-install-go-test-coverage:
+.PHONY: get-go-test-coverage
+get-go-test-coverage:
 	go install github.com/vladopajic/go-test-coverage/v2@latest
 
 .PHONY: get-golangcilint
@@ -19,7 +20,7 @@ test:
 .PHONY: test-coverage
 test-coverage: test
 	go test ./lib/... -coverprofile=./profile.cov -cover
-	${GOBIN}/go-test-coverage --config=./.testcoverage.yml
+	$(GOTESTCOVERAGE) --config=./.testcoverage.yml
 
 .PHONY: lint
 lint:

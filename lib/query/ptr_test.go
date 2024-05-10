@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewPTRQuery_RealWorld(t *testing.T) {
+func TestNewPTRQueryHandler_RealWorld(t *testing.T) {
 	t.Run("IPv4", func(t *testing.T) {
-		q, err := query.NewPTRQuery("8.8.8.8")
+		q, err := query.NewPTRQueryHandler("8.8.8.8")
 		// let's safely use google here since not every device runs a local stub on 127.0.0.53
-		q.Host = "8.8.8.8"
+		q.QueryObj.Host = "8.8.8.8"
 
 		require.Nil(t, err, "should not have returned an error on given IP address")
 
@@ -32,7 +32,7 @@ func TestNewPTRQuery_RealWorld(t *testing.T) {
 	})
 
 	// t.Run("IPv6", func(t *testing.T) {
-	// 	q, err := query.NewPTRQuery("2001:4860:4860::8888")
+	// 	q, err := query.NewPTRQueryHandler("2001:4860:4860::8888")
 
 	// 	// let's safely use google here since not every device runs a local stub on 127.0.0.53
 	// 	q.Host = "8.8.8.8"
