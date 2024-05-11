@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
+	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
 // the type of the scanner (e.g. consumer, producer)
@@ -26,9 +27,12 @@ const ENV_PARALLEL_CONSUMER = "DOE_PARALLEL_CONSUMER"
 const DEFAULT_KAFKA_SERVER = "localhost:9092"
 const DEFAULT_PARALLEL_CONSUMER = 1 // no parallelism
 
+// nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
 	"ddr", "doh", "doq", "dot",
 }
+
+// nolint: gochecknoglobals
 var SUPPORTED_RUN_TYPES = []string{
 	"consumer", "producer",
 }
@@ -84,6 +88,8 @@ func main() {
 
 	logrus.Infof("starting %s for protocol %s with kafka server %s and consumer group %s", scannerTypeEnv, protocolType, kafkaServer, kafkaConsumerGroup)
 
+	storageHandler := &storage.EmptyStorageHandler{}
+
 	switch protocolType {
 	case "ddr":
 		if isConsumer {
@@ -93,32 +99,41 @@ func main() {
 				cons, err := consumer.NewKafkaDDREventConsumer(&consumer.KafkaConsumerConfig{
 					Server:        kafkaServer,
 					ConsumerGroup: kafkaConsumerGroup,
-				})
+				}, storageHandler)
 
 				if err != nil {
 					logrus.Fatalf("failed to create parallel consumer: %v", err)
 					return
 				}
 
-				cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				if err != nil {
+					logrus.Fatalf("failed to consume: %v", err)
+					return
+				}
 				cons.Close()
 			} else {
 				logrus.Info("starting single DDR consumer")
 				cons, err := consumer.NewKafkaDDREventConsumer(&consumer.KafkaConsumerConfig{
 					Server:        kafkaServer,
 					ConsumerGroup: kafkaConsumerGroup,
-				})
+				}, storageHandler)
 
 				if err != nil {
 					logrus.Fatalf("failed to create parallel consumer: %v", err)
 					return
 				}
 
-				cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				if err != nil {
+					logrus.Fatalf("failed to consume: %v", err)
+					return
+				}
 				cons.Close()
 			}
 		} else {
 			// start the DDR producer
+			logrus.Fatal("DDR producer not implemented yet")
 		}
 	case "doh":
 		// start the DOH scanner

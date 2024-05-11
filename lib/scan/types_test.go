@@ -12,6 +12,7 @@ import (
 func TestScanMetaInformation(t *testing.T) {
 	t.Parallel()
 	t.Run("random scanid", func(t *testing.T) {
+		t.Parallel()
 		// setup
 		smi := &scan.ScanMetaInformation{}
 		smi.GenerateScanID()
@@ -21,6 +22,7 @@ func TestScanMetaInformation(t *testing.T) {
 	})
 
 	t.Run("add error", func(t *testing.T) {
+		t.Parallel()
 		// setup
 		smi := &scan.ScanMetaInformation{}
 		err := errors.New("test")
@@ -32,6 +34,7 @@ func TestScanMetaInformation(t *testing.T) {
 	})
 
 	t.Run("set scheduled", func(t *testing.T) {
+		t.Parallel()
 		time := time.Now()
 		// setup
 		smi := &scan.ScanMetaInformation{}
@@ -42,6 +45,7 @@ func TestScanMetaInformation(t *testing.T) {
 	})
 
 	t.Run("set started", func(t *testing.T) {
+		t.Parallel()
 		time := time.Now()
 		// setup
 		smi := &scan.ScanMetaInformation{}
@@ -52,6 +56,7 @@ func TestScanMetaInformation(t *testing.T) {
 	})
 
 	t.Run("set finished", func(t *testing.T) {
+		t.Parallel()
 		time := time.Now()
 		// setup
 		smi := &scan.ScanMetaInformation{}

@@ -55,7 +55,11 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 
 		go func() {
 			defer wg.Done()
-			consumer.Consume(ctx, topic)
+			err := consumer.Consume(ctx, topic)
+			if err != nil {
+				logrus.Errorf("failed to consume topic %s: %v", topic, err)
+				// TODO: handle error and start a new consumer
+			}
 			consumer.Close()
 		}()
 	}
