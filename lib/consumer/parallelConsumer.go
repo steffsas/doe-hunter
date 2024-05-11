@@ -46,19 +46,26 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 	signal.Notify(termChan, os.Interrupt, syscall.SIGTERM) // Handle SIGTERM and Ctrl+C
 
 	for i := 0; i < kpc.ConcurrentConsumer; i++ {
-		consumer, err := kpc.CreateConsumer()
+		var consumer EventConsumer
+		consumer, err = kpc.CreateConsumer()
 
 		if err != nil {
 			logrus.Errorf("failed to create consumer number %d", i)
-			break
+			return
+		}
+
+		if consumer == nil {
+			logrus.Errorf("got nil consumer number %d", i)
+			return fmt.Errorf("got nil consumer")
 		}
 
 		go func() {
 			defer wg.Done()
-			err := consumer.Consume(ctx, topic)
+			err = consumer.Consume(ctx, topic)
 			if err != nil {
+				// TODO restart consumer?
 				logrus.Errorf("failed to consume topic %s: %v", topic, err)
-				// TODO: handle error and start a new consumer
+				return
 			}
 			consumer.Close()
 		}()
@@ -82,21 +89,19 @@ type KafkaParallelEventConsumerConfig struct {
 
 func NewKafkaParallelEventConsumer(createConsumer CreateConsumerFunc, config *KafkaParallelEventConsumerConfig) (kec *KafkaParallelConsumer, err error) {
 	if config == nil {
-		logrus.Warn("no config provided, using default values")
-		kec = &KafkaParallelConsumer{
-			ConcurrentConsumer: 1,
-			CreateConsumer: func() (EventConsumer, error) {
-				return nil, fmt.Errorf("not implemented")
-			},
-		}
-	} else {
-		if config.ConcurrentConsumer <= 0 {
-			return nil, fmt.Errorf("invalid concurrent consumer number %d, must be greater or equal 0", config.ConcurrentConsumer)
-		}
+		return nil, fmt.Errorf("no config provided")
+	}
 
-		kec = &KafkaParallelConsumer{
-			ConcurrentConsumer: config.ConcurrentConsumer,
-		}
+	if config.ConcurrentConsumer <= 0 {
+		return nil, fmt.Errorf("invalid concurrent consumer number %d, must be greater or equal 0", config.ConcurrentConsumer)
+	}
+
+	if createConsumer == nil {
+		return nil, fmt.Errorf("create consumer function not set")
+	}
+
+	kec = &KafkaParallelConsumer{
+		ConcurrentConsumer: config.ConcurrentConsumer,
 	}
 
 	kec.CreateConsumer = createConsumer
