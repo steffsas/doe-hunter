@@ -10,6 +10,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -101,11 +102,9 @@ func TestMongoStorageHandler_Open(t *testing.T) {
 		CollectionName: "test",
 	}
 
-	// test
 	err := msh.Open()
 	assert.Nil(t, err)
 
-	// teardown
 	err = msh.Close()
 	assert.Nil(t, err)
 }
@@ -177,8 +176,9 @@ func TestMongoStorageHandler_Store(t *testing.T) {
 			DatabaseName:   "test",
 			CollectionName: "test",
 		}
-		msh.Open()
-		err := msh.Store(nil)
+		err := msh.Open()
+		require.Nil(t, err)
+		err = msh.Store(nil)
 		assert.NotNil(t, err, "expected error because database is not initialized")
 	})
 
@@ -197,8 +197,9 @@ func TestMongoStorageHandler_Store(t *testing.T) {
 			DatabaseName:   "test",
 			CollectionName: "test",
 		}
-		msh.Open()
-		err := msh.Store(nil)
+		err := msh.Open()
+		require.Nil(t, err)
+		err = msh.Store(nil)
 		assert.NotNil(t, err, "expect error because collection is not initialized")
 	})
 
@@ -220,8 +221,9 @@ func TestMongoStorageHandler_Store(t *testing.T) {
 			DatabaseName:   "test",
 			CollectionName: "test",
 		}
-		msh.Open()
-		err := msh.Store(nil)
+		err := msh.Open()
+		require.Nil(t, err)
+		err = msh.Store(nil)
 		assert.NotNil(t, err, "expect error because insert throws error")
 	})
 
@@ -233,8 +235,9 @@ func TestMongoStorageHandler_Store(t *testing.T) {
 			DatabaseName:   "test",
 			CollectionName: "test",
 		}
-		msh.Open()
-		err := msh.Store(nil)
+		err := msh.Open()
+		require.Nil(t, err)
+		err = msh.Store(nil)
 		assert.Nil(t, err, "expect no error on valid store")
 	})
 }

@@ -8,7 +8,7 @@ import (
 )
 
 type MongoCollectionWrapper struct {
-	Collection *mongo.Collection
+	Collection MongoCollection
 }
 
 func (mcw *MongoCollectionWrapper) InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
