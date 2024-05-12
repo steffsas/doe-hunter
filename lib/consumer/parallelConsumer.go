@@ -35,7 +35,6 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(kpc.ConcurrentConsumer)
 
 	// context for shutdown
 	ctx, cancel := context.WithCancel(ctx)
@@ -51,13 +50,18 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 
 		if err != nil {
 			logrus.Errorf("failed to create consumer number %d", i)
-			return
+			cancel()
+			break
 		}
 
 		if consumer == nil {
 			logrus.Errorf("got nil consumer number %d", i)
-			return fmt.Errorf("got nil consumer")
+			err = fmt.Errorf("got nil consumer")
+			cancel()
+			break
 		}
+
+		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
@@ -65,7 +69,7 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 			if err != nil {
 				// TODO restart consumer?
 				logrus.Errorf("failed to consume topic %s: %v", topic, err)
-				return
+				cancel()
 			}
 			consumer.Close()
 		}()
