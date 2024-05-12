@@ -16,35 +16,38 @@ const DEFAULT_DDR_CONSUME_TOPIC = "ddr-scan"
 const DEFAULT_DDR_CONSUME_GROUP = "ddr-scan-group"
 const DEFAULT_DDR_CONCURRENT_CONSUMER = 10
 
-type DDRScanConsumeHandler struct {
+type DDRScanEventHandler struct {
 	EventProcessHandler
+
+	QueryHandler query.ConventionalDNSQueryHandler
 }
 
-func (ddr *DDRScanConsumeHandler) Consume(msg *kafka.Message, storage storage.StorageHandler) {
+func (ddr *DDRScanEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) (err error) {
 	if msg == nil {
 		logrus.Warn("received nil message, nothing to consume")
-		return
+		return nil
 	}
 
 	scan := &scan.DDRScan{}
-	err := json.Unmarshal(msg.Value, scan)
+	err = json.Unmarshal(msg.Value, scan)
 	if err != nil {
 		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(scan).String())
-		return
+		return nil
 	}
 
 	logrus.Infof("received DDR scan %s of host %s with port %d", scan.Meta.ScanID, scan.Scan.Host, scan.Scan.Port)
 
 	// prepare query
-	qh := query.NewDDRQueryHandler()
-	qh.QueryObj = scan.Scan
+	ddr.QueryHandler.QueryObj = scan.Scan
 
 	// execute query
 	scan.Meta.SetStarted()
-	res, err := qh.Query()
+	res, err := ddr.QueryHandler.Query()
 	scan.Meta.SetFinished()
 
 	scan.Result = *res
+
+	// TODO store results with storage handler
 
 	if err != nil {
 		logrus.Errorf("failed to query %s: %v", scan.Meta.ScanID, err)
@@ -55,6 +58,8 @@ func (ddr *DDRScanConsumeHandler) Consume(msg *kafka.Message, storage storage.St
 		// schedule DoE scans
 		logrus.Infof("scheduling DoE scans for %s --> TBD", scan.Meta.ScanID)
 	}
+
+	return
 }
 
 func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
@@ -62,7 +67,7 @@ func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		config.ConsumerGroup = DEFAULT_DDR_CONSUME_GROUP
 	}
 
-	ph := &DDRScanConsumeHandler{}
+	ph := &DDRScanEventHandler{}
 
 	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
 
