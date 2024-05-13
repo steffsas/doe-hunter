@@ -6,9 +6,15 @@ import (
 	"github.com/miekg/dns"
 )
 
+type QueryResponse struct {
+	DNSResponse
+}
+
+type QueryHandler interface {
+	Query(query *DNSQuery) (res *QueryResponse, err error)
+}
+
 type DNSResponse struct {
-	// query message
-	QueryMsg *dns.Msg `json:"query_msg"`
 	// Response is the DNS response
 	ResponseMsg *dns.Msg `json:"response"`
 	// RTT is the round-trip time

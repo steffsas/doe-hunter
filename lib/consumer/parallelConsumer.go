@@ -25,6 +25,11 @@ type KafkaParallelConsumer struct {
 	ConcurrentConsumer int
 }
 
+type KafkaParallelConsumerConfig struct {
+	*KafkaParallelEventConsumerConfig
+	*KafkaConsumerConfig
+}
+
 func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (err error) {
 	if kpc.ConcurrentConsumer <= 0 {
 		return fmt.Errorf("invalid concurrent consumer number %d", kpc.ConcurrentConsumer)

@@ -74,9 +74,6 @@ func GetPathParamFromDoHPath(uri string) (path string, param string, err error) 
 type DoHQuery struct {
 	DNSQuery
 
-	// HttpHandler is an interface to execute HTTP requests
-	HttpHandler HttpHandler
-
 	// TLS configuration (defaults to nil which means basic TLS configuration)
 	TLSConfig *tls.Config `json:"tls_config"`
 
@@ -94,65 +91,80 @@ type DoHQuery struct {
 }
 
 type DoHQueryResponse struct {
-	DNSResponse
+	Response     *DNSResponse   `json:"response"`
+	Query        *DoHQuery      `json:"query"`
 	HttpRequest  *http.Request  `json:"http_request"`
 	HttpResponse *http.Response `json:"http_response"`
 }
 
-func (q *DoHQuery) Query() (response *DoHQueryResponse, err error) {
-	response = &DoHQueryResponse{}
-	response.QueryMsg = q.QueryMsg
+type DoHQueryHandler struct {
+	// HttpHandler is an interface to execute HTTP requests
+	HttpHandler HttpHandler
+}
 
-	if q.Method != HTTP_GET && q.Method != HTTP_POST {
-		return response, fmt.Errorf("method must be either %s or %s", HTTP_GET, HTTP_POST)
+func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHQueryResponse, err error) {
+	res = &DoHQueryResponse{}
+	res.Response = &DNSResponse{}
+	res.Query = query
+
+	if query == nil {
+		return res, ErrQueryMsgNil
 	}
 
-	if q.Host == "" {
-		return response, ErrHostEmpty
+	if query.QueryMsg == nil {
+		return res, ErrEmptyQueryMessage
 	}
 
-	if q.HTTPVersion != HTTP_VERSION_1 && q.HTTPVersion != HTTP_VERSION_2 && q.HTTPVersion != HTTP_VERSION_3 {
-		return response, fmt.Errorf("HTTP version must be either %s, %s or %s", HTTP_VERSION_1, HTTP_VERSION_2, HTTP_VERSION_3)
+	if query.Method != HTTP_GET && query.Method != HTTP_POST {
+		return res, fmt.Errorf("method must be either %s or %s", HTTP_GET, HTTP_POST)
 	}
 
-	if q.Port >= 65536 || q.Port < 0 {
-		return response, fmt.Errorf("invalid port %d", q.Port)
+	if query.Host == "" {
+		return res, ErrHostEmpty
 	}
 
-	if q.URI == "" {
-		return response, fmt.Errorf("URI is empty")
+	if query.HTTPVersion != HTTP_VERSION_1 && query.HTTPVersion != HTTP_VERSION_2 && query.HTTPVersion != HTTP_VERSION_3 {
+		return res, fmt.Errorf("HTTP version must be either %s, %s or %s", HTTP_VERSION_1, HTTP_VERSION_2, HTTP_VERSION_3)
 	}
 
-	if q.QueryMsg == nil {
-		return response, ErrEmptyQueryMessage
+	if query.Port >= 65536 || query.Port < 0 {
+		return res, fmt.Errorf("invalid port %d", query.Port)
 	}
 
-	if q.HttpHandler == nil {
-		return response, fmt.Errorf("httpClient is nil")
+	if query.URI == "" {
+		return res, fmt.Errorf("URI is empty")
 	}
 
-	if q.Timeout >= 0 {
-		q.HttpHandler.SetTimeout(q.Timeout)
+	if query.QueryMsg == nil {
+		return res, ErrEmptyQueryMessage
+	}
+
+	if qh.HttpHandler == nil {
+		return res, fmt.Errorf("httpClient is nil")
+	}
+
+	if query.Timeout >= 0 {
+		qh.HttpHandler.SetTimeout(query.Timeout)
 	} else {
-		q.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT)
+		qh.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT)
 	}
 
 	// set the transport based on the HTTP version
-	switch q.HTTPVersion {
+	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
-		q.HttpHandler.SetTransport(&http.Transport{
-			TLSClientConfig: q.TLSConfig,
+		qh.HttpHandler.SetTransport(&http.Transport{
+			TLSClientConfig: query.TLSConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
 			TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
 		})
 	case HTTP_VERSION_2:
-		q.HttpHandler.SetTransport(&http2.Transport{
-			TLSClientConfig: q.TLSConfig,
+		qh.HttpHandler.SetTransport(&http2.Transport{
+			TLSClientConfig: query.TLSConfig,
 			AllowHTTP:       true,
 		})
 	case HTTP_VERSION_3:
-		q.HttpHandler.SetTransport(&http3.RoundTripper{
-			TLSClientConfig: q.TLSConfig,
+		qh.HttpHandler.SetTransport(&http3.RoundTripper{
+			TLSClientConfig: query.TLSConfig,
 			QUICConfig:      &quic.Config{},
 		})
 	}
@@ -164,38 +176,38 @@ func (q *DoHQuery) Query() (response *DoHQueryResponse, err error) {
 	)
 
 	// let's calculate params first
-	path, param, err := GetPathParamFromDoHPath(q.URI)
+	path, param, err := GetPathParamFromDoHPath(query.URI)
 	if err != nil {
-		return response, err
+		return res, err
 	}
 
 	// Set DNS ID as zero according to RFC8484 (cache friendly)
-	buf, err = q.QueryMsg.Pack()
+	buf, err = query.QueryMsg.Pack()
 	if err != nil {
-		return response, err
+		return res, err
 	}
 
 	// see https://datatracker.ietf.org/doc/html/rfc8484#section-6
 	if len(buf) > 65535 {
-		return response, fmt.Errorf("DNS query message too large, got %d bytes but max is 65535", len(buf))
+		return res, fmt.Errorf("DNS query message too large, got %d bytes but max is 65535", len(buf))
 	}
 
 	b64 = make([]byte, base64.RawURLEncoding.EncodedLen(len(buf)))
 	base64.RawURLEncoding.Encode(b64, buf)
 
-	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(q.Host, q.Port))
+	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(query.Host, query.Port))
 	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
 
-	if q.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
+	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
 		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
-		response.HttpRequest = httpReq
-		response.ResponseMsg, response.HttpResponse, response.RTT, err = q.doHttpRequest(httpReq)
+		res.HttpRequest = httpReq
+		res.Response.ResponseMsg, res.HttpResponse, res.Response.RTT, err = qh.doHttpRequest(httpReq)
 
 		return
-	} else if q.POSTFallback || q.Method == HTTP_POST {
+	} else if query.POSTFallback || query.Method == HTTP_POST {
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
 		body := bytes.NewReader(buf)
@@ -204,15 +216,15 @@ func (q *DoHQuery) Query() (response *DoHQueryResponse, err error) {
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
 
-		response.HttpRequest = httpReq
-		response.ResponseMsg, response.HttpResponse, response.RTT, err = q.doHttpRequest(httpReq)
+		res.HttpRequest = httpReq
+		res.Response.ResponseMsg, res.HttpResponse, res.Response.RTT, err = qh.doHttpRequest(httpReq)
 		return
 	}
 
-	return response, fmt.Errorf("URI too long for GET request (%d characters), POST fallback disabled", len(fullGetURI))
+	return res, fmt.Errorf("URI too long for GET request (%d characters), POST fallback disabled", len(fullGetURI))
 }
 
-func (q *DoHQuery) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *http.Response, rtt time.Duration, err error) {
+func (q *DoHQueryHandler) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *http.Response, rtt time.Duration, err error) {
 	begin := time.Now()
 	httpRes, err = q.HttpHandler.Do(httpReq)
 
@@ -247,9 +259,6 @@ func (q *DoHQuery) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *ht
 
 func NewDoHQuery() (q *DoHQuery) {
 	q = &DoHQuery{
-		HttpHandler: &defaultHttpHandler{
-			httpClient: &http.Client{},
-		},
 		Method:       HTTP_GET,
 		POSTFallback: true,
 		HTTPVersion:  HTTP_VERSION_2,
@@ -257,6 +266,16 @@ func NewDoHQuery() (q *DoHQuery) {
 
 	q.Timeout = DEFAULT_DOH_TIMEOUT
 	q.Port = DEFAULT_DOH_PORT
+
+	return
+}
+
+func NewDoHQueryHandler() (qh *DoHQueryHandler) {
+	qh = &DoHQueryHandler{
+		HttpHandler: &defaultHttpHandler{
+			httpClient: &http.Client{},
+		},
+	}
 
 	return
 }

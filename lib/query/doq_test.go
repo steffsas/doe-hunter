@@ -16,6 +16,7 @@ import (
 	"github.com/quic-go/quic-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 const dnsGoogle = "dns.google."
@@ -36,39 +37,73 @@ func TestDoQQuery_RealWorld(t *testing.T) {
 		qm := new(dns.Msg)
 		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
+		qh := query.NewDoQQueryHandler()
+
 		q := query.NewDoQQuery()
 		q.Host = ipv4Host
 		q.QueryMsg = qm
 		q.Port = 853
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
-		assert.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.GreaterOrEqual(t, res.Response.RTT, 0*time.Millisecond, "response's RTT should not be nil")
+		assert.NotNil(t, res.Response.ResponseMsg, "response should not be nil")
 		assert.Nil(t, err, "error should be nil")
 	})
 
-	// t.Run("IPv6", func(t *testing.T) {
-	// 	qm := new(dns.Msg)
-	// 	qm.SetQuestion(dnsGoogle, dns.TypeA)
+	t.Run("IPv6", func(t *testing.T) {
+		qm := new(dns.Msg)
+		qm.SetQuestion(dnsGoogle, dns.TypeA)
 
-	// 	// TODO check for valid IPv6 endpoint with valid cert
-	// 	tlsConfig := &tls.Config{
-	// 		InsecureSkipVerify: true,
-	// 	}
+		qh := query.NewDoQQueryHandler()
 
-	// 	q := query.NewDoQQuery()
-	// 	q.Host = "2a10:50c0::1:ff"
-	// 	q.QueryMsg = qm
-	// 	q.TLSConfig = tlsConfig
-	// 	q.Port = 853
+		// TODO check for valid IPv6 endpoint with valid cert
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
 
-	// 	res, err := q.Query()
+		q := query.NewDoQQuery()
+		q.Host = "2a10:50c0::1:ff"
+		q.QueryMsg = qm
+		q.TLSConfig = tlsConfig
+		q.Port = 853
 
-	// 	fmt.Println(err)
+		res, err := qh.Query(q)
 
-	// 	assert.NotNil(t, res, "response should not be nil")
-	// 	assert.Nil(t, err, "error should be nil")
-	// })
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.GreaterOrEqual(t, res.Response.RTT, 0*time.Millisecond, "response's RTT should not be nil")
+		assert.NotNil(t, res.Response.ResponseMsg, "response should not be nil")
+		assert.Nil(t, err, "error should be nil")
+	})
+}
+
+func TestDoQQuery_Response(t *testing.T) {
+	response := new(dns.Msg)
+	quicConnection := getMockedQuicConnection(response, nil)
+	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
+
+	qm := new(dns.Msg)
+	qm.SetQuestion(dnsGoogle, dns.TypeA)
+
+	qh := query.NewDoQQueryHandler()
+	qh.DialHandler = dialHandler
+
+	q := query.NewDoQQuery()
+	q.Host = ipv4Host
+	q.QueryMsg = qm
+	q.Port = 853
+
+	res, err := qh.Query(q)
+
+	require.NotNil(t, res, "response should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.NotNil(t, res.Response.ResponseMsg, "response should not be nil")
+	assert.GreaterOrEqual(t, res.Response.RTT, 0*time.Millisecond, "response's RTT should not be nil")
+	assert.NotNil(t, res.Query, "query should be attached")
+	assert.Nil(t, err, "error should be nil")
 }
 
 func TestDoQQuery_CustomTLSConfig(t *testing.T) {
@@ -79,6 +114,9 @@ func TestDoQQuery_CustomTLSConfig(t *testing.T) {
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
+	qh := query.NewDoQQueryHandler()
+	qh.DialHandler = dialHandler
+
 	tlsConfig := &tls.Config{
 		ServerName: "dns.google",
 	}
@@ -87,12 +125,14 @@ func TestDoQQuery_CustomTLSConfig(t *testing.T) {
 	q.Host = ipv4Host
 	q.QueryMsg = qm
 	q.Port = 853
-	q.DialHandler = dialHandler
+
 	q.TLSConfig = tlsConfig
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
-	assert.NotNil(t, res, "response should not be nil")
+	require.NotNil(t, res, "response should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.NotNil(t, res.Response.ResponseMsg, "response should not be nil")
 	assert.Nil(t, err, "error should be nil")
 }
 
@@ -100,6 +140,9 @@ func TestDoQQuery_CustomQicConfigOverrideTimeout(t *testing.T) {
 	response := new(dns.Msg)
 	quicConnection := getMockedQuicConnection(response, nil)
 	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
+
+	qh := query.NewDoQQueryHandler()
+	qh.DialHandler = dialHandler
 
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
@@ -112,12 +155,11 @@ func TestDoQQuery_CustomQicConfigOverrideTimeout(t *testing.T) {
 	q.Host = ipv4Host
 	q.QueryMsg = qm
 	q.Port = 853
-	q.DialHandler = dialHandler
 	q.QuicConfig = quicConfig
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
-	assert.Equal(t, q.Timeout, q.QuicConfig.HandshakeIdleTimeout, "quic timeout should be reset on custom config")
+	assert.Equal(t, res.Query.Timeout, q.QuicConfig.HandshakeIdleTimeout, "quic timeout should be reset on custom config")
 	assert.NotNil(t, res, "response should not be nil")
 	assert.Nil(t, err, "error should be nil")
 }
@@ -127,6 +169,9 @@ func TestDoQQuery_FailSafelyOnDialError(t *testing.T) {
 	quicConnection := getMockedQuicConnection(nil, dialErr)
 	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
 
+	qh := query.NewDoQQueryHandler()
+	qh.DialHandler = dialHandler
+
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
@@ -134,19 +179,23 @@ func TestDoQQuery_FailSafelyOnDialError(t *testing.T) {
 	q.Host = ipv4Host
 	q.QueryMsg = qm
 	q.Port = 853
-	q.DialHandler = dialHandler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "should dial error error")
 	assert.Contains(t, err.Error(), dialErr.Error(), "error message should contain opening quic session to")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res, "response should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "DNS response should be nil")
 }
 
 func TestDoQQuery_EmptyResponseError(t *testing.T) {
 	quicConnection := getMockedQuicConnection(nil, nil)
 	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
 
+	qh := query.NewDoQQueryHandler()
+	qh.DialHandler = dialHandler
+
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
@@ -154,12 +203,13 @@ func TestDoQQuery_EmptyResponseError(t *testing.T) {
 	q.Host = ipv4Host
 	q.QueryMsg = qm
 	q.Port = 853
-	q.DialHandler = dialHandler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "should dial error error")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res, "response should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "DNS response should be nil")
 }
 
 func getMockedQuicConnection(response *dns.Msg, err error) (conn query.QuicConn) {

@@ -10,24 +10,24 @@ type DDRScanMetaInformation struct {
 }
 
 type DDRScan struct {
-	Meta   DDRScanMetaInformation        `json:"meta"`
-	Scan   query.ConventionalDNSQuery    `json:"scan"`
-	Result query.ConventionalDNSResponse `json:"result"`
+	Meta   *DDRScanMetaInformation        `json:"meta"`
+	Query  *query.ConventionalDNSQuery    `json:"query"`
+	Result *query.ConventionalDNSResponse `json:"result"`
 }
 
-func NewDefaultDDRScan(host string, port int, scheduleDoEScans bool) *DDRScan {
+func NewDDRScan(host string, port int, scheduleDoEScans bool) *DDRScan {
 	defaultQuery := query.NewDDRQuery()
 	defaultQuery.Host = host
 	defaultQuery.Port = port
 
 	ddrScan := &DDRScan{
-		Meta: DDRScanMetaInformation{
+		Meta: &DDRScanMetaInformation{
 			ScanMetaInformation: ScanMetaInformation{
 				Errors: []error{},
 			},
 			ScheduleDoEScans: scheduleDoEScans,
 		},
-		Scan: *defaultQuery,
+		Query: defaultQuery,
 	}
 
 	ddrScan.Meta.GenerateScanID()
