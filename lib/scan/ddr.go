@@ -20,7 +20,7 @@ func NewDDRScan(host string, port int, scheduleDoEScans bool) *DDRScan {
 	defaultQuery.Host = host
 	defaultQuery.Port = port
 
-	ddrScan := &DDRScan{
+	scan := &DDRScan{
 		Meta: &DDRScanMetaInformation{
 			ScanMetaInformation: ScanMetaInformation{
 				Errors: []error{},
@@ -30,7 +30,7 @@ func NewDDRScan(host string, port int, scheduleDoEScans bool) *DDRScan {
 		Query: defaultQuery,
 	}
 
-	ddrScan.Meta.GenerateScanID()
+	scan.Meta.GenerateScanID()
 
-	return ddrScan
+	return scan
 }

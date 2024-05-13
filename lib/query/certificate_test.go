@@ -43,7 +43,9 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		q.Host = "www.google.de"
 		q.Port = 443
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
@@ -54,11 +56,11 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		q := query.NewCertificateQuery()
 		q.Host = "142.250.185.227" // www.google.de
 		q.Port = 443
-		q.TLSConfig = &tls.Config{
-			ServerName: "www.google.de", // required for IP addresses SNI
-		}
+		q.SkipCertificateVerify = true
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
@@ -73,9 +75,10 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 	// 	q.TLSConfig = &tls.Config{
 	// 		ServerName: "www.google.de", // required for IP addresses SNI
 	// 	}
-
-	// 	res, err := q.Query()
-
+	//
+	// qh := query.NewCertificateQueryHandler()
+	// res, err := qh.Query(q)
+	//
 	// 	assert.Nil(t, err, "should not have returned an error")
 	// 	assert.NotNil(t, res, "should have returned a response")
 	// 	assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
@@ -93,7 +96,9 @@ func TestCertificateQuery_ShouldNotFailOnNoCertificates(t *testing.T) {
 	q.Host = localhost
 	q.Port = 8080
 
-	res, err := q.Query()
+	qh := query.NewCertificateQueryHandler()
+
+	res, err := qh.Query(q)
 
 	assert.Nil(t, err, "should not have returned an error")
 	assert.NotNil(t, res, "should not have returned a response")
@@ -111,7 +116,9 @@ func TestCertificateQuery_Host(t *testing.T) {
 		q.Port = 443
 		q.Host = localhost
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
@@ -127,7 +134,9 @@ func TestCertificateQuery_Host(t *testing.T) {
 		q.DialHandler = mockedDial
 		q.Host = ""
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should fail if host is empty")
 		assert.NotNil(t, res, "should have returned a response")
@@ -147,7 +156,9 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 443
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should fail if port is negative")
 		assert.NotNil(t, res, "should have returned a response")
@@ -160,7 +171,9 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = -1
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should fail if port is negative")
 		assert.NotNil(t, res, "should have returned a response")
@@ -173,7 +186,9 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 0
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should fail if port is zero")
 		assert.NotNil(t, res, "should have returned a response")
@@ -185,7 +200,9 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.DialHandler = mockedDial
 		q.Host = localhost
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should fail if port is not provided")
 		assert.NotNil(t, res, "should have returned a response")
@@ -198,7 +215,9 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 70000
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should fail if port is too large")
 		assert.NotNil(t, res, "should have returned a response")
@@ -219,12 +238,13 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 		q.Port = 8080
 		q.Timeout = -1
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error because it should be set to default")
 		assert.NotNil(t, res, "should have returned a response")
 		assert.Equal(t, query.TLS_DEFAULT_TIMEOUT, q.Timeout, "timeout should be set to default")
-		assert.Equal(t, query.TLS_DEFAULT_TIMEOUT, q.Dialer.Timeout, "timeout should be set to default in dialer")
 	})
 
 	t.Run("zero timeout", func(t *testing.T) {
@@ -234,11 +254,12 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 		q.Port = 8080
 		q.Timeout = 0
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error because zero means no timeout")
 		assert.NotNil(t, res, "should have returned a response")
-		assert.Equal(t, q.Timeout, q.Dialer.Timeout, "timeout should be set to zero in dialer")
 	})
 }
 
@@ -255,7 +276,9 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 		q.Host = localhost
 		q.Port = 8080
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error because default handler should be used")
 		assert.NotNil(t, res, "should have returned a response")
@@ -268,7 +291,9 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 		q.Port = 8080
 		q.DialHandler = nil
 
-		res, err := q.Query()
+		qh := query.NewCertificateQueryHandler()
+
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "should have returned an error on nil dial handler")
 		assert.NotNil(t, res, "should have returned a response")

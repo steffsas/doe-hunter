@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
+	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
@@ -24,7 +26,7 @@ const ENV_KAFKA_CONSUMER_GROUP = "DOE_KAFKA_CONSUMER_GROUP"
 // if set to a value >= 1, multiple consumers will be started (optional, defaults to 1)
 const ENV_PARALLEL_CONSUMER = "DOE_PARALLEL_CONSUMER"
 
-const DEFAULT_KAFKA_SERVER = "localhost:9092"
+const DEFAULT_KAFKA_SERVER = "localhost:29092"
 const DEFAULT_PARALLEL_CONSUMER = 1 // no parallelism
 
 // nolint: gochecknoglobals
@@ -78,28 +80,31 @@ func main() {
 	// 	}
 	// }
 
-	// TODO only for tests
-	kafkaConsumerGroup := consumer.DEFAULT_DDR_CONSUMER_GROUP
+	scannerTypeEnv := os.Args[1]
+	isConsumer := scannerTypeEnv == "consumer"
 	protocolType := "ddr"
-	isConsumer := true
+	kafkaServer := "localhost:29092"
+	kafkaConsumerGroup := "ddr-scan"
 	parallelConsumer := 1
-	kafkaServer := DEFAULT_KAFKA_SERVER
-	scannerTypeEnv := "consumer"
 
-	logrus.Infof("starting %s for protocol %s with kafka server %s and consumer group %s", scannerTypeEnv, protocolType, kafkaServer, kafkaConsumerGroup)
-
-	storageHandler := &storage.EmptyStorageHandler{}
+	logrus.Infof("starting %s for protocol %s with kafka server %s", scannerTypeEnv, protocolType, kafkaServer)
 
 	switch protocolType {
 	case "ddr":
 		if isConsumer {
+			// create the storage handler
+			storageHandler := storage.NewDefaultMongoStorageHandler(ctx, "ddr-scans")
+
 			// start the DDR consumer
 			if parallelConsumer > 1 {
 				logrus.Infof("starting %d parallel DDR consumers", parallelConsumer)
-				cons, err := consumer.NewKafkaDDREventConsumer(&consumer.KafkaConsumerConfig{
-					Server:        kafkaServer,
-					ConsumerGroup: kafkaConsumerGroup,
-				}, storageHandler)
+				cons, err := consumer.NewKafkaDDREventConsumer(
+					&consumer.KafkaConsumerConfig{
+						Server:        kafkaServer,
+						ConsumerGroup: kafkaConsumerGroup,
+					},
+					storageHandler,
+				)
 
 				if err != nil {
 					logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -114,10 +119,13 @@ func main() {
 				cons.Close()
 			} else {
 				logrus.Info("starting single DDR consumer")
-				cons, err := consumer.NewKafkaDDREventConsumer(&consumer.KafkaConsumerConfig{
-					Server:        kafkaServer,
-					ConsumerGroup: kafkaConsumerGroup,
-				}, storageHandler)
+				cons, err := consumer.NewKafkaDDREventConsumer(
+					&consumer.KafkaConsumerConfig{
+						Server:        kafkaServer,
+						ConsumerGroup: kafkaConsumerGroup,
+					},
+					storageHandler,
+				)
 
 				if err != nil {
 					logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -133,7 +141,22 @@ func main() {
 			}
 		} else {
 			// start the DDR producer
-			logrus.Fatal("DDR producer not implemented yet")
+			config := &producer.DDRProducerConfig{
+				KafkaProducerConfig: producer.KafkaProducerConfig{
+					Server:  kafkaServer,
+					Timeout: 5 * time.Millisecond,
+					Acks:    "1",
+				},
+				Topic:         producer.DEFAULT_DDR_TOPIC,
+				MaxPartitions: 1,
+			}
+			producer, err := producer.NewDDRProducer(config)
+			if err != nil {
+				logrus.Fatalf("failed to create DDR producer: %v", err)
+				return
+			}
+			producer.Produce()
+			producer.Close()
 		}
 	case "doh":
 		// start the DOH scanner

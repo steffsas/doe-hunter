@@ -74,8 +74,7 @@ func GetPathParamFromDoHPath(uri string) (path string, param string, err error) 
 type DoHQuery struct {
 	DNSQuery
 
-	// TLS configuration (defaults to nil which means basic TLS configuration)
-	TLSConfig *tls.Config `json:"tls_config"`
+	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 
 	// the URI path for the DoH query, usually /dns-query{?dns}
 	URI string `json:"uri"`
@@ -90,7 +89,7 @@ type DoHQuery struct {
 	HTTPVersion string `json:"http_version"`
 }
 
-type DoHQueryResponse struct {
+type DoHResponse struct {
 	Response     *DNSResponse   `json:"response"`
 	Query        *DoHQuery      `json:"query"`
 	HttpRequest  *http.Request  `json:"http_request"`
@@ -102,8 +101,8 @@ type DoHQueryHandler struct {
 	HttpHandler HttpHandler
 }
 
-func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHQueryResponse, err error) {
-	res = &DoHQueryResponse{}
+func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err error) {
+	res = &DoHResponse{}
 	res.Response = &DNSResponse{}
 	res.Query = query
 
@@ -149,22 +148,27 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHQueryResponse, err er
 		qh.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT)
 	}
 
+	// set the TLS config
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: query.SkipCertificateVerify,
+	}
+
 	// set the transport based on the HTTP version
 	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
 		qh.HttpHandler.SetTransport(&http.Transport{
-			TLSClientConfig: query.TLSConfig,
+			TLSClientConfig: tlsConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
 			TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
 		})
 	case HTTP_VERSION_2:
 		qh.HttpHandler.SetTransport(&http2.Transport{
-			TLSClientConfig: query.TLSConfig,
+			TLSClientConfig: tlsConfig,
 			AllowHTTP:       true,
 		})
 	case HTTP_VERSION_3:
 		qh.HttpHandler.SetTransport(&http3.RoundTripper{
-			TLSClientConfig: query.TLSConfig,
+			TLSClientConfig: tlsConfig,
 			QUICConfig:      &quic.Config{},
 		})
 	}

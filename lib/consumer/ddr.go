@@ -78,7 +78,7 @@ func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storag
 	}
 
 	ph := &DDRProcessEventHandler{
-		QueryHandler: query.NewConventionalDNSQueryHandler(),
+		QueryHandler: query.NewDDRQueryHandler(),
 	}
 
 	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
