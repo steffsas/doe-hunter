@@ -15,10 +15,10 @@ const DEFAULT_DOT_TIMEOUT time.Duration = 5000 * time.Millisecond
 type DoTQuery struct {
 	DNSQuery
 
-	TLSConfig *tls.Config `json:"tls_config"`
+	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 }
 
-type DoTQueryResponse struct {
+type DoTResponse struct {
 	Response *DNSResponse `json:"response"`
 	Query    *DoTQuery    `json:"query"`
 }
@@ -27,8 +27,8 @@ type DoTQueryHandler struct {
 	QueryHandler QueryHandlerDNS
 }
 
-func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTQueryResponse, err error) {
-	res = &DoTQueryResponse{}
+func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTResponse, err error) {
+	res = &DoTResponse{}
 	res.Query = query
 	res.Response = &DNSResponse{}
 
@@ -52,11 +52,15 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTQueryResponse, err er
 		return res, fmt.Errorf("invalid port %d", query.Port)
 	}
 
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: query.SkipCertificateVerify,
+	}
+
 	res.Response.ResponseMsg, res.Response.RTT, err = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
 		query.QueryMsg, DNS_DOT_PROTOCOL,
 		query.Timeout,
-		query.TLSConfig,
+		tlsConfig,
 	)
 
 	return

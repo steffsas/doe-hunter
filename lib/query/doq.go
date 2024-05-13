@@ -44,11 +44,7 @@ type DoQResponse struct {
 type DoQQuery struct {
 	DNSQuery
 
-	// TLSConfig is the TLS configuration (defaults to nil which means basic TLS configuration)
-	TLSConfig *tls.Config `json:"tls_config"`
-	// QuicConfig is the QUIC configuration (defaults to nil which means basic QUIC configuration)
-	// The timeout will not be considered since it is given in this struct already and replaced.
-	QuicConfig *quic.Config `json:"quic_config"`
+	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 }
 
 type DoQQueryHandler struct {
@@ -82,22 +78,16 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 		return res, fmt.Errorf("invalid port %d", query.Port)
 	}
 
-	// set TLS config with default supported protocols
-	if query.TLSConfig == nil {
-		query.TLSConfig = &tls.Config{
-			NextProtos: DOQ_TLS_PROTOCOLS,
-		}
-	} else if query.TLSConfig.NextProtos == nil {
-		query.TLSConfig.NextProtos = DOQ_TLS_PROTOCOLS
+	tlsConfig := &tls.Config{
+		NextProtos:         DOQ_TLS_PROTOCOLS,
+		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
-	// set quic config with timeout
-	if query.QuicConfig == nil {
-		query.QuicConfig = &quic.Config{
-			HandshakeIdleTimeout: query.Timeout,
-		}
-	} else {
-		query.QuicConfig.HandshakeIdleTimeout = query.Timeout
+	if query.Timeout == 0 {
+		query.Timeout = DEFAULT_DOQ_TIMEOUT
+	}
+	quicConfig := &quic.Config{
+		HandshakeIdleTimeout: query.Timeout,
 	}
 
 	// measure some RTT
@@ -106,8 +96,8 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	session, err := qh.DialHandler.DialAddr(
 		context.Background(),
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
-		query.TLSConfig,
-		query.QuicConfig,
+		tlsConfig,
+		quicConfig,
 	)
 	if err != nil {
 		return res, err

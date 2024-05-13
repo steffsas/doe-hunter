@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/sirupsen/logrus"
 )
 
-const DEFAULT_KAFKA_SERVER = "localhost:9092"
-const DEFAULT_KAFKA_CONSUMER_GROUP = "default-consumer-group"
+const DEFAULT_KAFKA_SERVER = "localhost:29092"
+const DEFAULT_KAFKA_PRODUCER_GROUP = "default-consumer-group"
 const DEFAULT_KAFKA_WRITE_TIMEOUT = 1000 * time.Millisecond
 
 type EventProducer interface {
 	Produce(msg []byte) (err error)
+	Close()
 }
 
 type KafkaProducer interface {
@@ -29,12 +31,12 @@ type KafkaEventProducer struct {
 	Producer KafkaProducer
 }
 
-func (kep *KafkaEventProducer) Produce(msg []byte, topic string, partitions int) (err error) {
+func (kep *KafkaEventProducer) Produce(msg []byte, topic string, maxPartitions int) (err error) {
 	if kep.Producer == nil {
 		return errors.New("producer not initialized")
 	}
 
-	if partitions <= 0 {
+	if maxPartitions <= 0 {
 		return errors.New("invalid partition count")
 	}
 
@@ -46,12 +48,17 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string, partitions int)
 		return errors.New("message should not be empty")
 	}
 
-	randomPartition := rand.Int() % partitions
+	randomPartition := rand.Int() % maxPartitions
+
+	logrus.Infof("Producing message to topic %s", topic)
 
 	err = kep.Producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: int32(randomPartition)},
 		Value:          msg,
 	}, nil)
+
+	logrus.Info("Message produced")
+	logrus.Error(err)
 
 	return
 }
@@ -78,7 +85,6 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers":  config.Server,
 		"message.timeout.ms": int(config.Timeout.Milliseconds()),
-		"acks":               "1",
 	})
 	if err != nil {
 		return nil, err

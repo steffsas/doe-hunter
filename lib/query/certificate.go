@@ -31,27 +31,29 @@ func (d *defaultDialHandler) DialWithDialer(dialer *net.Dialer, network string, 
 
 type CertificateQuery struct {
 	DialHandler DialHandler
-	// Dialer for the TLS handshake. Timeout is replaced by the query timeout given in this struct.
-	Dialer *net.Dialer
+
+	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 	// Host is the host for the dialer (required)
 	Host string `json:"host"`
 	// Port is the port for the dialer (default: 443)
 	Port int `json:"port"`
 	// Protocol is the protocol for the dialer (default: "tcp")
 	Protocol string `json:"protocol"`
-	// TLS Config is the TLS configuration (defaults to nil which means basic TLS configuration and verification)
-	TLSConfig *tls.Config `json:"tls_config"`
 	// Timeout is the timeout in ms (default: 2500)
 	Timeout time.Duration `json:"timeout"`
 }
 
-type CertificateQueryResponse struct {
+type CertificateQueryHandler struct {
+	QueryHandler DialHandler
+}
+
+type CertificateResponse struct {
 	// Certificate is the certificate
 	Certificates []*x509.Certificate `json:"certificates"`
 }
 
-func (q *CertificateQuery) Query() (response *CertificateQueryResponse, err error) {
-	response = &CertificateQueryResponse{}
+func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *CertificateResponse, err error) {
+	response = &CertificateResponse{}
 
 	if q.Host == "" {
 		err = fmt.Errorf("host is empty")
@@ -77,19 +79,15 @@ func (q *CertificateQuery) Query() (response *CertificateQueryResponse, err erro
 		q.Timeout = TLS_DEFAULT_TIMEOUT
 	}
 
-	if q.TLSConfig == nil {
-		q.TLSConfig = &tls.Config{}
+	dialer := &net.Dialer{
+		Timeout: q.Timeout,
 	}
 
-	if q.Dialer == nil {
-		q.Dialer = &net.Dialer{
-			Timeout: q.Timeout,
-		}
-	} else {
-		q.Dialer.Timeout = q.Timeout
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: q.SkipCertificateVerify,
 	}
 
-	conn, err := q.DialHandler.DialWithDialer(q.Dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), q.TLSConfig)
+	conn, err := q.DialHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 	if err != nil {
 		err = fmt.Errorf("failed to dial: %w", err)
 		return
@@ -108,7 +106,14 @@ func NewCertificateQuery() (q *CertificateQuery) {
 
 	q.Protocol = TLS_PROTOCOL_TCP
 	q.Timeout = TLS_DEFAULT_TIMEOUT
-	q.Dialer = &net.Dialer{}
+
+	return
+}
+
+func NewCertificateQueryHandler() (qh *CertificateQueryHandler) {
+	qh = &CertificateQueryHandler{
+		QueryHandler: &defaultDialHandler{},
+	}
 
 	return
 }
