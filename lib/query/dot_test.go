@@ -1,7 +1,6 @@
 package query_test
 
 import (
-	"crypto/tls"
 	"testing"
 	"time"
 
@@ -32,28 +31,29 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 		assert.NotNil(t, res.Response.ResponseMsg, "response DNS msg should not be nil")
 	})
 
-	t.Run("IPv6", func(t *testing.T) {
-		qm := new(dns.Msg)
-		qm.SetQuestion(dnsGoogle, dns.TypeA)
+	// exclude IPv6 test since it does not work on GitHub Actions
+	// t.Run("IPv6", func(t *testing.T) {
+	// 	qm := new(dns.Msg)
+	// 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
-		qh := query.NewDoTQueryHandler()
+	// 	qh := query.NewDoTQueryHandler()
 
-		q := query.NewDoTQuery()
-		q.Host = "2a10:50c0::1:ff"
-		q.QueryMsg = qm
+	// 	q := query.NewDoTQuery()
+	// 	q.Host = "2a10:50c0::1:ff"
+	// 	q.QueryMsg = qm
 
-		// TODO use endpoint with valid certificate
-		q.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
+	// 	// TODO use endpoint with valid certificate
+	// 	q.TLSConfig = &tls.Config{
+	// 		InsecureSkipVerify: true,
+	// 	}
 
-		res, err := qh.Query(q)
+	// 	res, err := qh.Query(q)
 
-		assert.Nil(t, err, "error should be nil")
-		require.NotNil(t, res, "response should not be nil")
-		require.NotNil(t, res.Response, "response should not be nil")
-		assert.NotNil(t, res.Response.ResponseMsg, "response DNS msg should not be nil")
-	})
+	// 	assert.Nil(t, err, "error should be nil")
+	// 	require.NotNil(t, res, "response should not be nil")
+	// 	require.NotNil(t, res.Response, "response should not be nil")
+	// 	assert.NotNil(t, res.Response.ResponseMsg, "response DNS msg should not be nil")
+	// })
 }
 
 func TestDoTQuery_EmptyHost(t *testing.T) {
