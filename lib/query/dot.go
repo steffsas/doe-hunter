@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -16,57 +15,65 @@ const DEFAULT_DOT_TIMEOUT time.Duration = 5000 * time.Millisecond
 type DoTQuery struct {
 	DNSQuery
 
-	TLSConfig    *tls.Config `json:"tls_config"`
-	QueryHandler QueryHandlerDNS
+	TLSConfig *tls.Config `json:"tls_config"`
 }
 
 type DoTQueryResponse struct {
-	DNSResponse
+	Response *DNSResponse `json:"response"`
+	Query    *DoTQuery    `json:"query"`
 }
 
-func (q *DoTQuery) Query() (response *DoTQueryResponse, err error) {
-	response = &DoTQueryResponse{}
-	response.QueryMsg = q.QueryMsg
+type DoTQueryHandler struct {
+	QueryHandler QueryHandlerDNS
+}
 
-	if q.Host == "" {
-		return response, ErrHostEmpty
+func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTQueryResponse, err error) {
+	res = &DoTQueryResponse{}
+	res.Query = query
+	res.Response = &DNSResponse{}
+
+	if query == nil {
+		return res, ErrQueryNil
 	}
 
-	if q.Port >= 65536 || q.Port < 0 {
-		return response, fmt.Errorf("invalid port %d", q.Port)
+	if query.QueryMsg == nil {
+		return res, ErrQueryMsgNil
 	}
 
-	if q.QueryMsg == nil {
-		return response, ErrQueryMsgNil
+	if qh.QueryHandler == nil {
+		return res, ErrQueryHandlerNil
 	}
 
-	if q.QueryHandler == nil {
-		return response, ErrQueryHandlerNil
+	if query.Host == "" {
+		return res, ErrHostEmpty
 	}
 
-	var res *dns.Msg
-	res, response.RTT, err = q.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.QueryMsg, DNS_DOT_PROTOCOL, q.Timeout, q.TLSConfig)
-	if err != nil {
-		// TODO retry on certificate error
-		// certErr := CheckOnCertificateError(err)
-		// if certErr {
-		// 	// fmt.Println("TODO retry with certificate verification skip")
-		// }
-		return response, err
+	if query.Port >= 65536 || query.Port < 0 {
+		return res, fmt.Errorf("invalid port %d", query.Port)
 	}
 
-	response.ResponseMsg = res
+	res.Response.ResponseMsg, res.Response.RTT, err = qh.QueryHandler.Query(
+		helper.GetFullHostFromHostPort(query.Host, query.Port),
+		query.QueryMsg, DNS_DOT_PROTOCOL,
+		query.Timeout,
+		query.TLSConfig,
+	)
 
-	return response, nil
+	return
 }
 
 func NewDoTQuery() (q *DoTQuery) {
-	q = &DoTQuery{
-		QueryHandler: &DefaultQueryHandlerDNS{},
-	}
+	q = &DoTQuery{}
 
 	q.Port = DEFAULT_DOT_PORT
 	q.Timeout = DEFAULT_DOT_TIMEOUT
+
+	return
+}
+
+func NewDoTQueryHandler() (h *DoTQueryHandler) {
+	h = &DoTQueryHandler{}
+	h.QueryHandler = NewDefaultQueryHandler()
 
 	return
 }

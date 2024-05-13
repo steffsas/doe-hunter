@@ -1,6 +1,10 @@
 package storage
 
-import "github.com/sirupsen/logrus"
+import (
+	"encoding/json"
+
+	"github.com/sirupsen/logrus"
+)
 
 type EmptyStorageHandler struct {
 	StorageHandler
@@ -15,6 +19,11 @@ func (esh *EmptyStorageHandler) Close() (err error) {
 }
 
 func (esh *EmptyStorageHandler) Store(data interface{}) (err error) {
-	logrus.Info("empty storage handler does not store anything")
+	logrus.Warn("empty storage handler does not store anything")
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	logrus.Info(string(bytes))
 	return nil
 }

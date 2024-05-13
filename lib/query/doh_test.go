@@ -99,6 +99,8 @@ func TestGetPathParamFromDoHPath_EmptyPath(t *testing.T) {
 }
 
 func TestDoHQuery_RealWorld(t *testing.T) {
+	t.Parallel()
+
 	// see dig @94.140.14.140 _dns.resolver.arpa. type64
 	host := "94.140.14.14"
 	port := 443
@@ -107,7 +109,11 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
 
+	qh := query.NewDoHQueryHandler()
+
 	t.Run("http1 get", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -116,16 +122,19 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.HTTPVersion = query.HTTP_VERSION_1
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 
 	t.Run("http1 post", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -134,16 +143,19 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.HTTPVersion = query.HTTP_VERSION_1
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 
 	t.Run("http2 get", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -152,16 +164,19 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.Method = query.HTTP_GET
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 
 	t.Run("http2 post", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -170,16 +185,19 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.Method = query.HTTP_POST
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 
 	t.Run("http3 get", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -188,16 +206,19 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.Method = query.HTTP_GET
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 
 	t.Run("http3 post", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -206,23 +227,31 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		q.Method = query.HTTP_POST
 		q.QueryMsg = queryMsg
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
-		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.Response.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.Response.RTT.String(), "rtt should not be empty")
 	})
 }
 
 func TestDoHQuery_HTTPVersion(t *testing.T) {
+	t.Parallel()
+
 	t.Run("invalid version", func(t *testing.T) {
-		queryMsg := new(dns.Msg)
-		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
+		t.Parallel()
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
+
+		queryMsg := new(dns.Msg)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -230,22 +259,27 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.HTTPVersion = "false"
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "error should not be nil")
 		require.NotNil(t, res, "result should not be nil")
-		assert.Nil(t, res.ResponseMsg, "response should be nil")
+		require.NotNil(t, res.Response, "response should be nil")
+		require.Nil(t, res.Response.ResponseMsg, "response should be nil")
 	})
 
 	t.Run("http version in request", func(t *testing.T) {
+		t.Parallel()
+
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 		handler.On("SetTransport", mock.Anything).Return()
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -253,9 +287,8 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.HTTPVersion = query.HTTP_VERSION_1
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
@@ -263,13 +296,52 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 	})
 }
 
+func TestDoHQuery_Response(t *testing.T) {
+	t.Parallel()
+
+	t.Run("response and query are not nil", func(t *testing.T) {
+		t.Parallel()
+
+		handler := getMockedHttpHandler()
+		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
+
+		queryMsg := new(dns.Msg)
+		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
+
+		q := query.NewDoHQuery()
+		q.Host = dnsGoogle
+		q.Port = 443
+		q.URI = exampleUri
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should not be nil")
+		require.NotNil(t, res, "result should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "response should be nil")
+		require.NotNil(t, res.Query, "response should not be nil")
+		assert.Equal(t, q, res.Query, "query should be the same")
+	})
+}
+
 func TestDoHQuery_HTTPMethod(t *testing.T) {
+	t.Parallel()
+
 	t.Run("invalid method", func(t *testing.T) {
+		t.Parallel()
+
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -277,16 +349,18 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.Method = "INVALID"
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "error should not be nil")
 		require.NotNil(t, res, "result should not be nil")
-		assert.Nil(t, res.ResponseMsg, "response should be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 	})
 
 	t.Run("http method in request", func(t *testing.T) {
+		t.Parallel()
+
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
@@ -294,28 +368,36 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 		handler.On("SetTransport", mock.Anything).Return()
 
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
+
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
 		q.Port = 443
 		q.URI = exampleUri
 		q.QueryMsg = queryMsg
 		q.Method = query.HTTP_POST
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
 		assert.Equal(t, query.HTTP_POST, res.HttpRequest.Method, "http method should be set to POST")
 	})
 
 	t.Run("post fallback", func(t *testing.T) {
+		t.Parallel()
+
 		httpRes := mockDnsMsgHttpResponse()
 		httpRes.StatusCode = 200
 
 		// use mocked query handler to simulate a too long URI
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -332,24 +414,29 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		q.QueryMsg = queryMsg
 		q.Method = query.HTTP_GET
 		q.POSTFallback = true
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
 		require.NotNil(t, res.HttpRequest, "http request should not be nil")
-		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.GreaterOrEqual(t, res.Response.RTT, time.Duration(0), "rtt should not be empty")
 		assert.Equal(t, query.HTTP_POST, res.HttpRequest.Method, "method should be POST")
 	})
 
 	t.Run("no post fallback if not wanted", func(t *testing.T) {
+		t.Parallel()
+
 		httpRes := mockDnsMsgHttpResponse()
 		httpRes.StatusCode = 413
 
 		// use mocked query handler to simulate a too long URI
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -366,20 +453,27 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		q.QueryMsg = queryMsg
 		q.Method = query.HTTP_GET
 		q.POSTFallback = false
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
 		require.Nil(t, res.HttpRequest, "http request should be nil because it is not crafted")
 	})
 }
 
 func TestDoHQuery_Port(t *testing.T) {
+	t.Parallel()
+
 	t.Run("default port", func(t *testing.T) {
+		t.Parallel()
+
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -388,54 +482,69 @@ func TestDoHQuery_Port(t *testing.T) {
 		q.Host = dnsGoogle
 		q.URI = exampleUri
 		q.QueryMsg = queryMsg
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
-		assert.NotNil(t, res.ResponseMsg, "dns response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "dns response should not be nil")
 		assert.Equal(t, query.DEFAULT_DOH_PORT, q.Port, "port should be set by default")
 	})
 
 	t.Run("negative port", func(t *testing.T) {
+		t.Parallel()
+
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
 		q.Port = -1
 		q.URI = exampleUri
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "error should not be nil")
 		require.NotNil(t, res, "result should not be nil")
-		assert.Nil(t, res.ResponseMsg, "dns response should be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.Nil(t, res.Response.ResponseMsg, "response should be nil")
 	})
 
 	t.Run("too large port", func(t *testing.T) {
+		t.Parallel()
+
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+		qh := query.NewDoHQueryHandler()
+		qh.HttpHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
 		q.Port = 65536
 		q.URI = exampleUri
-		q.HttpHandler = handler
 
-		res, err := q.Query()
+		res, err := qh.Query(q)
 
 		assert.NotNil(t, err, "error should not be nil")
 		require.NotNil(t, res, "result should not be nil")
-		assert.Nil(t, res.ResponseMsg, "response should be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 	})
 }
 
 func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
+	t.Parallel()
+
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -444,20 +553,25 @@ func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
 	q.Host = dnsGoogle
 	q.URI = exampleUri
 	q.QueryMsg = queryMsg
-	q.HttpHandler = handler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	// c.Arguments.Assert(t, DEFAULT_DOH_TIMEOUT*time.Millisecond)
 
 	assert.Nil(t, err, "error should be nil")
 	require.NotNil(t, res, "result should not be nil")
-	assert.NotNil(t, res.ResponseMsg, "response should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.NotNil(t, res.Response.ResponseMsg, "response should not be nil")
 }
 
 func TestDoHQuery_NoHostProvided(t *testing.T) {
+	t.Parallel()
+
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -465,18 +579,23 @@ func TestDoHQuery_NoHostProvided(t *testing.T) {
 	q := query.NewDoHQuery()
 	q.URI = exampleUri
 	q.QueryMsg = queryMsg
-	q.HttpHandler = handler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "error should not be nil")
 	require.NotNil(t, res, "result should not be nil")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 }
 
 func TestDoHQuery_EmptyURI(t *testing.T) {
+	t.Parallel()
+
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -485,33 +604,44 @@ func TestDoHQuery_EmptyURI(t *testing.T) {
 	q.Host = dnsGoogle
 	q.URI = ""
 	q.QueryMsg = queryMsg
-	q.HttpHandler = handler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "error should not be nil")
 	require.NotNil(t, res, "result should not be nil")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 }
 
 func TestDoHQuery_NilQueryMsg(t *testing.T) {
+	t.Parallel()
+
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = handler
 
 	q := query.NewDoHQuery()
 	q.Host = dnsGoogle
 	q.URI = exampleUri
-	q.HttpHandler = handler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "error should not be nil")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res, "result should not be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 }
 
 func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
+	t.Parallel()
+
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -521,29 +651,34 @@ func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
 	// should be /dns-query{?dns}
 	q.URI = "/dns-query?dns"
 	q.QueryMsg = queryMsg
-	q.HttpHandler = handler
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "error should not be nil")
 	require.NotNil(t, res, "result should not be nil")
-	assert.Nil(t, res.ResponseMsg, "response should be nil")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "response should be nil")
 }
 
 func TestDoHQuery_NilHttpHandler(t *testing.T) {
+	t.Parallel()
+
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
+
+	qh := query.NewDoHQueryHandler()
+	qh.HttpHandler = nil
 
 	q := query.NewDoHQuery()
 	q.Host = dnsGoogle
 	q.Port = 443
 	q.URI = exampleUri
 	q.QueryMsg = queryMsg
-	q.HttpHandler = nil
 
-	res, err := q.Query()
+	res, err := qh.Query(q)
 
 	assert.NotNil(t, err, "error should not be nil")
 	require.NotNil(t, res, "result should not be nil")
-	assert.Nil(t, res.ResponseMsg, "DNS response should be nil since handler was not set")
+	require.NotNil(t, res.Response, "response should not be nil")
+	assert.Nil(t, res.Response.ResponseMsg, "DNS response should be nil since handler was not set")
 }

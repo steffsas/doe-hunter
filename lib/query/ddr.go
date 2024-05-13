@@ -14,16 +14,5 @@ func NewDDRQuery() *ConventionalDNSQuery {
 }
 
 func NewDDRQueryHandler() *ConventionalDNSQueryHandler {
-	q := NewConventionalDNSQueryHandler()
-	q.QueryObj = *NewDDRQuery()
-	return q
-}
-
-func NewDDRQueryWithServer(host string, port int) *ConventionalDNSQueryHandler {
-	q := NewConventionalDNSQueryHandler()
-	q.QueryObj = *NewDDRQuery()
-
-	q.QueryObj.Host = host
-	q.QueryObj.Port = port
-	return q
+	return NewConventionalDNSQueryHandler()
 }

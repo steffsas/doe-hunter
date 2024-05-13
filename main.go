@@ -79,7 +79,7 @@ func main() {
 	// }
 
 	// TODO only for tests
-	kafkaConsumerGroup := consumer.DEFAULT_DDR_CONSUME_GROUP
+	kafkaConsumerGroup := consumer.DEFAULT_DDR_CONSUMER_GROUP
 	protocolType := "ddr"
 	isConsumer := true
 	parallelConsumer := 1
@@ -106,7 +106,7 @@ func main() {
 					return
 				}
 
-				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
 				if err != nil {
 					logrus.Fatalf("failed to consume: %v", err)
 					return
@@ -124,7 +124,7 @@ func main() {
 					return
 				}
 
-				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUME_TOPIC)
+				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
 				if err != nil {
 					logrus.Fatalf("failed to consume: %v", err)
 					return

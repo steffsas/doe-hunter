@@ -48,6 +48,7 @@ type KafkaEventConsumer struct {
 
 	Timeout time.Duration
 
+	Config         *KafkaConsumerConfig
 	ProcessHandler EventProcessHandler
 	StorageHandler storage.StorageHandler
 	Consumer       KafkaConsumer
@@ -126,10 +127,7 @@ type KafkaConsumerConfig struct {
 
 func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProcessHandler, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config == nil {
-		config = &KafkaConsumerConfig{
-			Server:        DEFAULT_KAFKA_SERVER,
-			ConsumerGroup: DEFAULT_KAFKA_CONSUMER_GROUP,
-		}
+		config = GetDefaultKafkaConsumerConfig()
 	}
 
 	if processHandler == nil {
@@ -158,6 +156,7 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 	})
 
 	kec = &KafkaEventConsumer{
+		Config:         config,
 		Consumer:       consumer,
 		Timeout:        DEFAULT_KAFKA_READ_TIMEOUT,
 		ProcessHandler: processHandler,
@@ -165,4 +164,11 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 	}
 
 	return
+}
+
+func GetDefaultKafkaConsumerConfig() *KafkaConsumerConfig {
+	return &KafkaConsumerConfig{
+		Server:        DEFAULT_KAFKA_SERVER,
+		ConsumerGroup: DEFAULT_KAFKA_CONSUMER_GROUP,
+	}
 }

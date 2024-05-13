@@ -19,10 +19,10 @@ const DEFAULT_TCP_RETRIES = 1
 const DEFAULT_BACKOFF_TIME time.Duration = 2500 * time.Millisecond
 
 type ConventionalDNSResponse struct {
-	DNSResponse
-	UDPAttempts int  `json:"udp_attempts"`
-	TCPAttempts int  `json:"tcp_attempts"`
-	Truncated   bool `json:"truncated"`
+	Response    *DNSResponse          `json:"response"`
+	Query       *ConventionalDNSQuery `json:"query"`
+	UDPAttempts int                   `json:"udp_attempts"`
+	TCPAttempts int                   `json:"tcp_attempts"`
 }
 
 type ConventionalDNSQuery struct {
@@ -48,113 +48,139 @@ type ConventionalDNSQuery struct {
 	MaxBackoffTime time.Duration `json:"max_backoff_time"`
 }
 
-type ConventionalDNSQueryHandler struct {
-	Sleeper      sleeper
-	QueryHandler QueryHandlerDNS
-	QueryObj     ConventionalDNSQuery
+type ConventionalDNSQueryHandlerI interface {
+	Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err error)
 }
 
-func (dq *ConventionalDNSQueryHandler) Query() (response *ConventionalDNSResponse, err error) {
-	response = &ConventionalDNSResponse{}
-	response.Truncated = false
-	response.UDPAttempts = 0
-	response.TCPAttempts = 0
-	response.QueryMsg = dq.QueryObj.QueryMsg
+type ConventionalDNSQueryHandler struct {
+	ConventionalDNSQueryHandlerI
 
-	if dq.QueryObj.Protocol == "" {
-		dq.QueryObj.Protocol = DNS_UDP
+	Sleeper      sleeper
+	QueryHandler QueryHandlerDNS
+}
+
+func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err error) {
+	res = &ConventionalDNSResponse{}
+	res.Response = &DNSResponse{}
+	res.UDPAttempts = 0
+	res.TCPAttempts = 0
+	res.Query = query
+
+	if query == nil {
+		return res, ErrQueryMsgNil
 	}
 
-	if dq.QueryObj.Timeout >= 0 {
-		dq.QueryObj.TimeoutUDP = dq.QueryObj.Timeout
-		dq.QueryObj.TimeoutTCP = dq.QueryObj.Timeout
+	if query.QueryMsg == nil {
+		return res, ErrEmptyQueryMessage
 	}
 
-	if dq.QueryObj.TimeoutTCP < 0 && dq.QueryObj.Timeout < 0 {
-		dq.QueryObj.TimeoutTCP = DEFAULT_TCP_TIMEOUT
+	if query.Protocol == "" {
+		query.Protocol = DNS_UDP
 	}
 
-	if dq.QueryObj.TimeoutUDP < 0 && dq.QueryObj.Timeout < 0 {
-		dq.QueryObj.TimeoutUDP = DEFAULT_UDP_TIMEOUT
+	if query.Timeout >= 0 {
+		query.TimeoutUDP = query.Timeout
+		query.TimeoutTCP = query.Timeout
 	}
 
-	if dq.QueryObj.Host == "" {
-		return response, ErrHostEmpty
+	if query.TimeoutTCP < 0 && query.Timeout < 0 {
+		query.TimeoutTCP = DEFAULT_TCP_TIMEOUT
 	}
 
-	if dq.QueryObj.QueryMsg == nil {
-		return response, ErrEmptyQueryMessage
+	if query.TimeoutUDP < 0 && query.Timeout < 0 {
+		query.TimeoutUDP = DEFAULT_UDP_TIMEOUT
+	}
+
+	if query.Host == "" {
+		return res, ErrHostEmpty
+	}
+
+	if query.QueryMsg == nil {
+		return res, ErrEmptyQueryMessage
 	}
 
 	if dq.QueryHandler == nil {
-		return response, ErrQueryHandlerNil
+		return res, ErrQueryHandlerNil
 	}
 
-	if dq.QueryObj.Port >= 65536 || dq.QueryObj.Port <= 0 {
-		return response, fmt.Errorf("invalid port %d", dq.QueryObj.Port)
+	if query.Port >= 65536 || query.Port <= 0 {
+		return res, fmt.Errorf("invalid port %d", query.Port)
 	}
 
-	if dq.QueryObj.Protocol != DNS_UDP && dq.QueryObj.Protocol != DNS_TCP {
-		return response, fmt.Errorf("invalid protocol %s", dq.QueryObj.Protocol)
+	if query.Protocol != DNS_UDP && query.Protocol != DNS_TCP {
+		return res, fmt.Errorf("invalid protocol %s", query.Protocol)
 	}
 
-	if dq.QueryObj.MaxUDPRetries < 0 {
-		dq.QueryObj.MaxUDPRetries = DEFAULT_UDP_RETRIES
+	if query.MaxUDPRetries < 0 {
+		query.MaxUDPRetries = DEFAULT_UDP_RETRIES
 	}
 
-	if dq.QueryObj.MaxTCPRetries < 0 {
-		dq.QueryObj.MaxTCPRetries = DEFAULT_TCP_RETRIES
+	if query.MaxTCPRetries < 0 {
+		query.MaxTCPRetries = DEFAULT_TCP_RETRIES
 	}
 
-	if dq.QueryObj.Protocol == DNS_UDP {
+	truncated := false
+	if query.Protocol == DNS_UDP {
 		// create exponential timeout backoff
-		b := getBackOffHandler(dq.QueryObj.MaxBackoffTime)
+		b := getBackOffHandler(query.MaxBackoffTime)
 
 		// +1 because we try at least once even if MaxUDPRetries is 0
-		for i := 1; i <= dq.QueryObj.MaxUDPRetries; i++ {
-			response.UDPAttempts = i
-			response.ResponseMsg, response.RTT, err = dq.QueryHandler.Query(helper.GetFullHostFromHostPort(dq.QueryObj.Host, dq.QueryObj.Port), dq.QueryObj.QueryMsg, DNS_UDP, dq.QueryObj.TimeoutUDP, nil)
+		for i := 1; i <= query.MaxUDPRetries; i++ {
+			res.UDPAttempts = i
+			res.Response.ResponseMsg, res.Response.RTT, err = dq.QueryHandler.Query(
+				helper.GetFullHostFromHostPort(query.Host, query.Port),
+				query.QueryMsg,
+				DNS_UDP,
+				query.TimeoutUDP,
+				nil,
+			)
 
-			if err == nil && response.ResponseMsg != nil && !response.ResponseMsg.Truncated {
+			if err == nil && res.Response.ResponseMsg != nil && !res.Response.ResponseMsg.Truncated {
 				// we got some valid response, so we can return
 				return
 			}
 
 			// if response is truncated, we need to retry with TCP [RFC7766]
-			if response.ResponseMsg != nil && response.ResponseMsg.Truncated {
-				response.Truncated = true
+			if res.Response.ResponseMsg != nil && res.Response.ResponseMsg.Truncated {
+				truncated = true
 				break
 			}
 
-			if i+1 < dq.QueryObj.MaxUDPRetries {
+			if i+1 < query.MaxUDPRetries {
 				// sleep for backoff duration since we are going to retry
 				dq.Sleeper.Sleep(b.NextBackOff())
 			}
 		}
 	}
 
-	if dq.QueryObj.AutoFallbackTCP || dq.QueryObj.Protocol == DNS_TCP || (response.Truncated && dq.QueryObj.AutoFallbackTCP) {
+	if query.AutoFallbackTCP || query.Protocol == DNS_TCP || (truncated && query.AutoFallbackTCP) {
 		// create exponential timeout backoff
-		b := getBackOffHandler(dq.QueryObj.MaxBackoffTime)
+		b := getBackOffHandler(query.MaxBackoffTime)
 
 		// +1 because we try at least once even if MaxTCPRetries is 0
-		for i := 1; i <= dq.QueryObj.MaxTCPRetries; i++ {
-			response.TCPAttempts = i
-			response.ResponseMsg, response.RTT, err = dq.QueryHandler.Query(helper.GetFullHostFromHostPort(dq.QueryObj.Host, dq.QueryObj.Port), dq.QueryObj.QueryMsg, DNS_TCP, dq.QueryObj.TimeoutTCP, nil)
+		for i := 1; i <= query.MaxTCPRetries; i++ {
+			res.TCPAttempts = i
+			res.Response.ResponseMsg, res.Response.RTT, err = dq.QueryHandler.Query(
+				helper.GetFullHostFromHostPort(query.Host, query.Port),
+				query.QueryMsg,
+				DNS_TCP,
+				query.TimeoutTCP,
+				nil,
+			)
 
-			if err == nil && response.ResponseMsg != nil {
+			if err == nil && res.Response != nil {
 				// we got some valid response, so we can return
 				return
 			}
 
-			if i+1 < dq.QueryObj.MaxTCPRetries {
+			if i+1 < query.MaxTCPRetries {
 				// sleep for backoff duration since we are going to retry
 				dq.Sleeper.Sleep(b.NextBackOff())
 			}
 		}
 	}
 
-	if response.ResponseMsg == nil {
+	if res.Response.ResponseMsg == nil {
 		err = fmt.Errorf("no response received")
 	}
 
@@ -177,11 +203,7 @@ func NewConventionalDNSQueryHandler() *ConventionalDNSQueryHandler {
 	query := &ConventionalDNSQueryHandler{
 		QueryHandler: NewDefaultQueryHandler(),
 		Sleeper:      newDefaultSleeper(),
-		QueryObj:     *NewConventionalQuery(),
 	}
-
-	query.QueryObj.Timeout = -1 * time.Millisecond
-	query.QueryObj.Port = DEFAULT_DNS_PORT
 
 	return query
 }

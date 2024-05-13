@@ -37,14 +37,13 @@ func (d *DefaultQuicDialHandler) DialAddr(ctx context.Context, addr string, tlsC
 }
 
 type DoQResponse struct {
-	DNSResponse
+	Response *DNSResponse `json:"response"`
+	Query    *DoQQuery    `json:"query"`
 }
 
 type DoQQuery struct {
 	DNSQuery
 
-	// DialHandler is the QUIC dial handler (defaults to quic.DialAddr)
-	DialHandler QuicDialHandler
 	// TLSConfig is the TLS configuration (defaults to nil which means basic TLS configuration)
 	TLSConfig *tls.Config `json:"tls_config"`
 	// QuicConfig is the QUIC configuration (defaults to nil which means basic QUIC configuration)
@@ -52,37 +51,63 @@ type DoQQuery struct {
 	QuicConfig *quic.Config `json:"quic_config"`
 }
 
+type DoQQueryHandler struct {
+	QueryHandler
+
+	// DialHandler is the QUIC dial handler (defaults to quic.DialAddr)
+	DialHandler QuicDialHandler
+}
+
 // This DoQ implementation is inspired by the q library, see https://github.com/natesales/q/blob/main/transport/quic.go
-func (q *DoQQuery) Query() (res *DoQResponse, err error) {
+func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) {
 	// see RFC https://datatracker.ietf.org/doc/rfc9250/
 	// see example implementation https://github.com/natesales/doqd/blob/main/pkg/client/main.go
-
 	res = &DoQResponse{}
-	res.QueryMsg = q.QueryMsg
+	res.Query = query
+	res.Response = &DNSResponse{}
+
+	if query == nil {
+		return res, ErrQueryMsgNil
+	}
+
+	if query.QueryMsg == nil {
+		return res, ErrEmptyQueryMessage
+	}
+
+	if query.Host == "" {
+		return res, ErrHostEmpty
+	}
+
+	if query.Port >= 65536 || query.Port < 0 {
+		return res, fmt.Errorf("invalid port %d", query.Port)
+	}
 
 	// set TLS config with default supported protocols
-	if q.TLSConfig == nil {
-		q.TLSConfig = &tls.Config{
+	if query.TLSConfig == nil {
+		query.TLSConfig = &tls.Config{
 			NextProtos: DOQ_TLS_PROTOCOLS,
 		}
-	} else if q.TLSConfig.NextProtos == nil {
-		q.TLSConfig.NextProtos = DOQ_TLS_PROTOCOLS
+	} else if query.TLSConfig.NextProtos == nil {
+		query.TLSConfig.NextProtos = DOQ_TLS_PROTOCOLS
 	}
 
 	// set quic config with timeout
-	if q.QuicConfig == nil {
-		q.QuicConfig = &quic.Config{
-			HandshakeIdleTimeout: q.Timeout,
+	if query.QuicConfig == nil {
+		query.QuicConfig = &quic.Config{
+			HandshakeIdleTimeout: query.Timeout,
 		}
 	} else {
-		q.QuicConfig.HandshakeIdleTimeout = q.Timeout
+		query.QuicConfig.HandshakeIdleTimeout = query.Timeout
 	}
 
-	session, err := q.DialHandler.DialAddr(
+	// measure some RTT
+	start := time.Now()
+
+	session, err := qh.DialHandler.DialAddr(
 		context.Background(),
-		helper.GetFullHostFromHostPort(q.Host, q.Port),
-		q.TLSConfig,
-		q.QuicConfig,
+		helper.GetFullHostFromHostPort(query.Host, query.Port),
+		query.TLSConfig,
+		query.QuicConfig,
 	)
 	if err != nil {
 		return res, err
@@ -100,10 +125,10 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 
 	// prepare message according to RFC9250
 	// https://datatracker.ietf.org/doc/html/rfc9250#section-4.2.1
-	q.QueryMsg.Id = 0
+	query.QueryMsg.Id = 0
 
 	// pack DNS query message
-	packedMessage, err := q.QueryMsg.Pack()
+	packedMessage, err := query.QueryMsg.Pack()
 	if err != nil {
 		return
 	}
@@ -136,6 +161,9 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 		return res, fmt.Errorf("empty response")
 	}
 
+	// measure RTT
+	res.Response.RTT = time.Since(start)
+
 	// unpack DNS response message
 	responseMsg := &dns.Msg{}
 	// remove 2-byte prefix
@@ -144,7 +172,7 @@ func (q *DoQQuery) Query() (res *DoQResponse, err error) {
 		return
 	}
 
-	res.ResponseMsg = responseMsg
+	res.Response.ResponseMsg = responseMsg
 
 	return
 }
@@ -160,12 +188,17 @@ func AddQuicPrefix(b []byte) (m []byte) {
 }
 
 func NewDoQQuery() (q *DoQQuery) {
-	q = &DoQQuery{
-		DialHandler: &DefaultQuicDialHandler{},
-	}
+	q = &DoQQuery{}
 
 	q.Port = DEFAULT_DOQ_PORT
 	q.Timeout = DEFAULT_DOQ_TIMEOUT
+
+	return
+}
+
+func NewDoQQueryHandler() (qh *DoQQueryHandler) {
+	qh = &DoQQueryHandler{}
+	qh.DialHandler = &DefaultQuicDialHandler{}
 
 	return
 }
