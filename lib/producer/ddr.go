@@ -12,19 +12,13 @@ import (
 )
 
 const DEFAULT_DDR_TOPIC = "ddr-scan"
-
-type DDRProducerConfig struct {
-	KafkaProducerConfig
-
-	Topic         string
-	MaxPartitions int
-}
+const DEFAULT_DDR_PARTITIONS = 1
 
 type DDRProducer struct {
 	EventProducer
 
 	Producer *KafkaEventProducer
-	Config   *DDRProducerConfig
+	Config   *ProducerConfig
 }
 
 func (dp *DDRProducer) Produce() (err error) {
@@ -85,21 +79,17 @@ func (dp *DDRProducer) Close() {
 	}
 }
 
-func NewDefaultDDRProducerConfig() *DDRProducerConfig {
-	return &DDRProducerConfig{
+func NewDefaultDDRProducerConfig() *ProducerConfig {
+	return &ProducerConfig{
 		KafkaProducerConfig: *GetDefaultKafkaProducerConfig(),
 		Topic:               DEFAULT_DDR_TOPIC,
-		MaxPartitions:       1,
+		MaxPartitions:       DEFAULT_DDR_PARTITIONS,
 	}
 }
 
-func NewDDRProducer(config *DDRProducerConfig) (dp *DDRProducer, err error) {
+func NewDDRProducer(config *ProducerConfig) (dp *DDRProducer, err error) {
 	if config == nil {
 		config = NewDefaultDDRProducerConfig()
-	}
-
-	if config.KafkaProducerConfig == (KafkaProducerConfig{}) {
-		config.KafkaProducerConfig = *GetDefaultKafkaProducerConfig()
 	}
 
 	if config.Server == "" {
@@ -107,7 +97,7 @@ func NewDDRProducer(config *DDRProducerConfig) (dp *DDRProducer, err error) {
 	}
 
 	if config.MaxPartitions <= 0 {
-		config.MaxPartitions = 1
+		config.MaxPartitions = DEFAULT_DDR_PARTITIONS
 	}
 
 	if config.Topic == "" {

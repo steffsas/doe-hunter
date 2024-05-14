@@ -92,11 +92,11 @@ func TestCertificateQuery_ShouldNotFailOnNoCertificates(t *testing.T) {
 	mockedDial := getMockedDialHandler(&tlsConn)
 
 	q := query.NewCertificateQuery()
-	q.DialHandler = mockedDial
 	q.Host = localhost
 	q.Port = 8080
 
 	qh := query.NewCertificateQueryHandler()
+	qh.QueryHandler = mockedDial
 
 	res, err := qh.Query(q)
 
@@ -112,11 +112,11 @@ func TestCertificateQuery_Host(t *testing.T) {
 
 	t.Run("valid host", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Port = 443
 		q.Host = localhost
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -131,10 +131,10 @@ func TestCertificateQuery_Host(t *testing.T) {
 		mockedDial := getMockedDialHandler(&tlsConn)
 
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = ""
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -152,11 +152,11 @@ func TestCertificateQuery_Port(t *testing.T) {
 
 	t.Run("valid port", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 443
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -167,11 +167,11 @@ func TestCertificateQuery_Port(t *testing.T) {
 
 	t.Run("negative port", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = -1
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -182,11 +182,11 @@ func TestCertificateQuery_Port(t *testing.T) {
 
 	t.Run("zero port", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 0
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -197,10 +197,10 @@ func TestCertificateQuery_Port(t *testing.T) {
 
 	t.Run("no port", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -211,11 +211,11 @@ func TestCertificateQuery_Port(t *testing.T) {
 
 	t.Run("too large port", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 70000
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -233,12 +233,12 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 
 	t.Run("negative timeout", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 8080
 		q.Timeout = -1
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -249,12 +249,12 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 
 	t.Run("zero timeout", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 8080
 		q.Timeout = 0
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
@@ -270,13 +270,13 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 	mockedDial := getMockedDialHandler(&tlsConn)
 	mockedDial.On("DialWithDialer", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("dial failed"))
 
-	t.Run("no dial handler", func(t *testing.T) {
+	t.Run("no query handler", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 8080
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = nil
 
 		res, err := qh.Query(q)
 
@@ -284,18 +284,16 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 		assert.NotNil(t, res, "should have returned a response")
 	})
 
-	t.Run("nil dial handler", func(t *testing.T) {
+	t.Run("dial failed", func(t *testing.T) {
 		q := query.NewCertificateQuery()
-		q.DialHandler = mockedDial
 		q.Host = localhost
 		q.Port = 8080
-		q.DialHandler = nil
 
 		qh := query.NewCertificateQueryHandler()
+		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
-
-		assert.NotNil(t, err, "should have returned an error on nil dial handler")
+		assert.NotNil(t, err, "should have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
 	})
 }

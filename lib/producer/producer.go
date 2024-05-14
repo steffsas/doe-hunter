@@ -18,6 +18,13 @@ type EventProducer interface {
 	Close()
 }
 
+type ProducerConfig struct {
+	KafkaProducerConfig
+
+	Topic         string
+	MaxPartitions int
+}
+
 type KafkaProducer interface {
 	Produce(msg *kafka.Message, deliveryChan chan kafka.Event) (err error)
 	Close()
