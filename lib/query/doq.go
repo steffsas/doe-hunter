@@ -10,6 +10,7 @@ import (
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -61,6 +62,8 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	res = &DoQResponse{}
 	res.Query = query
 	res.Response = &DNSResponse{}
+
+	logrus.Infof("DoQQueryHandler processing DNS query nil? %t", query == nil)
 
 	if query == nil {
 		return res, ErrQueryMsgNil

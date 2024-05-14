@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"flag"
 	"os"
-	"time"
+	"sync"
 
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/producer"
+	"github.com/steffsas/doe-hunter/lib/query"
+	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
@@ -31,145 +35,125 @@ const DEFAULT_PARALLEL_CONSUMER = 1 // no parallelism
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr",
 }
 
 // nolint: gochecknoglobals
 var SUPPORTED_RUN_TYPES = []string{
 	"consumer", "producer",
 }
+var (
+	scanType         = flag.String("scanType", "consumer", "consumer or producer")
+	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr)")
+	parallelConsumer = flag.Int("parallelConsumer", 1, "number of parallel consumers")
+)
 
 func main() {
 	ctx := context.Background()
 
+	// flag.Parse()
+
 	setLogger()
 
-	// // check if protocol type is supported
-	// protocolType := os.Getenv(ENV_PROTOCOL_TYPE)
-	// if !slices.Contains(SUPPORTED_PROTOCOL_TYPES, protocolType) {
-	// 	logrus.Fatalf("unsupported protocol type %s, must be one of %s", protocolType, SUPPORTED_PROTOCOL_TYPES)
-	// 	return
+	// logrus.Infof("starting %s for protocol %s with kafka server %s", *scanType, *protocol, consumer.DEFAULT_KAFKA_SERVER)
+	// if isConsumer(*scanType) {
+	// 	logrus.Infof("starting %d parallel consumers", *parallelConsumer)
 	// }
 
-	// // check if scanner type is supported
-	// scannerTypeEnv := os.Getenv(ENV_RUN_TYPE)
-	// if !slices.Contains(SUPPORTED_RUN_TYPES, scannerTypeEnv) {
-	// 	logrus.Fatalf("unsupported run type %s, must be one of %s", scannerTypeEnv, SUPPORTED_RUN_TYPES)
-	// 	return
-	// }
-	// isConsumer := scannerTypeEnv == "consumer"
-
-	// // get kafka server
-	// kafkaServer := os.Getenv(ENV_KAFKA_SERVER)
-	// if kafkaServer == "" {
-	// 	kafkaServer = DEFAULT_KAFKA_SERVER
-	// }
-
-	// // get kafka consumer group
-	// kafkaConsumerGroup := os.Getenv(ENV_KAFKA_CONSUMER_GROUP)
-
-	// // get kafka consumer group
-	// parallelConsumer := 1
-	// parallelConsumerEnv := os.Getenv(ENV_PARALLEL_CONSUMER)
-	// if parallelConsumerEnv != "" {
-	// 	var err error
-	// 	parallelConsumer, err = strconv.Atoi(parallelConsumerEnv)
-	// 	if err != nil {
-	// 		logrus.Fatalf("failed to parse parallel consumer value %s: %v", parallelConsumerEnv, err)
-	// 		return
-	// 	}
-	// }
-
-	scannerTypeEnv := os.Args[1]
-	isConsumer := scannerTypeEnv == "consumer"
-	protocolType := "ddr"
-	kafkaServer := "localhost:29092"
-	kafkaConsumerGroup := "ddr-scan"
-	parallelConsumer := 1
-
-	logrus.Infof("starting %s for protocol %s with kafka server %s", scannerTypeEnv, protocolType, kafkaServer)
-
-	switch protocolType {
-	case "ddr":
-		if isConsumer {
-			// create the storage handler
-			storageHandler := storage.NewDefaultMongoStorageHandler(ctx, "ddr-scans")
-
-			// start the DDR consumer
-			if parallelConsumer > 1 {
-				logrus.Infof("starting %d parallel DDR consumers", parallelConsumer)
-				cons, err := consumer.NewKafkaDDREventConsumer(
-					&consumer.KafkaConsumerConfig{
-						Server:        kafkaServer,
-						ConsumerGroup: kafkaConsumerGroup,
-					},
-					storageHandler,
-				)
-
-				if err != nil {
-					logrus.Fatalf("failed to create parallel consumer: %v", err)
-					return
-				}
-
-				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
-				if err != nil {
-					logrus.Fatalf("failed to consume: %v", err)
-					return
-				}
-				cons.Close()
-			} else {
-				logrus.Info("starting single DDR consumer")
-				cons, err := consumer.NewKafkaDDREventConsumer(
-					&consumer.KafkaConsumerConfig{
-						Server:        kafkaServer,
-						ConsumerGroup: kafkaConsumerGroup,
-					},
-					storageHandler,
-				)
-
-				if err != nil {
-					logrus.Fatalf("failed to create parallel consumer: %v", err)
-					return
-				}
-
-				err = cons.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
-				if err != nil {
-					logrus.Fatalf("failed to consume: %v", err)
-					return
-				}
-				cons.Close()
-			}
-		} else {
-			// start the DDR producer
-			config := &producer.DDRProducerConfig{
-				KafkaProducerConfig: producer.KafkaProducerConfig{
-					Server:  kafkaServer,
-					Timeout: 5 * time.Millisecond,
-					Acks:    "1",
-				},
-				Topic:         producer.DEFAULT_DDR_TOPIC,
-				MaxPartitions: 1,
-			}
-			producer, err := producer.NewDDRProducer(config)
-			if err != nil {
-				logrus.Fatalf("failed to create DDR producer: %v", err)
-				return
-			}
-			producer.Produce()
-			producer.Close()
-		}
-	case "doh":
-		// start the DOH scanner
-		logrus.Fatal("DOH not implemented yet")
-	case "doq":
-		// start the DOQ scanner
-		logrus.Fatal("DOQ not implemented yet")
-	case "dot":
-		// start the DOT scanner
-		logrus.Fatal("DOT not implemented yet")
-	default:
-		logrus.Fatalf("unsupported protocol type %s, must be one of %s", protocolType, SUPPORTED_PROTOCOL_TYPES)
+	if os.Args[1] == "consumer" {
+		startAllConsumer(ctx)
+	} else {
+		produceDRScansFromFile("resolvers.txt")
 	}
+
+	// consumerConfig := &consumer.KafkaParallelConsumerConfig{
+	// 	KafkaParallelEventConsumerConfig: &consumer.KafkaParallelEventConsumerConfig{
+	// 		ConcurrentConsumer: *parallelConsumer,
+	// 	},
+	// }
+
+	// switch *protocol {
+	// case "ddr":
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
+	// 		pc, err := consumer.NewKafkaDDRParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
+	// 	} else {
+	// 		// start the DDR producer
+	// 		produceDRScansFromFile("resolvers.txt")
+	// 	}
+	// case "doh":
+	// 	// start the DOH scanner
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
+	// 		pc, err := consumer.NewKafkaDoHParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_DOH_CONSUMER_TOPIC)
+	// 	} else {
+	// 		logrus.Fatal("DoH producer not implemented yet")
+	// 	}
+	// case "doq":
+	// 	// start the DOQ scanner
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
+	// 		pc, err := consumer.NewKafkaDoTParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_DOQ_CONSUMER_TOPIC)
+	// 	} else {
+	// 		logrus.Fatal("DoQ producer not implemented yet")
+	// 	}
+	// case "dot":
+	// 	// start the DOT scanner
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
+	// 		pc, err := consumer.NewKafkaDoTParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_DOT_CONSUMER_TOPIC)
+	// 	} else {
+	// 		logrus.Fatal("DoH producer not implemented yet")
+	// 	}
+	// case "ptr":
+	// 	// start the PTR scanner
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
+	// 		pc, err := consumer.NewKafkaPTRParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_PTR_CONSUMER_TOPIC)
+	// 	} else {
+	// 		logrus.Fatal("DoH producer not implemented yet")
+	// 	}
+	// case "certificate":
+	// 	// start the PTR scanner
+	// 	if isConsumer(*scanType) {
+	// 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
+	// 		pc, err := consumer.NewKafkaCertificateParallelEventConsumer(consumerConfig, sh)
+	// 		if err != nil {
+	// 			logrus.Fatalf("failed to create parallel consumer: %v", err)
+	// 			return
+	// 		}
+	// 		pc.Consume(ctx, consumer.DEFAULT_CERTIFICATE_CONSUMER_TOPIC)
+	// 	} else {
+	// 		logrus.Fatal("DoH producer not implemented yet")
+	// 	}
+	// default:
+	// 	logrus.Fatalf("unsupported protocol type %s, must be one of %s", *protocol, SUPPORTED_PROTOCOL_TYPES)
+	// }
 }
 
 func setLogger() {
@@ -186,4 +170,133 @@ func setLogger() {
 
 	// Only logrus the warning severity or above.
 	logrus.SetLevel(logrus.DebugLevel)
+}
+
+func produceDRScansFromFile(filePath string) {
+	resolvers := []string{}
+
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		logrus.Errorf("failed to open file: %v", err)
+		return
+	}
+
+	// Create a new scanner
+	scanner := bufio.NewScanner(file)
+
+	// Loop through lines
+	for scanner.Scan() {
+		line := scanner.Text()
+		resolvers = append(resolvers, line)
+		// Process the line here (e.g., store in a variable, perform further operations)
+	}
+
+	if err := scanner.Err(); err != nil {
+		logrus.Errorf("error during file reading: %s", err.Error())
+	}
+
+	file.Close()
+
+	// create producer
+	p, err := producer.NewDDRScanProducer(nil)
+	if err != nil {
+		logrus.Errorf("failed to create producer: %s", err.Error())
+		return
+	}
+	defer p.Close()
+
+	for _, res := range resolvers {
+		// create query
+		q := query.NewDDRQuery()
+		q.Host = res
+		q.AutoFallbackTCP = true
+		q.Protocol = query.DNS_TCP
+		q.Port = query.DEFAULT_DNS_PORT
+
+		// create the scan
+		s := scan.NewDDRScan(q, true)
+		p.Produce(s)
+	}
+}
+
+func isConsumer(scanType string) bool {
+	return scanType == "consumer"
+}
+
+func startAllConsumer(ctx context.Context) {
+	wg := sync.WaitGroup{}
+
+	for _, protocol := range SUPPORTED_PROTOCOL_TYPES {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			startConsumer(ctx, p)
+		}(protocol)
+	}
+
+	wg.Wait()
+}
+
+func startConsumer(ctx context.Context, protocol string) {
+	consumerConfig := &consumer.KafkaParallelConsumerConfig{
+		KafkaParallelEventConsumerConfig: &consumer.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 1,
+		},
+	}
+
+	switch protocol {
+	case "ddr":
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
+		pc, err := consumer.NewKafkaDDRParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_DDR_CONSUMER_TOPIC)
+	case "doh":
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
+		pc, err := consumer.NewKafkaDoHParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_DOH_CONSUMER_TOPIC)
+	case "doq":
+		// start the DOQ scanner
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
+		pc, err := consumer.NewKafkaDoTParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_DOQ_CONSUMER_TOPIC)
+	case "dot":
+		// start the DOT scanner
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
+		pc, err := consumer.NewKafkaDoTParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_DOT_CONSUMER_TOPIC)
+	case "ptr":
+		// start the PTR scanner
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
+		pc, err := consumer.NewKafkaPTRParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_PTR_CONSUMER_TOPIC)
+	case "certificate":
+		// start the PTR scanner
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
+		pc, err := consumer.NewKafkaCertificateParallelEventConsumer(consumerConfig, sh)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		}
+		pc.Consume(ctx, consumer.DEFAULT_CERTIFICATE_CONSUMER_TOPIC)
+	}
 }

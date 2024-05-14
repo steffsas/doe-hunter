@@ -3,10 +3,12 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
+	"net"
 	"reflect"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
@@ -22,51 +24,113 @@ type DDRProcessEventHandler struct {
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
 
+func scheduleDoEScans(ddrScan *scan.DDRScan) {
+	// schedule DoE scans
+	if ddrScan.Meta.ScheduleDoEScans {
+		logrus.Infof("schedule DoE scans for DDR scan %s", ddrScan.Meta.ScanId)
+
+		if len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
+			// parse DDR response
+			scans, errColl := ddrScan.CreateScansFromResponse()
+			ddrScan.Meta.AddError(errColl...)
+
+			// schedule
+			for _, s := range scans {
+				switch s.GetType() {
+				case scan.DOH_SCAN_TYPE:
+					produceScan(ddrScan, s, producer.NewDoHScanProducer)
+				case scan.DOQ_SCAN_TYPE:
+					produceScan(ddrScan, s, producer.NewDoQScanProducer)
+				case scan.DOT_SCAN_TYPE:
+					produceScan(ddrScan, s, producer.NewDoTScanProducer)
+				}
+			}
+		} else {
+			logrus.Warnf("no DoE scans to schedule since there was no SVCB answers %s", ddrScan.Meta.ScanId)
+		}
+	} else {
+		logrus.Warnf("scheduling DoE scans for DDR scan %s disabled!", ddrScan.Meta.ScanId)
+	}
+}
+
+func schedulePTRScan(ddrScan *scan.DDRScan) {
+	logrus.Infof("schedule PTR scan for DDR scan %s", ddrScan.Meta.ScanId)
+
+	// check if ddr scan was based on an IP address
+	ip := net.ParseIP(ddrScan.Query.Host)
+
+	if ip == nil {
+		logrus.Warnf("DDR scan %s was not based on an IP address, no PTR scan scheduled", ddrScan.Meta.ScanId)
+	} else {
+		logrus.Infof("DDR scan %s was based on an IP address, schedule PTR scan", ddrScan.Meta.ScanId)
+		q := query.NewPTRQuery()
+		q.SetQueryMsg(ip.String())
+		// TODO change to local stub
+		q.Host = "8.8.8.8"
+
+		scan, err := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
+		if err != nil {
+			logrus.Errorf("failed to create PTR scan: %v", err)
+			ddrScan.Meta.AddError(err)
+			return
+		}
+		producer, err := producer.NewPTRScanProducer(nil)
+		if err != nil {
+			logrus.Errorf("failed to create PTR scan producer: %v", err)
+			ddrScan.Meta.AddError(err)
+			return
+		}
+
+		err = producer.Produce(scan)
+		if err != nil {
+			logrus.Errorf("failed to produce PTR scan: %v", err)
+			ddrScan.Meta.AddError(err)
+		}
+	}
+}
+
 func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) (err error) {
 	if msg == nil {
 		logrus.Warn("received nil message, nothing to consume")
 		return nil
 	}
 
-	scan := &scan.DDRScan{}
-	err = json.Unmarshal(msg.Value, scan)
+	ddrScan := &scan.DDRScan{}
+	err = json.Unmarshal(msg.Value, ddrScan)
 	if err != nil {
-		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(scan).String())
+		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(ddrScan).String())
 		return
 	}
 
-	logrus.Infof("received DDR scan %s of host %s with port %d", scan.Meta.ScanID, scan.Query.Host, scan.Query.Port)
+	logrus.Infof("received DDR scan %s of host %s with port %d", ddrScan.Meta.ScanId, ddrScan.Query.Host, ddrScan.Query.Port)
 
 	// execute query
-	scan.Meta.SetStarted()
-	scan.Result, err = ddr.QueryHandler.Query(scan.Query)
-	scan.Meta.SetFinished()
+	ddrScan.Meta.SetStarted()
+	ddrScan.Result, err = ddr.QueryHandler.Query(ddrScan.Query)
+	ddrScan.Meta.SetFinished()
 
 	if err != nil {
-		logrus.Errorf("failed to query %s: %v", scan.Meta.ScanID, err)
-		scan.Meta.Errors = append(scan.Meta.Errors, err)
-
-		// if certificate error, retry without certificate verification
-		// TODO retry on certificate error
-		logrus.Infof("scheduling scan again without certificate verification %s --> TBD", scan.Meta.ScanID)
+		logrus.Errorf("failed to query %s: %v", ddrScan.Meta.ScanId, err)
+		ddrScan.Meta.AddError(err)
 	} else {
 		logrus.Infof(
 			"successfully queried %s on host %s with port %d, received %d SVCB records",
-			scan.Meta.ScanID,
-			scan.Query.Host,
-			scan.Query.Port,
-			len(scan.Result.Response.ResponseMsg.Answer),
+			ddrScan.Meta.ScanId,
+			ddrScan.Query.Host,
+			ddrScan.Query.Port,
+			len(ddrScan.Result.Response.ResponseMsg.Answer),
 		)
 
-		// TODO schedule certificate scan
+		// produce DoE scans
+		scheduleDoEScans(ddrScan)
 
-		// TODO schedule DoE scans
-		logrus.Infof("scheduling DoE scans for %s --> TBD", scan.Meta.ScanID)
+		// produce PTR scan
+		schedulePTRScan(ddrScan)
 	}
 
-	err = storage.Store(scan)
+	err = storage.Store(ddrScan)
 	if err != nil {
-		logrus.Errorf("failed to store %s: %v", scan.Meta.ScanID, err)
+		logrus.Errorf("failed to store %s: %v", ddrScan.Meta.ScanId, err)
 	}
 
 	return
@@ -92,9 +156,19 @@ func NewKafkaDDRParallelEventConsumer(config *KafkaParallelConsumerConfig, stora
 			KafkaParallelEventConsumerConfig: &KafkaParallelEventConsumerConfig{
 				ConcurrentConsumer: DEFAULT_DDR_CONCURRENT_CONSUMER,
 			},
-			KafkaConsumerConfig: GetDefaultKafkaConsumerConfig(),
+			KafkaConsumerConfig: &KafkaConsumerConfig{
+				ConsumerGroup: DEFAULT_DDR_CONSUMER_GROUP,
+				Server:        DEFAULT_KAFKA_SERVER,
+			},
 		}
 		logrus.Warnf("no config provided, using default values: %v", config)
+	}
+
+	if config.KafkaConsumerConfig == nil {
+		config.KafkaConsumerConfig = &KafkaConsumerConfig{
+			ConsumerGroup: DEFAULT_DDR_CONSUMER_GROUP,
+			Server:        DEFAULT_KAFKA_SERVER,
+		}
 	}
 
 	if storageHandler == nil {
@@ -114,4 +188,20 @@ func NewKafkaDDRParallelEventConsumer(config *KafkaParallelConsumerConfig, stora
 	}
 
 	return
+}
+
+type newScanProducer func(config *producer.ProducerConfig) (sp *producer.ScanProducer, err error)
+
+func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, create newScanProducer) {
+	p, err := create(nil)
+	if err != nil {
+		logrus.Errorf("failed to create scan producer: %v", err)
+		ddrScan.Meta.AddError(err)
+	}
+	err = p.Produce(scan)
+	if err != nil {
+		logrus.Errorf("failed to produce scan: %v", err)
+		ddrScan.Meta.AddError(err)
+	}
+	p.Close()
 }

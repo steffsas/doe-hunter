@@ -1,6 +1,12 @@
 package scan
 
-import "github.com/steffsas/doe-hunter/lib/query"
+import (
+	"encoding/json"
+
+	"github.com/steffsas/doe-hunter/lib/query"
+)
+
+const DOH_SCAN_TYPE = "DoH"
 
 type DoHScanMetaInformation struct {
 	ScanMetaInformation
@@ -12,26 +18,29 @@ type DoHScan struct {
 	Result *query.DoHResponse      `json:"result"`
 }
 
-func NewDoHScan(host string, port int, uri string) *DoHScan {
-	defaultQuery := query.NewDoHQuery()
-	defaultQuery.Host = host
-	defaultQuery.Port = port
-	defaultQuery.URI = "/dns-query{?dns}"
+func (scan *DoHScan) Marshall() (bytes []byte, err error) {
+	return json.Marshal(scan)
+}
 
-	if uri != "" {
-		defaultQuery.URI = uri
+func (scan *DoHScan) GetScanId() string {
+	return scan.Meta.ScanId
+}
+
+func (scan *DoHScan) GetType() string {
+	return DOH_SCAN_TYPE
+}
+
+func NewDoHScan(q *query.DoHQuery, parentScanId, rootScanId string) *DoHScan {
+	if q == nil {
+		q = query.NewDoHQuery()
 	}
 
 	scan := &DoHScan{
-		Meta: &DoHScanMetaInformation{
-			ScanMetaInformation: ScanMetaInformation{
-				Errors: []error{},
-			},
-		},
-		Query: defaultQuery,
+		Meta: &DoHScanMetaInformation{},
 	}
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId)
 
-	scan.Meta.GenerateScanID()
+	scan.Query = q
 
 	return scan
 }

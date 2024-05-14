@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -31,6 +32,8 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTResponse, err error) 
 	res = &DoTResponse{}
 	res.Query = query
 	res.Response = &DNSResponse{}
+
+	logrus.Infof("DoTQueryHandler processing DNS query nil? %t", query == nil)
 
 	if query == nil {
 		return res, ErrQueryNil

@@ -11,7 +11,7 @@ func GetFullHostFromHostPort(host string, port int) string {
 	return net.JoinHostPort(host, fmt.Sprintf("%d", port))
 }
 
-func CheckOnCertificateError(err error) bool {
+func IsCertificateError(err error) bool {
 	if err == nil {
 		return false
 	}

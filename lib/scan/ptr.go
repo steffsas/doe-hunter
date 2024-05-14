@@ -1,6 +1,12 @@
 package scan
 
-import "github.com/steffsas/doe-hunter/lib/query"
+import (
+	"encoding/json"
+
+	"github.com/steffsas/doe-hunter/lib/query"
+)
+
+const PTR_SCAN_TYPE = "PTR"
 
 type PTRScanMetaInformation struct {
 	ScanMetaInformation
@@ -12,23 +18,32 @@ type PTRScan struct {
 	Result *query.ConventionalDNSResponse `json:"result"`
 }
 
-func NewPTRScan(host string, port int, resolveIP string) (scan *PTRScan, err error) {
+func (scan *PTRScan) Marshall() (bytes []byte, err error) {
+	return json.Marshal(scan)
+}
+
+func (scan *PTRScan) GetScanId() string {
+	return scan.Meta.ScanId
+}
+
+func (scan *PTRScan) GetType() string {
+	return PTR_SCAN_TYPE
+}
+
+func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId string) (scan *PTRScan, err error) {
+	var ptrQ *query.PTRQuery
+	if q == nil {
+		ptrQ = query.NewPTRQuery()
+	} else {
+		ptrQ = &query.PTRQuery{}
+		ptrQ.ConventionalDNSQuery = *q
+	}
+
 	scan = &PTRScan{
-		Meta: &PTRScanMetaInformation{
-			ScanMetaInformation: ScanMetaInformation{
-				Errors: []error{},
-			},
-		},
+		Meta: &PTRScanMetaInformation{},
 	}
-
-	defaultQuery, err := query.NewPTRQuery(host, resolveIP)
-	if err != nil {
-		return
-	}
-	defaultQuery.Port = port
-
-	scan.Query = defaultQuery
-	scan.Meta.GenerateScanID()
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId)
+	scan.Query = &ptrQ.ConventionalDNSQuery
 
 	return
 }

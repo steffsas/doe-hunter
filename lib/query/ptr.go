@@ -4,18 +4,30 @@ import (
 	"github.com/miekg/dns"
 )
 
-func NewPTRQuery(resolveIP string, host string) (*ConventionalDNSQuery, error) {
-	arpa, err := dns.ReverseAddr(resolveIP)
-	if err != nil {
-		return nil, err
+type PTRQuery struct {
+	ConventionalDNSQuery
+}
+
+func (p *PTRQuery) SetQueryMsg(resolveIp string) (err error) {
+	arpa, err := dns.ReverseAddr(resolveIp)
+
+	if p.QueryMsg == nil {
+		p.QueryMsg = &dns.Msg{}
 	}
 
-	q := NewConventionalQuery()
+	p.QueryMsg.SetQuestion(arpa, dns.TypePTR)
+
+	return err
+}
+
+func NewPTRQuery() *PTRQuery {
+	q := &PTRQuery{}
+
+	q.ConventionalDNSQuery = *NewConventionalQuery()
 	q.QueryMsg = &dns.Msg{}
-	q.QueryMsg.SetQuestion(arpa, dns.TypePTR)
-	q.Host = host
+	q.QueryMsg.SetQuestion("undefined", dns.TypePTR)
 	q.Port = DEFAULT_DNS_PORT
-	return q, nil
+	return q
 }
 
 func NewPTRQueryHandler() (qh *ConventionalDNSQueryHandler) {

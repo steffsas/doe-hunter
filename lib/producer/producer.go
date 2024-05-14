@@ -65,7 +65,6 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string, maxPartitions i
 	}, nil)
 
 	logrus.Info("Message produced")
-	logrus.Error(err)
 
 	return
 }
