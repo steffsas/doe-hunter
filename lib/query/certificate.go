@@ -12,6 +12,7 @@ import (
 
 const TLS_PROTOCOL_TCP = "tcp"
 const TLS_PROTOCOL_UDP = "udp"
+const TLS_PORT = 443
 const TLS_DEFAULT_TIMEOUT time.Duration = 2500 * time.Millisecond
 
 type Conn interface {
@@ -30,8 +31,6 @@ func (d *defaultDialHandler) DialWithDialer(dialer *net.Dialer, network string, 
 }
 
 type CertificateQuery struct {
-	DialHandler DialHandler
-
 	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 	// Host is the host for the dialer (required)
 	Host string `json:"host"`
@@ -70,7 +69,7 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *Certifi
 		return
 	}
 
-	if q.DialHandler == nil {
+	if qh.QueryHandler == nil {
 		err = fmt.Errorf("dial handler is nil")
 		return
 	}
@@ -87,7 +86,7 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *Certifi
 		InsecureSkipVerify: q.SkipCertificateVerify,
 	}
 
-	conn, err := q.DialHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
+	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 	if err != nil {
 		err = fmt.Errorf("failed to dial: %w", err)
 		return
@@ -100,14 +99,11 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *Certifi
 }
 
 func NewCertificateQuery() (q *CertificateQuery) {
-	q = &CertificateQuery{
-		DialHandler: &defaultDialHandler{},
+	return &CertificateQuery{
+		Port:     TLS_PORT,
+		Protocol: TLS_PROTOCOL_TCP,
+		Timeout:  TLS_DEFAULT_TIMEOUT,
 	}
-
-	q.Protocol = TLS_PROTOCOL_TCP
-	q.Timeout = TLS_DEFAULT_TIMEOUT
-
-	return
 }
 
 func NewCertificateQueryHandler() (qh *CertificateQueryHandler) {
