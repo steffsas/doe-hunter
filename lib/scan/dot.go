@@ -1,6 +1,12 @@
 package scan
 
-import "github.com/steffsas/doe-hunter/lib/query"
+import (
+	"encoding/json"
+
+	"github.com/steffsas/doe-hunter/lib/query"
+)
+
+const DOT_SCAN_TYPE = "DoT"
 
 type DoTScanMetaInformation struct {
 	ScanMetaInformation
@@ -12,21 +18,28 @@ type DoTScan struct {
 	Result *query.DoTResponse      `json:"result"`
 }
 
-func NewDoTScan(host string, port int) *DoTScan {
-	defaultQuery := query.NewDoTQuery()
-	defaultQuery.Host = host
-	defaultQuery.Port = port
+func (scan *DoTScan) Marshall() (bytes []byte, err error) {
+	return json.Marshal(scan)
+}
 
-	scan := &DoTScan{
-		Meta: &DoTScanMetaInformation{
-			ScanMetaInformation: ScanMetaInformation{
-				Errors: []error{},
-			},
-		},
-		Query: defaultQuery,
+func (scan *DoTScan) GetScanId() string {
+	return scan.Meta.ScanId
+}
+
+func (scan *DoTScan) GetType() string {
+	return DOT_SCAN_TYPE
+}
+
+func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId string) *DoTScan {
+	if q == nil {
+		q = query.NewDoTQuery()
 	}
 
-	scan.Meta.GenerateScanID()
+	scan := &DoTScan{
+		Meta: &DoTScanMetaInformation{},
+	}
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId)
+	scan.Query = q
 
 	return scan
 }

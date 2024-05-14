@@ -15,6 +15,13 @@ const DEFAULT_MONGO_URI = "mongodb://root:example@localhost:27017/"
 
 const DEFAULT_DATABASE = "doe"
 
+const DEFAULT_DOT_COLLECTION = "dot-scans"
+const DEFAULT_DDR_COLLECTION = "ddr-scans"
+const DEFAULT_DOQ_COLLECTION = "doq-scans"
+const DEFAULT_DOH_COLLECTION = "doh-scans"
+const DEFAULT_PTR_COLLECTION = "ptr-scans"
+const DEFAULT_CERTIFICATE_COLLECTION = "certificate-scans"
+
 type MongoCollection interface {
 	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)
 }

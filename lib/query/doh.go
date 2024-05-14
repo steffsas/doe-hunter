@@ -15,6 +15,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 	"golang.org/x/net/http2"
 )
@@ -27,6 +28,8 @@ const HTTP_POST = "POST"
 const HTTP_VERSION_1 = "HTTP/1.1"
 const HTTP_VERSION_2 = "HTTP2"
 const HTTP_VERSION_3 = "HTTP3"
+
+const DEFAULT_DOH_PATH = "/dns-query{?dns}"
 
 const DEFAULT_DOH_TIMEOUT = 5000 * time.Millisecond
 const DEFAULT_DOH_PORT = 443
@@ -90,10 +93,8 @@ type DoHQuery struct {
 }
 
 type DoHResponse struct {
-	Response     *DNSResponse   `json:"response"`
-	Query        *DoHQuery      `json:"query"`
-	HttpRequest  *http.Request  `json:"http_request"`
-	HttpResponse *http.Response `json:"http_response"`
+	Response *DNSResponse `json:"response"`
+	Query    *DoHQuery    `json:"query"`
 }
 
 type DoHQueryHandler struct {
@@ -104,6 +105,9 @@ type DoHQueryHandler struct {
 func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err error) {
 	res = &DoHResponse{}
 	res.Response = &DNSResponse{}
+
+	logrus.Infof("DoHQueryHandler processing DNS query nil? %t", query == nil)
+
 	res.Query = query
 
 	if query == nil {
@@ -164,7 +168,6 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err error) 
 	case HTTP_VERSION_2:
 		qh.HttpHandler.SetTransport(&http2.Transport{
 			TLSClientConfig: tlsConfig,
-			AllowHTTP:       true,
 		})
 	case HTTP_VERSION_3:
 		qh.HttpHandler.SetTransport(&http3.RoundTripper{
@@ -207,9 +210,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err error) 
 		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
-		res.HttpRequest = httpReq
-		res.Response.ResponseMsg, res.HttpResponse, res.Response.RTT, err = qh.doHttpRequest(httpReq)
-
+		res.Response.ResponseMsg, _, res.Response.RTT, err = qh.doHttpRequest(httpReq)
 		return
 	} else if query.POSTFallback || query.Method == HTTP_POST {
 		// let's try POST instead
@@ -220,8 +221,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err error) 
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
 
-		res.HttpRequest = httpReq
-		res.Response.ResponseMsg, res.HttpResponse, res.Response.RTT, err = qh.doHttpRequest(httpReq)
+		res.Response.ResponseMsg, _, res.Response.RTT, err = qh.doHttpRequest(httpReq)
 		return
 	}
 
@@ -266,6 +266,7 @@ func NewDoHQuery() (q *DoHQuery) {
 		Method:       HTTP_GET,
 		POSTFallback: true,
 		HTTPVersion:  HTTP_VERSION_2,
+		URI:          DEFAULT_DOH_PATH,
 	}
 
 	q.Timeout = DEFAULT_DOH_TIMEOUT

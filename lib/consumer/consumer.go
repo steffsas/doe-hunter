@@ -11,7 +11,7 @@ import (
 )
 
 const DEFAULT_KAFKA_READ_TIMEOUT = 1000 * time.Millisecond
-const DEFAULT_KAFKA_SERVER = "localhost:9092"
+const DEFAULT_KAFKA_SERVER = "localhost:29092"
 const DEFAULT_KAFKA_CONSUMER_GROUP = "default-consumer-group"
 
 type KafkaErr interface {

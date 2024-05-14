@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -65,6 +66,8 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	res.UDPAttempts = 0
 	res.TCPAttempts = 0
 	res.Query = query
+
+	logrus.Infof("ConventionalDNSQueryHandler processing DNS query nil? %t", query == nil)
 
 	if query == nil {
 		return res, ErrQueryMsgNil
@@ -188,7 +191,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 }
 
 func NewConventionalQuery() *ConventionalDNSQuery {
-	return &ConventionalDNSQuery{
+	q := &ConventionalDNSQuery{
 		Protocol:        DNS_UDP,
 		MaxUDPRetries:   DEFAULT_UDP_RETRIES,
 		AutoFallbackTCP: true,
@@ -197,6 +200,9 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 		TimeoutTCP:      DEFAULT_TCP_TIMEOUT,
 		MaxBackoffTime:  DEFAULT_BACKOFF_TIME,
 	}
+
+	q.Port = DEFAULT_DNS_PORT
+	return q
 }
 
 func NewConventionalDNSQueryHandler() *ConventionalDNSQueryHandler {

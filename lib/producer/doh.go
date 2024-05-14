@@ -1,52 +1,20 @@
 package producer
 
-import (
-	"encoding/json"
-	"errors"
-
-	"github.com/steffsas/doe-hunter/lib/scan"
-)
-
 const DEFAULT_DOH_TOPIC = "doh-scan"
+const DEFAULT_DOH_PARTITIONS = 100
 
-type DoHProducerConfig struct {
-	KafkaProducerConfig
-
-	Topic         string
-	MaxPartitions int
+func NewDefaultDoHScanProducerConfig() *ProducerConfig {
+	return &ProducerConfig{
+		KafkaProducerConfig: *GetDefaultKafkaProducerConfig(),
+		Topic:               DEFAULT_DOH_TOPIC,
+		MaxPartitions:       DEFAULT_DOH_PARTITIONS,
+	}
 }
 
-type DoHProducer struct {
-	EventProducer
-
-	Producer *KafkaEventProducer
-	Config   *DoHProducerConfig
-}
-
-func (dp *DoHProducer) Produce(scan *scan.DoTScan) (err error) {
-	if dp.Producer == nil {
-		return errors.New("producer not initialized")
+func NewDoHScanProducer(config *ProducerConfig) (sp *ScanProducer, err error) {
+	if config == nil {
+		config = NewDefaultDoHScanProducerConfig()
 	}
 
-	if scan == nil {
-		return errors.New("scan is nil")
-	}
-
-	if scan.Query == nil {
-		return errors.New("query is nil")
-	}
-
-	if scan.Meta == nil {
-		return errors.New("meta is nil")
-	}
-
-	var scanMsg []byte
-	scanMsg, err = json.Marshal(scan)
-	if err != nil {
-		return
-	}
-
-	err = dp.Producer.Produce(scanMsg, dp.Config.Topic, dp.Config.MaxPartitions)
-
-	return
+	return NewScanProducer(config)
 }

@@ -15,10 +15,10 @@ func TestScanMetaInformation(t *testing.T) {
 		t.Parallel()
 		// setup
 		smi := &scan.ScanMetaInformation{}
-		smi.GenerateScanID()
+		smi.GenerateScanId()
 
 		// test
-		assert.NotEmpty(t, smi.ScanID)
+		assert.NotEmpty(t, smi.ScanId)
 	})
 
 	t.Run("add error", func(t *testing.T) {

@@ -1,6 +1,12 @@
 package scan
 
-import "github.com/steffsas/doe-hunter/lib/query"
+import (
+	"encoding/json"
+
+	"github.com/steffsas/doe-hunter/lib/query"
+)
+
+const CERTIFICATE_SCAN_TYPE = "certificate"
 
 type CertificateScanMetaInformation struct {
 	ScanMetaInformation
@@ -12,21 +18,23 @@ type CertificateScan struct {
 	Result *query.CertificateResponse      `json:"result"`
 }
 
-func NewCertificateScan(host string, port int) *CertificateScan {
-	defaultQuery := query.NewCertificateQuery()
-	defaultQuery.Host = host
-	defaultQuery.Port = port
+func (scan *CertificateScan) Marshall() (bytes []byte, err error) {
+	return json.Marshal(scan)
+}
 
+func (scan *CertificateScan) GetScanId() string {
+	return scan.Meta.ScanId
+}
+
+func (scan *CertificateScan) GetType() string {
+	return CERTIFICATE_SCAN_TYPE
+}
+
+func NewCertificateScan(query *query.CertificateQuery, rootScanId string, parentScanId string) *CertificateScan {
 	scan := &CertificateScan{
-		Meta: &CertificateScanMetaInformation{
-			ScanMetaInformation: ScanMetaInformation{
-				Errors: []error{},
-			},
-		},
-		Query: defaultQuery,
+		Meta: &CertificateScanMetaInformation{},
 	}
-
-	scan.Meta.GenerateScanID()
-
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(rootScanId, parentScanId)
+	scan.Query = query
 	return scan
 }
