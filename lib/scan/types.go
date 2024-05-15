@@ -10,6 +10,7 @@ type ScanMetaInformation struct {
 	ScanId       string `json:"scan_id"`
 	ParentScanId string `json:"parent_scan_id"`
 	RootScanId   string `json:"root_scan_id"`
+	VantagePoint string `json:"vantage_point"`
 
 	Scheduled time.Time `json:"scheduled"`
 	Started   time.Time `json:"started"`
