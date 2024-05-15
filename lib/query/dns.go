@@ -1,11 +1,10 @@
 package query
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -20,10 +19,10 @@ const DEFAULT_TCP_RETRIES = 1
 const DEFAULT_BACKOFF_TIME time.Duration = 2500 * time.Millisecond
 
 type ConventionalDNSResponse struct {
-	Response    *DNSResponse          `json:"response"`
-	Query       *ConventionalDNSQuery `json:"query"`
-	UDPAttempts int                   `json:"udp_attempts"`
-	TCPAttempts int                   `json:"tcp_attempts"`
+	Response      *DNSResponse `json:"response"`
+	UDPAttempts   int          `json:"udp_attempts"`
+	TCPAttempts   int          `json:"tcp_attempts"`
+	AttemptErrors []error      `json:"attempt_errors"`
 }
 
 type ConventionalDNSQuery struct {
@@ -60,25 +59,34 @@ type ConventionalDNSQueryHandler struct {
 	QueryHandler QueryHandlerDNS
 }
 
-func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err error) {
+func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err custom_errors.DoEErrors) {
 	res = &ConventionalDNSResponse{}
 	res.Response = &DNSResponse{}
 	res.UDPAttempts = 0
 	res.TCPAttempts = 0
-	res.Query = query
-
-	logrus.Infof("ConventionalDNSQueryHandler processing DNS query nil? %t", query == nil)
 
 	if query == nil {
-		return res, ErrQueryMsgNil
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil)
 	}
 
-	if query.QueryMsg == nil {
-		return res, ErrEmptyQueryMessage
+	if err := query.Check(); err != nil {
+		return res, err
 	}
 
-	if query.Protocol == "" {
-		query.Protocol = DNS_UDP
+	if dq.QueryHandler == nil {
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil)
+	}
+
+	if query.Protocol != DNS_UDP && query.Protocol != DNS_TCP {
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidProtocol)
+	}
+
+	if query.MaxUDPRetries < 0 {
+		query.MaxUDPRetries = DEFAULT_UDP_RETRIES
+	}
+
+	if query.MaxTCPRetries < 0 {
+		query.MaxTCPRetries = DEFAULT_TCP_RETRIES
 	}
 
 	if query.Timeout >= 0 {
@@ -94,34 +102,6 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		query.TimeoutUDP = DEFAULT_UDP_TIMEOUT
 	}
 
-	if query.Host == "" {
-		return res, ErrHostEmpty
-	}
-
-	if query.QueryMsg == nil {
-		return res, ErrEmptyQueryMessage
-	}
-
-	if dq.QueryHandler == nil {
-		return res, ErrQueryHandlerNil
-	}
-
-	if query.Port >= 65536 || query.Port <= 0 {
-		return res, fmt.Errorf("invalid port %d", query.Port)
-	}
-
-	if query.Protocol != DNS_UDP && query.Protocol != DNS_TCP {
-		return res, fmt.Errorf("invalid protocol %s", query.Protocol)
-	}
-
-	if query.MaxUDPRetries < 0 {
-		query.MaxUDPRetries = DEFAULT_UDP_RETRIES
-	}
-
-	if query.MaxTCPRetries < 0 {
-		query.MaxTCPRetries = DEFAULT_TCP_RETRIES
-	}
-
 	truncated := false
 	if query.Protocol == DNS_UDP {
 		// create exponential timeout backoff
@@ -129,8 +109,9 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 		// +1 because we try at least once even if MaxUDPRetries is 0
 		for i := 1; i <= query.MaxUDPRetries; i++ {
+			var queryErr error
 			res.UDPAttempts = i
-			res.Response.ResponseMsg, res.Response.RTT, err = dq.QueryHandler.Query(
+			res.Response.ResponseMsg, res.Response.RTT, queryErr = dq.QueryHandler.Query(
 				helper.GetFullHostFromHostPort(query.Host, query.Port),
 				query.QueryMsg,
 				DNS_UDP,
@@ -138,7 +119,11 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 				nil,
 			)
 
-			if err == nil && res.Response.ResponseMsg != nil && !res.Response.ResponseMsg.Truncated {
+			if queryErr != nil {
+				res.AttemptErrors = append(res.AttemptErrors, queryErr)
+			}
+
+			if queryErr == nil && res.Response.ResponseMsg != nil && !res.Response.ResponseMsg.Truncated {
 				// we got some valid response, so we can return
 				return
 			}
@@ -162,8 +147,9 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 		// +1 because we try at least once even if MaxTCPRetries is 0
 		for i := 1; i <= query.MaxTCPRetries; i++ {
+			var queryErr error
 			res.TCPAttempts = i
-			res.Response.ResponseMsg, res.Response.RTT, err = dq.QueryHandler.Query(
+			res.Response.ResponseMsg, res.Response.RTT, queryErr = dq.QueryHandler.Query(
 				helper.GetFullHostFromHostPort(query.Host, query.Port),
 				query.QueryMsg,
 				DNS_TCP,
@@ -171,7 +157,11 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 				nil,
 			)
 
-			if err == nil && res.Response != nil {
+			if queryErr != nil {
+				res.AttemptErrors = append(res.AttemptErrors, queryErr)
+			}
+
+			if queryErr == nil && res.Response != nil {
 				// we got some valid response, so we can return
 				return
 			}
@@ -184,7 +174,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	}
 
 	if res.Response.ResponseMsg == nil {
-		err = fmt.Errorf("no response received")
+		err = custom_errors.NewQueryError(custom_errors.ErrNoResponse)
 	}
 
 	return
