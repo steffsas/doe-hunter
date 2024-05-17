@@ -4,13 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
-	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -38,8 +37,7 @@ func (d *DefaultQuicDialHandler) DialAddr(ctx context.Context, addr string, tlsC
 }
 
 type DoQResponse struct {
-	Response *DNSResponse `json:"response"`
-	Query    *DoQQuery    `json:"query"`
+	DoEResponse
 }
 
 type DoQQuery struct {
@@ -49,36 +47,29 @@ type DoQQuery struct {
 }
 
 type DoQQueryHandler struct {
-	QueryHandler
-
-	// DialHandler is the QUIC dial handler (defaults to quic.DialAddr)
-	DialHandler QuicDialHandler
+	// QueryHandler is the QUIC dial handler (defaults to quic.DialAddr)
+	QueryHandler QuicDialHandler
 }
 
 // This DoQ implementation is inspired by the q library, see https://github.com/natesales/q/blob/main/transport/quic.go
-func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) {
+func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.DoEErrors) {
 	// see RFC https://datatracker.ietf.org/doc/rfc9250/
 	// see example implementation https://github.com/natesales/doqd/blob/main/pkg/client/main.go
-	res = &DoQResponse{}
-	res.Query = query
-	res.Response = &DNSResponse{}
+	res := &DoQResponse{}
 
-	logrus.Infof("DoQQueryHandler processing DNS query nil? %t", query == nil)
+	res.CertificateValid = false
+	res.CertificateVerified = false
 
 	if query == nil {
-		return res, ErrQueryMsgNil
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if query.QueryMsg == nil {
-		return res, ErrEmptyQueryMessage
+	if err := query.Check(); err != nil {
+		return res, err
 	}
 
-	if query.Host == "" {
-		return res, ErrHostEmpty
-	}
-
-	if query.Port >= 65536 || query.Port < 0 {
-		return res, fmt.Errorf("invalid port %d", query.Port)
+	if qh.QueryHandler == nil {
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
 	}
 
 	tlsConfig := &tls.Config{
@@ -86,9 +77,6 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
-	if query.Timeout == 0 {
-		query.Timeout = DEFAULT_DOQ_TIMEOUT
-	}
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout: query.Timeout,
 	}
@@ -96,14 +84,18 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	// measure some RTT
 	start := time.Now()
 
-	session, err := qh.DialHandler.DialAddr(
+	session, err := qh.QueryHandler.DialAddr(
 		context.Background(),
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
 		tlsConfig,
 		quicConfig,
 	)
 	if err != nil {
-		return res, err
+		return res, validateCertificateError(
+			err,
+			custom_errors.NewQueryError(custom_errors.ErrSessionEstablishmentFailed, true).AddInfo(err),
+			&res.DoEResponse,
+		)
 	}
 	// for linting wrapped in a anon function
 	defer func() {
@@ -113,7 +105,11 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	// open a stream
 	stream, err := session.OpenStream()
 	if err != nil {
-		return
+		return res, validateCertificateError(
+			err,
+			custom_errors.NewQueryError(custom_errors.ErrOpenStreamFailed, true).AddInfo(err),
+			&res.DoEResponse,
+		)
 	}
 
 	// prepare message according to RFC9250
@@ -123,7 +119,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	// pack DNS query message
 	packedMessage, err := query.QueryMsg.Pack()
 	if err != nil {
-		return
+		return res, custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed, true).AddInfo(err)
 	}
 
 	// All DNS messages (queries and responses) sent over DoQ connections
@@ -136,7 +132,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	_, err = stream.Write(prefixedMsg)
 	if err != nil {
 		stream.Close()
-		return
+		return res, custom_errors.NewQueryError(custom_errors.ErrWriteToStreamFailed, true).AddInfo(err)
 	}
 
 	// The client MUST send the DNS query over the selected stream, and MUST
@@ -148,26 +144,26 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (res *DoQResponse, err error) 
 	// read DNS response message
 	response, err := io.ReadAll(stream)
 	if err != nil {
-		return
+		return res, custom_errors.NewQueryError(custom_errors.ErrStreamReadFailed, true).AddInfo(err)
 	}
 	if len(response) == 0 {
-		return res, fmt.Errorf("empty response")
+		return res, custom_errors.NewQueryError(custom_errors.ErrEmptyStreamResponse, true)
 	}
 
 	// measure RTT
-	res.Response.RTT = time.Since(start)
+	res.RTT = time.Since(start)
 
 	// unpack DNS response message
 	responseMsg := &dns.Msg{}
 	// remove 2-byte prefix
 	err = responseMsg.Unpack(response[2:])
 	if err != nil {
-		return
+		return res, custom_errors.NewQueryError(custom_errors.ErrUnpackFailed, true).AddInfo(err)
 	}
 
-	res.Response.ResponseMsg = responseMsg
+	res.ResponseMsg = responseMsg
 
-	return
+	return res, nil
 }
 
 // AddQuicPrefix adds a 2-byte prefix with the DNS message length.
@@ -191,7 +187,7 @@ func NewDoQQuery() (q *DoQQuery) {
 
 func NewDoQQueryHandler() (qh *DoQQueryHandler) {
 	qh = &DoQQueryHandler{}
-	qh.DialHandler = &DefaultQuicDialHandler{}
+	qh.QueryHandler = &DefaultQuicDialHandler{}
 
 	return
 }

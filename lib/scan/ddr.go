@@ -2,9 +2,11 @@ package scan
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/svcb"
 )
@@ -34,9 +36,9 @@ func (scan *DDRScan) GetType() string {
 	return DDR_SCAN_TYPE
 }
 
-func (scan *DDRScan) CreateScansFromResponse() (scans []Scan, errorColl []error) {
-	scans = []Scan{}
-	errorColl = []error{}
+func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEErrors) {
+	scans := []Scan{}
+	errorColl := []custom_errors.DoEErrors{}
 
 	if scan.Result == nil {
 		return scans, nil
@@ -58,9 +60,9 @@ func (scan *DDRScan) CreateScansFromResponse() (scans []Scan, errorColl []error)
 		}
 
 		svcb, err := svcb.ParseDDRSVCB(scan.Meta.ScanId, svcRecord)
-		if err != nil {
-			logrus.Error(err.Error())
-			errorColl = append(errorColl, err)
+		errorColl = append(errorColl, err...)
+		if custom_errors.ContainsCriticalErr(err) {
+			logrus.Errorf("parsing DDR scan %s: critical error while parsing SVCB record, ignore DNS RR", scan.Meta.ScanId)
 			continue
 		}
 
@@ -87,7 +89,7 @@ func (scan *DDRScan) CreateScansFromResponse() (scans []Scan, errorColl []error)
 		}
 	}
 
-	return
+	return scans, errorColl
 }
 
 func NewDDRScan(query *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRScan {
@@ -100,9 +102,18 @@ func NewDDRScan(query *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRSc
 	return scan
 }
 
-func produceScanFromAlpn(parentScanId string, host string, alpn string, svcb *svcb.SVCBRR) (scans []Scan, err []error) {
+// just append the errors to the DDRScan
+func produceScanFromAlpn(
+	parentScanId string,
+	host string,
+	alpn string,
+	svcb *svcb.SVCBRR,
+) (
+	scans []Scan,
+	err []custom_errors.DoEErrors,
+) {
 	scans = []Scan{}
-	err = []error{}
+	err = []custom_errors.DoEErrors{}
 
 	var port *int
 	if svcb.Port != nil {
@@ -136,77 +147,76 @@ func produceScanFromAlpn(parentScanId string, host string, alpn string, svcb *sv
 		}
 		scans = append(scans, NewDoTScan(q, parentScanId, parentScanId))
 	case "doh":
-		q := query.NewDoHQuery()
-		q.Host = host
-		q.QueryMsg = queryMsg
-		if port != nil {
-			q.Port = *port
+		scan, sErr := createDoHScan(parentScanId, queryMsg, host, query.HTTP_VERSION_2, port, dohpath)
+		if sErr != nil {
+			err = append(err, sErr)
 		}
-		if dohpath != nil {
-			q.URI = *dohpath
-		} else {
-			logrus.Warnf("parsing DDR scan %s: ALPN doh requires DoH path but none is given, fallback to default", parentScanId)
-		}
-		scans = append(scans, NewDoHScan(q, parentScanId, parentScanId))
+
+		scans = append(scans, scan)
 	case "h1":
-		q := query.NewDoHQuery()
-		q.Host = host
-		q.QueryMsg = queryMsg
-		if port != nil {
-			q.Port = *port
+		scan, sErr := createDoHScan(parentScanId, queryMsg, host, query.HTTP_VERSION_1, port, dohpath)
+		if sErr != nil {
+			err = append(err, sErr)
 		}
-		if dohpath != nil {
-			q.URI = *dohpath
-		} else {
-			logrus.Warnf("parsing DDR scan %s: ALPN h1 requires DoH path but none is given, fallback to default", parentScanId)
-		}
-		q.HTTPVersion = query.HTTP_VERSION_1
-		scans = append(scans, NewDoHScan(q, parentScanId, parentScanId))
+
+		scans = append(scans, scan)
 	case "http/1.1":
-		q := query.NewDoHQuery()
-		q.Host = host
-		q.QueryMsg = queryMsg
-		if port != nil {
-			q.Port = *port
+		scan, sErr := createDoHScan(parentScanId, queryMsg, host, query.HTTP_VERSION_1, port, dohpath)
+		if sErr != nil {
+			err = append(err, sErr)
 		}
-		if dohpath != nil {
-			q.URI = *dohpath
-		} else {
-			logrus.Warnf("parsing DDR scan %s: ALPN http/1.1 requires DoH path but none is given, fallback to default", parentScanId)
-		}
-		q.HTTPVersion = query.HTTP_VERSION_1
-		scans = append(scans, NewDoHScan(q, parentScanId, parentScanId))
+
+		scans = append(scans, scan)
 	case "h2":
-		q := query.NewDoHQuery()
-		q.Host = host
-		q.QueryMsg = queryMsg
-		if port != nil {
-			q.Port = *port
+		scan, sErr := createDoHScan(parentScanId, queryMsg, host, query.HTTP_VERSION_2, port, dohpath)
+		if sErr != nil {
+			err = append(err, sErr)
 		}
-		if dohpath != nil {
-			q.URI = *dohpath
-		} else {
-			logrus.Warnf("parsing DDR scan %s: ALPN h2 requires DoH path but none is given, fallback to default", parentScanId)
-		}
-		q.HTTPVersion = query.HTTP_VERSION_2
-		scans = append(scans, NewDoHScan(q, parentScanId, parentScanId))
+
+		scans = append(scans, scan)
 	case "h3":
-		q := query.NewDoHQuery()
-		q.Host = host
-		q.QueryMsg = queryMsg
-		if port != nil {
-			q.Port = *port
+		scan, sErr := createDoHScan(parentScanId, queryMsg, host, query.HTTP_VERSION_3, port, dohpath)
+		if sErr != nil {
+			err = append(err, sErr)
 		}
-		if dohpath != nil {
-			q.URI = *dohpath
-		} else {
-			logrus.Warnf("parsing DDR scan %s: ALPN h3 requires DoH path but none is given, fallback to default", parentScanId)
-		}
-		q.HTTPVersion = query.HTTP_VERSION_3
-		scans = append(scans, NewDoHScan(q, parentScanId, parentScanId))
+
+		scans = append(scans, scan)
 	default:
 		logrus.Warnf("parsing DDR scan %s: unknown ALPN %s in SVCB record, ignore", parentScanId, alpn)
+		err = append(err, custom_errors.NewQueryError(custom_errors.ErrUnknownALPN, false).AddInfoString(fmt.Sprintf("ALPN %s for %s", alpn, host)))
 	}
 
 	return
+}
+
+func createDoHScan(
+	parentScanId string,
+	queryMsg *dns.Msg,
+	host string,
+	httpVersion string,
+	port *int,
+	dohpath *string,
+) (*DoHScan, custom_errors.DoEErrors) {
+	q := query.NewDoHQuery()
+	q.Host = host
+	q.QueryMsg = queryMsg
+	q.HTTPVersion = httpVersion
+
+	if port != nil {
+		q.Port = *port
+	}
+
+	scan := NewDoHScan(q, parentScanId, parentScanId)
+
+	if dohpath != nil {
+		q.URI = *dohpath
+	} else {
+		logrus.Warnf("parsing DDR scan %s: ALPN doh requires DoH path but none is given, fallback to default", parentScanId)
+		pathErr := custom_errors.NewQueryError(custom_errors.ErrDoHPathNotProvided, false).AddInfoString("fallback to default path")
+		// let's add this information already
+		scan.Meta.AddError(pathErr)
+		return scan, pathErr
+	}
+
+	return scan, nil
 }

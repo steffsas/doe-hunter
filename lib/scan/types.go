@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 )
 
 type ScanMetaInformation struct {
@@ -16,17 +17,15 @@ type ScanMetaInformation struct {
 	Started   time.Time `json:"started"`
 	Finished  time.Time `json:"finished"`
 
-	Errors []string `json:"errors"`
+	Errors []custom_errors.DoEErrors `json:"errors"`
 }
 
 func (smi *ScanMetaInformation) GenerateScanId() {
 	smi.ScanId = uuid.New().String()
 }
 
-func (smi *ScanMetaInformation) AddError(err ...error) {
-	for _, e := range err {
-		smi.Errors = append(smi.Errors, e.Error())
-	}
+func (smi *ScanMetaInformation) AddError(err ...custom_errors.DoEErrors) {
+	smi.Errors = append(smi.Errors, err...)
 }
 
 func (smi *ScanMetaInformation) SetScheduled() {
@@ -56,7 +55,7 @@ func NewScanMetaInformation(parentScanId, rootScanId string) *ScanMetaInformatio
 	meta := &ScanMetaInformation{
 		ParentScanId: parentScanId,
 		RootScanId:   rootScanId,
-		Errors:       []string{},
+		Errors:       []custom_errors.DoEErrors{},
 	}
 
 	meta.GenerateScanId()

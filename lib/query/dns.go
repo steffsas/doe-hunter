@@ -1,6 +1,7 @@
 package query
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -49,7 +50,7 @@ type ConventionalDNSQuery struct {
 }
 
 type ConventionalDNSQueryHandlerI interface {
-	Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err error)
+	Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err custom_errors.DoEErrors)
 }
 
 type ConventionalDNSQueryHandler struct {
@@ -66,7 +67,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	res.TCPAttempts = 0
 
 	if query == nil {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
 	if err := query.Check(); err != nil {
@@ -74,32 +75,17 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	}
 
 	if dq.QueryHandler == nil {
-		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil)
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
 	}
 
 	if query.Protocol != DNS_UDP && query.Protocol != DNS_TCP {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidProtocol)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidProtocol, true).AddInfoString(fmt.Sprintf("protocol: %s", query.Protocol))
 	}
 
-	if query.MaxUDPRetries < 0 {
-		query.MaxUDPRetries = DEFAULT_UDP_RETRIES
-	}
-
-	if query.MaxTCPRetries < 0 {
-		query.MaxTCPRetries = DEFAULT_TCP_RETRIES
-	}
-
+	// override upd and tcp timeouts if query.Timeout is set
 	if query.Timeout >= 0 {
 		query.TimeoutUDP = query.Timeout
 		query.TimeoutTCP = query.Timeout
-	}
-
-	if query.TimeoutTCP < 0 && query.Timeout < 0 {
-		query.TimeoutTCP = DEFAULT_TCP_TIMEOUT
-	}
-
-	if query.TimeoutUDP < 0 && query.Timeout < 0 {
-		query.TimeoutUDP = DEFAULT_UDP_TIMEOUT
 	}
 
 	truncated := false
@@ -174,7 +160,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	}
 
 	if res.Response.ResponseMsg == nil {
-		err = custom_errors.NewQueryError(custom_errors.ErrNoResponse)
+		err = custom_errors.NewQueryError(custom_errors.ErrNoResponse, true)
 	}
 
 	return
