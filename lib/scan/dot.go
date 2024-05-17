@@ -13,6 +13,8 @@ type DoTScanMetaInformation struct {
 }
 
 type DoTScan struct {
+	DoEScan
+
 	Meta   *DoTScanMetaInformation `json:"meta"`
 	Query  *query.DoTQuery         `json:"query"`
 	Result *query.DoTResponse      `json:"result"`
@@ -22,12 +24,20 @@ func (scan *DoTScan) Marshall() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 
-func (scan *DoTScan) GetScanId() string {
-	return scan.Meta.ScanId
+func (scan *DoTScan) GetMetaInformation() *ScanMetaInformation {
+	return &scan.Meta.ScanMetaInformation
 }
 
 func (scan *DoTScan) GetType() string {
 	return DOT_SCAN_TYPE
+}
+
+func (scan *DoTScan) GetScanId() string {
+	return scan.Meta.ScanId
+}
+
+func (scan *DoTScan) GetDoEQuery() *query.DoEQuery {
+	return &scan.Query.DoEQuery
 }
 
 func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId string) *DoTScan {

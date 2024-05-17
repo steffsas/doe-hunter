@@ -58,12 +58,18 @@ var ErrUnknownALPN = errors.New("unknown ALPN in SVCB record")
 // specific certificate errors
 var ErrCertificateInvalid = errors.New("certificate is invalid")
 
+// generic producer generation
+var ErrProducerCreationFailed = errors.New("failed to create producer")
+var ErrProducerProduceFailed = errors.New("failed to produce message")
+
 type DoEErrors interface {
 	Error() string
 	IsError(errId string) bool
 	IsCritical() bool
 	AddInfo(err error) DoEErrors
 	AddInfoString(err string) DoEErrors
+	GetErrorId() string
+	IsCertificateError() bool
 }
 
 type DoEError struct {
@@ -109,6 +115,14 @@ func (ce *DoEError) addInfoStr(err string) DoEErrors {
 	}
 
 	return ce
+}
+
+func (ce *DoEError) GetErrorId() string {
+	return ce.ErrId
+}
+
+func (ce *DoEError) IsCertificateError() bool {
+	return ce.ErrId == CERTIFICATE_ERROR
 }
 
 func getCallerName(skip int) string {

@@ -15,13 +15,19 @@ const DDR_SCAN_TYPE = "DDR"
 
 type DDRScanMetaInformation struct {
 	ScanMetaInformation
+
 	ScheduleDoEScans bool `json:"schedule_doe_scans"`
+	PTRScheduled     bool `json:"ptr_scheduled"`
 }
 
 type DDRScan struct {
+	Scan
+
 	Meta   *DDRScanMetaInformation        `json:"meta"`
 	Query  *query.ConventionalDNSQuery    `json:"query"`
 	Result *query.ConventionalDNSResponse `json:"result"`
+
+	PTR []string `json:"ptr"`
 }
 
 func (scan *DDRScan) Marshall() (bytes []byte, err error) {
@@ -30,6 +36,10 @@ func (scan *DDRScan) Marshall() (bytes []byte, err error) {
 
 func (scan *DDRScan) GetScanId() string {
 	return scan.Meta.ScanId
+}
+
+func (scan *DDRScan) GetMetaInformation() *ScanMetaInformation {
+	return &scan.Meta.ScanMetaInformation
 }
 
 func (scan *DDRScan) GetType() string {

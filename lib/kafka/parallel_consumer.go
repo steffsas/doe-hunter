@@ -1,4 +1,4 @@
-package consumer
+package kafka
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 type ParallelEventConsumer interface {
-	Consume(ctx context.Context, topic string) (err error)
+	Consume(ctx context.Context) (err error)
 }
 
 type CreateConsumerFunc func() (EventConsumer, error)
@@ -21,8 +21,8 @@ type KafkaParallelConsumer struct {
 	ParallelEventConsumer
 
 	CreateConsumer CreateConsumerFunc
-	// number of concurrent consumers
-	ConcurrentConsumer int
+
+	Config *KafkaParallelEventConsumerConfig
 }
 
 type KafkaParallelConsumerConfig struct {
@@ -30,9 +30,9 @@ type KafkaParallelConsumerConfig struct {
 	*KafkaConsumerConfig
 }
 
-func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (err error) {
-	if kpc.ConcurrentConsumer <= 0 {
-		return fmt.Errorf("invalid concurrent consumer number %d", kpc.ConcurrentConsumer)
+func (kpc *KafkaParallelConsumer) Consume(ctx context.Context) (err error) {
+	if kpc.Config.ConcurrentConsumer <= 0 {
+		return fmt.Errorf("invalid concurrent consumer number %d", kpc.Config.ConcurrentConsumer)
 	}
 
 	if kpc.CreateConsumer == nil {
@@ -49,7 +49,7 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 	termChan := make(chan os.Signal, 1)
 	signal.Notify(termChan, os.Interrupt, syscall.SIGTERM) // Handle SIGTERM and Ctrl+C
 
-	for i := 0; i < kpc.ConcurrentConsumer; i++ {
+	for i := 0; i < kpc.Config.ConcurrentConsumer; i++ {
 		var consumer EventConsumer
 		consumer, err = kpc.CreateConsumer()
 
@@ -70,10 +70,8 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context, topic string) (er
 
 		go func() {
 			defer wg.Done()
-			err = consumer.Consume(ctx, topic)
+			err = consumer.Consume(ctx)
 			if err != nil {
-				// TODO restart consumer?
-				logrus.Errorf("failed to consume topic %s: %v", topic, err)
 				cancel()
 			}
 			consumer.Close()
@@ -110,10 +108,23 @@ func NewKafkaParallelEventConsumer(createConsumer CreateConsumerFunc, config *Ka
 	}
 
 	kec = &KafkaParallelConsumer{
-		ConcurrentConsumer: config.ConcurrentConsumer,
+		Config: config,
 	}
 
 	kec.CreateConsumer = createConsumer
 
 	return
+}
+
+func GetDefaultKafkaParallelEventConsumerConfig() *KafkaParallelEventConsumerConfig {
+	return &KafkaParallelEventConsumerConfig{
+		ConcurrentConsumer: DEFAULT_CONCURRENT_CONSUMER,
+	}
+}
+
+func GetDefaultKafkaParallelConsumerConfig(consumerGroup string, topic string) *KafkaParallelConsumerConfig {
+	return &KafkaParallelConsumerConfig{
+		KafkaParallelEventConsumerConfig: GetDefaultKafkaParallelEventConsumerConfig(),
+		KafkaConsumerConfig:              GetDefaultKafkaConsumerConfig(consumerGroup, topic),
+	}
 }

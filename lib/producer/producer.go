@@ -7,22 +7,21 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 )
 
 const DEFAULT_KAFKA_SERVER = "localhost:29092"
-const DEFAULT_KAFKA_PRODUCER_GROUP = "default-consumer-group"
+const DEFAULT_ACKS = "1"
+const DEFAULT_PARTITIONS = 100
 const DEFAULT_KAFKA_WRITE_TIMEOUT = 1000 * time.Millisecond
 
-type EventProducer interface {
-	Produce(msg []byte) (err error)
-	Close()
-}
+type KafkaProducerConfig struct {
+	Server  string
+	Timeout time.Duration
+	Acks    string
 
-type ProducerConfig struct {
-	KafkaProducerConfig
-
-	Topic         string
-	MaxPartitions int
+	MaxPartitions     int
+	ReplicationFactor int
 }
 
 type KafkaProducer interface {
@@ -31,36 +30,28 @@ type KafkaProducer interface {
 }
 
 type KafkaEventProducer struct {
-	EventProducer
+	k.EventProducer
 
-	Config *KafkaProducerConfig
-
+	Config   *KafkaProducerConfig
+	Topic    string
 	Producer KafkaProducer
 }
 
-func (kep *KafkaEventProducer) Produce(msg []byte, topic string, maxPartitions int) (err error) {
+func (kep *KafkaEventProducer) Produce(msg []byte) (err error) {
 	if kep.Producer == nil {
 		return errors.New("producer not initialized")
-	}
-
-	if maxPartitions <= 0 {
-		return errors.New("invalid partition count")
-	}
-
-	if topic == "" {
-		return errors.New("invalid topic")
 	}
 
 	if len(msg) == 0 {
 		return errors.New("message should not be empty")
 	}
 
-	randomPartition := rand.Int() % maxPartitions
+	randomPartition := rand.Int() % kep.Config.MaxPartitions
 
-	logrus.Infof("Producing message to topic %s", topic)
+	logrus.Infof("Producing message to topic %s", kep.Topic)
 
 	err = kep.Producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: int32(randomPartition)},
+		TopicPartition: kafka.TopicPartition{Topic: &kep.Topic, Partition: int32(randomPartition)},
 		Value:          msg,
 	}, nil)
 
@@ -75,7 +66,7 @@ func (kep *KafkaEventProducer) Close() {
 	}
 }
 
-func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
+func NewKafkaProducer(topic string, config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
 	if config == nil {
 		config = GetDefaultKafkaProducerConfig()
 	}
@@ -86,6 +77,14 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 
 	if config.Timeout <= 0 {
 		return nil, errors.New("invalid timeout")
+	}
+
+	if topic == "" {
+		return nil, errors.New("invalid topic")
+	}
+
+	if config.MaxPartitions <= 0 {
+		return nil, errors.New("invalid partition count")
 	}
 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
@@ -99,19 +98,15 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 	return &KafkaEventProducer{
 		Config:   config,
 		Producer: p,
+		Topic:    topic,
 	}, nil
-}
-
-type KafkaProducerConfig struct {
-	Server  string
-	Timeout time.Duration
-	Acks    string
 }
 
 func GetDefaultKafkaProducerConfig() *KafkaProducerConfig {
 	return &KafkaProducerConfig{
-		Server:  DEFAULT_KAFKA_SERVER,
-		Timeout: DEFAULT_KAFKA_WRITE_TIMEOUT,
-		Acks:    "1",
+		Server:        DEFAULT_KAFKA_SERVER,
+		Timeout:       DEFAULT_KAFKA_WRITE_TIMEOUT,
+		Acks:          DEFAULT_ACKS,
+		MaxPartitions: DEFAULT_PARTITIONS,
 	}
 }

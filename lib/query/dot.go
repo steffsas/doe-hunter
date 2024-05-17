@@ -13,9 +13,7 @@ const DEFAULT_DOT_PORT = 853
 const DEFAULT_DOT_TIMEOUT time.Duration = 5000 * time.Millisecond
 
 type DoTQuery struct {
-	DNSQuery
-
-	SkipCertificateVerify bool `json:"skip_certificate_verify"`
+	DoEQuery
 }
 
 type DoTResponse struct {

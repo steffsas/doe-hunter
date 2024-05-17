@@ -79,8 +79,6 @@ func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom
 type DoHQuery struct {
 	DoEQuery
 
-	SkipCertificateVerify bool `json:"skip_certificate_verify"`
-
 	// the URI path for the DoH query, usually /dns-query{?dns}
 	URI string `json:"uri"`
 

@@ -1,4 +1,4 @@
-package consumer_test
+package kafka_test
 
 import (
 	"context"

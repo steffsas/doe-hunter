@@ -4,14 +4,15 @@ import (
 	"errors"
 
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
 type ScanProducer struct {
-	EventProducer
+	kafka.EventProducer
 
 	Producer *KafkaEventProducer
-	Config   *ProducerConfig
+	Config   *KafkaProducerConfig
 }
 
 func (sp *ScanProducer) Produce(scan scan.Scan) (err error) {
@@ -19,7 +20,7 @@ func (sp *ScanProducer) Produce(scan scan.Scan) (err error) {
 		return errors.New("producer not initialized")
 	}
 
-	logrus.Infof("produce scan %s to topic %s", scan.GetScanId(), sp.Config.Topic)
+	logrus.Infof("produce scan %s to topic %s", scan.GetMetaInformation().ScanId, sp.Producer.Topic)
 
 	var scanMsg []byte
 	scanMsg, err = scan.Marshall()
@@ -28,7 +29,7 @@ func (sp *ScanProducer) Produce(scan scan.Scan) (err error) {
 		return
 	}
 
-	err = sp.Producer.Produce(scanMsg, sp.Config.Topic, sp.Config.MaxPartitions)
+	err = sp.Producer.Produce(scanMsg)
 	if err != nil {
 		logrus.Errorf("failed to produce scan: %v", err)
 	}
@@ -42,12 +43,12 @@ func (sp *ScanProducer) Close() {
 	}
 }
 
-func NewScanProducer(config *ProducerConfig) (sp *ScanProducer, err error) {
-	if config == nil {
-		config = NewDefaultCertificateScanProducerConfig()
+func NewScanProducer(topic string, config *KafkaProducerConfig) (sp *ScanProducer, err error) {
+	if topic == "" {
+		return nil, errors.New("invalid topic")
 	}
 
-	p, err := NewKafkaProducer(&config.KafkaProducerConfig)
+	p, err := NewKafkaProducer(topic, config)
 	if err != nil {
 		logrus.Errorf("failed to create kafka producer: %v", err)
 		return nil, err

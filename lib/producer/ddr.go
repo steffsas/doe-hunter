@@ -1,20 +1,35 @@
 package producer
 
-const DEFAULT_DDR_TOPIC = "ddr-scan"
-const DEFAULT_DDR_PARTITIONS = 100
+import (
+	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/kafka"
+	"github.com/steffsas/doe-hunter/lib/query"
+	"github.com/steffsas/doe-hunter/lib/scan"
+)
 
-func NewDefaultDDRScanProducerConfig() *ProducerConfig {
-	return &ProducerConfig{
-		KafkaProducerConfig: *GetDefaultKafkaProducerConfig(),
-		Topic:               DEFAULT_DDR_TOPIC,
-		MaxPartitions:       DEFAULT_DDR_PARTITIONS,
+func ProduceDDRScan(host string, port int, scheduleDoEScans bool) error {
+	// create DDR query
+	q := query.NewDDRQuery()
+	q.Host = host
+	q.AutoFallbackTCP = true
+	q.Protocol = query.DNS_UDP
+	q.Port = port
+
+	// create a new DDR scan
+	scan := scan.NewDDRScan(q, scheduleDoEScans)
+	// create a new producer
+	p, err := NewScanProducer(kafka.DEFAULT_DDR_TOPIC, nil)
+	if err != nil {
+		logrus.Errorf("failed to create DDR scan producer: %v", err)
+		return err
 	}
-}
 
-func NewDDRScanProducer(config *ProducerConfig) (sp *ScanProducer, err error) {
-	if config == nil {
-		config = NewDefaultDDRScanProducerConfig()
+	// produce the scan
+	err = p.Produce(scan)
+	if err != nil {
+		logrus.Errorf("failed to produce DDR scan: %v", err)
+		return err
 	}
 
-	return NewScanProducer(config)
+	return nil
 }

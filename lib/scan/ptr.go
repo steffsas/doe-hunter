@@ -13,6 +13,8 @@ type PTRScanMetaInformation struct {
 }
 
 type PTRScan struct {
+	Scan
+
 	Meta   *PTRScanMetaInformation        `json:"meta"`
 	Query  *query.ConventionalDNSQuery    `json:"query"`
 	Result *query.ConventionalDNSResponse `json:"result"`
@@ -22,15 +24,15 @@ func (scan *PTRScan) Marshall() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 
-func (scan *PTRScan) GetScanId() string {
-	return scan.Meta.ScanId
+func (scan *PTRScan) GetMetaInformation() *ScanMetaInformation {
+	return &scan.Meta.ScanMetaInformation
 }
 
 func (scan *PTRScan) GetType() string {
 	return PTR_SCAN_TYPE
 }
 
-func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId string) (scan *PTRScan, err error) {
+func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId string) *PTRScan {
 	var ptrQ *query.PTRQuery
 	if q == nil {
 		ptrQ = query.NewPTRQuery()
@@ -39,11 +41,11 @@ func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId string) 
 		ptrQ.ConventionalDNSQuery = *q
 	}
 
-	scan = &PTRScan{
+	scan := &PTRScan{
 		Meta: &PTRScanMetaInformation{},
 	}
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId)
 	scan.Query = &ptrQ.ConventionalDNSQuery
 
-	return
+	return scan
 }

@@ -40,3 +40,16 @@ func (q *DNSQuery) Check() (err custom_errors.DoEErrors) {
 
 	return checkForQueryParams(q.Host, q.Port, q.Timeout)
 }
+
+type DoEQuery struct {
+	DNSQuery
+
+	SkipCertificateVerify bool `json:"skip_certificate_verify"`
+}
+
+type DoEResponse struct {
+	DNSResponse
+
+	CertificateVerified bool `json:"certificate_verified"`
+	CertificateValid    bool `json:"certificate_valid"`
+}

@@ -31,7 +31,6 @@ func (d *defaultDialHandler) DialWithDialer(dialer *net.Dialer, network string, 
 }
 
 type CertificateQuery struct {
-	SkipCertificateVerify bool `json:"skip_certificate_verify"`
 	// Host is the host for the dialer (required)
 	Host string `json:"host"`
 	// Port is the port for the dialer (default: 443)
@@ -51,16 +50,15 @@ type CertificateQueryHandler struct {
 }
 
 type CertificateResponse struct {
-	DoEResponse
 	// Certificate is the certificate
 	Certificates []*x509.Certificate `json:"certificates"`
+
+	RetryWithoutCertificateVerification bool `json:"retry_without_certificate_verification"`
 }
 
 func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateResponse, custom_errors.DoEErrors) {
 	res := &CertificateResponse{}
-
-	res.CertificateValid = false
-	res.CertificateVerified = false
+	res.RetryWithoutCertificateVerification = false
 
 	if err := q.Check(); err != nil {
 		return res, err
@@ -75,21 +73,22 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 	}
 
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: q.SkipCertificateVerify,
+		InsecureSkipVerify: false,
 	}
 
 	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 	if err != nil {
-		if q.SkipCertificateVerify {
-			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
-		} else {
-			return res, validateCertificateError(
-				err,
-				custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err),
-				&res.DoEResponse,
-			)
-		}
+		if helper.IsCertificateError(err) {
+			// we will try to get the certificate without verification
+			res.RetryWithoutCertificateVerification, tlsConfig.InsecureSkipVerify = true, true
+			conn, err = qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 
+			if err != nil {
+				return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
+			}
+		} else {
+			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
+		}
 	}
 	defer conn.Close()
 
