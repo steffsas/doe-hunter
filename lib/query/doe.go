@@ -7,5 +7,6 @@ type DoEQuery struct {
 type DoEResponse struct {
 	DNSResponse
 
-	CertificateValid bool `json:"certificate_valid"`
+	CertificateVerified bool `json:"certificate_verified"`
+	CertificateValid    bool `json:"certificate_valid"`
 }

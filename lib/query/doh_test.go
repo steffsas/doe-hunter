@@ -248,7 +248,7 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -279,7 +279,7 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 		handler.On("SetTransport", mock.Anything).Return()
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -306,7 +306,7 @@ func TestDoHQuery_Response(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -341,7 +341,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -369,7 +369,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("SetTransport", mock.Anything).Return()
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -397,7 +397,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -436,7 +436,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -473,7 +473,7 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -499,7 +499,7 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -521,7 +521,7 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 		qh := query.NewDoHQueryHandler()
-		qh.HttpHandler = handler
+		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
 		q.Host = dnsGoogle
@@ -544,7 +544,7 @@ func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = handler
+	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -571,7 +571,7 @@ func TestDoHQuery_NoHostProvided(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = handler
+	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -595,7 +595,7 @@ func TestDoHQuery_EmptyURI(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = handler
+	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -620,7 +620,7 @@ func TestDoHQuery_NilQueryMsg(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = handler
+	qh.QueryHandler = handler
 
 	q := query.NewDoHQuery()
 	q.Host = dnsGoogle
@@ -641,7 +641,7 @@ func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = handler
+	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
@@ -667,7 +667,7 @@ func TestDoHQuery_NilHttpHandler(t *testing.T) {
 	queryMsg.SetQuestion(dnsGoogle, dns.TypeA)
 
 	qh := query.NewDoHQueryHandler()
-	qh.HttpHandler = nil
+	qh.QueryHandler = nil
 
 	q := query.NewDoHQuery()
 	q.Host = dnsGoogle

@@ -9,11 +9,13 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 	"golang.org/x/net/http2"
@@ -21,6 +23,7 @@ import (
 
 const MAX_URI_LENGTH = 2048
 const DOH_MEDIA_TYPE = "application/dns-message"
+const DOH_DEFAULT_PARAM = "dns"
 const HTTP_GET = "GET"
 const HTTP_POST = "POST"
 
@@ -61,7 +64,6 @@ func (h *defaultHttpHandler) GetTimeout() time.Duration {
 }
 
 func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom_errors.DoEError) {
-	const ERROR_LOCATION = "GetPathParamFromDoHPath"
 	// first we remove the query string by a regex fetching "{?<some-string>}"
 	// see also https://datatracker.ietf.org/doc/html/rfc8484#section-4.1.1
 	paramRegex := regexp.MustCompile(`^([^\{]+)\{\?(.*)\}$`)
@@ -70,7 +72,7 @@ func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom
 	if len(match) == 3 {
 		return match[1], match[2], nil
 	} else {
-		return "", "", custom_errors.NewQueryConfigError(custom_errors.ErrUnexpectedURIPath)
+		return "", "", custom_errors.NewQueryConfigError(custom_errors.ErrUnexpectedURIPath, true)
 	}
 }
 
@@ -100,42 +102,41 @@ type DoHResponse struct {
 }
 
 type DoHQueryHandler struct {
-	// HttpHandler is an interface to execute HTTP requests
-	HttpHandler HttpHandler
+	// QueryHandler is an interface to execute HTTP requests
+	QueryHandler HttpHandler
 }
 
-func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err custom_errors.DoEErrors) {
-	res = &DoHResponse{}
+func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.DoEErrors) {
+	res := &DoHResponse{}
+
+	res.CertificateValid = false
+	res.CertificateVerified = false
 
 	if query == nil {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
 	if err := query.Check(); err != nil {
 		return res, err
 	}
 
+	if qh.QueryHandler == nil {
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
+	}
+
 	if query.Method != HTTP_GET && query.Method != HTTP_POST {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidHttpMethod)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidHttpMethod, true)
 	}
 
 	if query.HTTPVersion != HTTP_VERSION_1 && query.HTTPVersion != HTTP_VERSION_2 && query.HTTPVersion != HTTP_VERSION_3 {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidHttpVersion)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidHttpVersion, true)
 	}
 
 	if query.URI == "" {
-		return res, custom_errors.NewQueryConfigError(custom_errors.ErrEmptyURIPath)
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrEmptyURIPath, true)
 	}
 
-	if qh.HttpHandler == nil {
-		return res, custom_errors.NewGenericError(custom_errors.ErrHttpHandlerNil)
-	}
-
-	if query.Timeout >= 0 {
-		qh.HttpHandler.SetTimeout(query.Timeout)
-	} else {
-		qh.HttpHandler.SetTimeout(DEFAULT_DOH_TIMEOUT)
-	}
+	qh.QueryHandler.SetTimeout(query.Timeout)
 
 	// set the TLS config
 	tlsConfig := &tls.Config{
@@ -145,17 +146,17 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err custom_
 	// set the transport based on the HTTP version
 	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
-		qh.HttpHandler.SetTransport(&http.Transport{
+		qh.QueryHandler.SetTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
 			TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
 		})
 	case HTTP_VERSION_2:
-		qh.HttpHandler.SetTransport(&http2.Transport{
+		qh.QueryHandler.SetTransport(&http2.Transport{
 			TLSClientConfig: tlsConfig,
 		})
 	case HTTP_VERSION_3:
-		qh.HttpHandler.SetTransport(&http3.RoundTripper{
+		qh.QueryHandler.SetTransport(&http3.RoundTripper{
 			TLSClientConfig: tlsConfig,
 			QUICConfig:      &quic.Config{},
 		})
@@ -173,17 +174,15 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err custom_
 		return res, err
 	}
 
+	if strings.ToLower(param) != "dns" {
+		logrus.Warnf("DoH query param %s is not 'dns', this is not a standard DoH query", param)
+	}
+
 	// Set DNS ID as zero according to RFC8484 (cache friendly)
 	var packErr error
 	buf, packErr = query.QueryMsg.Pack()
 	if packErr != nil {
-		err = custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed).AddInfo(packErr)
-		return res, err
-	}
-
-	// see https://datatracker.ietf.org/doc/html/rfc8484#section-6
-	if len(buf) > 65535 {
-		// return res, fmt.Errorf("DNS query message too large, got %d bytes but max is 65535", len(buf))
+		return res, custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed, true).AddInfo(packErr)
 	}
 
 	b64 = make([]byte, base64.RawURLEncoding.EncodedLen(len(buf)))
@@ -194,14 +193,13 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err custom_
 
 	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
 
-	var httpRes *http.Response
 	var queryErr error
 	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
 		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, httpRes, res.RTT, queryErr = qh.doHttpRequest(httpReq)
+		res.ResponseMsg, _, res.RTT, queryErr = qh.doHttpRequest(httpReq)
 	} else if query.POSTFallback || query.Method == HTTP_POST {
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
@@ -211,27 +209,21 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (res *DoHResponse, err custom_
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, httpRes, res.RTT, queryErr = qh.doHttpRequest(httpReq)
+		res.ResponseMsg, _, res.RTT, queryErr = qh.doHttpRequest(httpReq)
 	} else {
-		err = custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, ERROR_DOH_LOCATION)
-		return
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, true).AddInfo(fmt.Errorf("URI length is %d characters", len(fullGetURI)))
 	}
 
-	if queryErr != nil {
-		// we need to check for certificate error
-		if helper.IsCertificateError(err) {
-			err = custom_errors.NewCertificateError(err, ERROR_DOH_LOCATION)
-		} else {
-			err = custom_errors.NewQueryError(err, ERROR_DOH_LOCATION)
-		}
-	}
-
-	return
+	return res, validateCertificateError(
+		queryErr,
+		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err),
+		&res.DoEResponse,
+	)
 }
 
 func (q *DoHQueryHandler) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *http.Response, rtt time.Duration, err error) {
 	begin := time.Now()
-	httpRes, err = q.HttpHandler.Do(httpReq)
+	httpRes, err = q.QueryHandler.Do(httpReq)
 
 	if httpRes != nil && httpRes.Body != nil {
 		defer httpRes.Body.Close()
@@ -278,7 +270,7 @@ func NewDoHQuery() (q *DoHQuery) {
 
 func NewDoHQueryHandler() (qh *DoHQueryHandler) {
 	qh = &DoHQueryHandler{
-		HttpHandler: &defaultHttpHandler{
+		QueryHandler: &defaultHttpHandler{
 			httpClient: &http.Client{},
 		},
 	}

@@ -33,24 +33,10 @@ type DNSQuery struct {
 	Timeout time.Duration `json:"timeout"`
 }
 
-func (q *DNSQuery) Check() (err *custom_errors.DoEError) {
-	const ERROR_LOCATION = "DNSQuery.Check"
-
+func (q *DNSQuery) Check() (err custom_errors.DoEErrors) {
 	if q.QueryMsg == nil {
-		return custom_errors.NewQueryConfigError(custom_errors.ErrEmptyQueryMessage, ERROR_LOCATION)
+		return custom_errors.NewQueryConfigError(custom_errors.ErrEmptyQueryMessage, true)
 	}
 
-	if q.Host == "" {
-		return custom_errors.NewQueryConfigError(custom_errors.ErrHostEmpty, ERROR_LOCATION)
-	}
-
-	if q.Port >= 65536 || q.Port <= 0 {
-		return custom_errors.NewQueryConfigError(custom_errors.ErrInvalidPort, ERROR_LOCATION)
-	}
-
-	return nil
-}
-
-type AbstractQueryHandler interface {
-	Query(query interface{}) (res interface{}, err error)
+	return checkForQueryParams(q.Host, q.Port, q.Timeout)
 }

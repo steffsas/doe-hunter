@@ -2,10 +2,9 @@ package query
 
 import (
 	"crypto/tls"
-	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -20,53 +19,48 @@ type DoTQuery struct {
 }
 
 type DoTResponse struct {
-	Response *DNSResponse `json:"response"`
-	Query    *DoTQuery    `json:"query"`
+	DoEResponse
 }
 
 type DoTQueryHandler struct {
 	QueryHandler QueryHandlerDNS
 }
 
-func (qh *DoTQueryHandler) Query(query *DoTQuery) (res *DoTResponse, err error) {
-	res = &DoTResponse{}
-	res.Query = query
-	res.Response = &DNSResponse{}
+func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.DoEErrors) {
+	res := &DoTResponse{}
 
-	logrus.Infof("DoTQueryHandler processing DNS query nil? %t", query == nil)
+	res.CertificateValid = false
+	res.CertificateVerified = false
 
 	if query == nil {
-		return res, ErrQueryNil
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if query.QueryMsg == nil {
-		return res, ErrQueryMsgNil
+	if err := query.Check(); err != nil {
+		return res, err
 	}
 
 	if qh.QueryHandler == nil {
-		return res, ErrQueryHandlerNil
-	}
-
-	if query.Host == "" {
-		return res, ErrHostEmpty
-	}
-
-	if query.Port >= 65536 || query.Port < 0 {
-		return res, fmt.Errorf("invalid port %d", query.Port)
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
 	}
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
-	res.Response.ResponseMsg, res.Response.RTT, err = qh.QueryHandler.Query(
+	var queryErr error
+	res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
 		query.QueryMsg, DNS_DOT_PROTOCOL,
 		query.Timeout,
 		tlsConfig,
 	)
 
-	return
+	return res, validateCertificateError(
+		queryErr,
+		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(queryErr),
+		&res.DoEResponse,
+	)
 }
 
 func NewDoTQuery() (q *DoTQuery) {

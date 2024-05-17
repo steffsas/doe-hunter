@@ -1,15 +1,24 @@
 package query
 
 import (
+	"fmt"
+
 	"github.com/miekg/dns"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 )
 
 type PTRQuery struct {
 	ConventionalDNSQuery
 }
 
-func (p *PTRQuery) SetQueryMsg(resolveIp string) (err error) {
+func (p *PTRQuery) SetQueryMsg(resolveIp string) custom_errors.DoEErrors {
 	arpa, err := dns.ReverseAddr(resolveIp)
+
+	if err != nil {
+		return custom_errors.NewQueryConfigError(
+			custom_errors.ErrFailedToReverseIP, true).
+			AddInfoString(fmt.Sprintf("reverse addr: %s, got err %s", resolveIp, err.Error()))
+	}
 
 	if p.QueryMsg == nil {
 		p.QueryMsg = &dns.Msg{}
@@ -17,7 +26,7 @@ func (p *PTRQuery) SetQueryMsg(resolveIp string) (err error) {
 
 	p.QueryMsg.SetQuestion(arpa, dns.TypePTR)
 
-	return err
+	return nil
 }
 
 func NewPTRQuery() *PTRQuery {

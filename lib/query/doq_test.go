@@ -90,7 +90,7 @@ func TestDoQQuery_Response(t *testing.T) {
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
 
 	qh := query.NewDoQQueryHandler()
-	qh.DialHandler = dialHandler
+	qh.QueryHandler = dialHandler
 
 	q := query.NewDoQQuery()
 	q.Host = ipv4Host
@@ -113,7 +113,7 @@ func TestDoQQuery_FailSafelyOnDialError(t *testing.T) {
 	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
 
 	qh := query.NewDoQQueryHandler()
-	qh.DialHandler = dialHandler
+	qh.QueryHandler = dialHandler
 
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)
@@ -137,7 +137,7 @@ func TestDoQQuery_EmptyResponseError(t *testing.T) {
 	dialHandler := getMockedDialHandlerWithConnection(quicConnection)
 
 	qh := query.NewDoQQueryHandler()
-	qh.DialHandler = dialHandler
+	qh.QueryHandler = dialHandler
 
 	qm := new(dns.Msg)
 	qm.SetQuestion(dnsGoogle, dns.TypeA)

@@ -3,10 +3,10 @@ package query
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"net"
 	"time"
 
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -42,40 +42,32 @@ type CertificateQuery struct {
 	Timeout time.Duration `json:"timeout"`
 }
 
+func (cq *CertificateQuery) Check() (err custom_errors.DoEErrors) {
+	return checkForQueryParams(cq.Host, cq.Port, cq.Timeout)
+}
+
 type CertificateQueryHandler struct {
 	QueryHandler DialHandler
 }
 
 type CertificateResponse struct {
+	DoEResponse
 	// Certificate is the certificate
 	Certificates []*x509.Certificate `json:"certificates"`
 }
 
-func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *CertificateResponse, err error) {
-	response = &CertificateResponse{}
+func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateResponse, custom_errors.DoEErrors) {
+	res := &CertificateResponse{}
 
-	if q.Host == "" {
-		err = fmt.Errorf("host is empty")
-		return
-	}
+	res.CertificateValid = false
+	res.CertificateVerified = false
 
-	if q.Port >= 65536 || q.Port <= 0 {
-		err = fmt.Errorf("invalid port %d", q.Port)
-		return
-	}
-
-	if q.Protocol != TLS_PROTOCOL_TCP && q.Protocol != TLS_PROTOCOL_UDP {
-		err = fmt.Errorf("invalid protocol %s", q.Protocol)
-		return
+	if err := q.Check(); err != nil {
+		return res, err
 	}
 
 	if qh.QueryHandler == nil {
-		err = fmt.Errorf("dial handler is nil")
-		return
-	}
-
-	if q.Timeout < 0 {
-		q.Timeout = TLS_DEFAULT_TIMEOUT
+		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
 	}
 
 	dialer := &net.Dialer{
@@ -88,14 +80,22 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (response *Certifi
 
 	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 	if err != nil {
-		err = fmt.Errorf("failed to dial: %w", err)
-		return
+		if q.SkipCertificateVerify {
+			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
+		} else {
+			return res, validateCertificateError(
+				err,
+				custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err),
+				&res.DoEResponse,
+			)
+		}
+
 	}
 	defer conn.Close()
 
-	response.Certificates = conn.ConnectionState().PeerCertificates
+	res.Certificates = conn.ConnectionState().PeerCertificates
 
-	return response, nil
+	return res, nil
 }
 
 func NewCertificateQuery() (q *CertificateQuery) {
