@@ -1,11 +1,11 @@
-package consumer_test
+package kafka_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"github.com/steffsas/doe-hunter/lib/consumer"
+	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -36,9 +36,9 @@ func TestParallelConsumer_Consume(t *testing.T) {
 		mkec.On("Close").Return(nil)
 
 		// setup
-		mc := &consumer.KafkaParallelConsumer{
+		mc := &kafka.KafkaParallelConsumer{
 			ConcurrentConsumer: 10,
-			CreateConsumer: func() (consumer.EventConsumer, error) {
+			CreateConsumer: func() (kafka.EventConsumer, error) {
 				return mkec, nil
 			},
 		}
@@ -53,9 +53,9 @@ func TestParallelConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		// setup
-		mc := &consumer.KafkaParallelConsumer{
+		mc := &kafka.KafkaParallelConsumer{
 			ConcurrentConsumer: 10,
-			CreateConsumer: func() (consumer.EventConsumer, error) {
+			CreateConsumer: func() (kafka.EventConsumer, error) {
 				return nil, nil
 			},
 		}
@@ -70,9 +70,9 @@ func TestParallelConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		// setup
-		mc := &consumer.KafkaParallelConsumer{
+		mc := &kafka.KafkaParallelConsumer{
 			ConcurrentConsumer: 10,
-			CreateConsumer: func() (consumer.EventConsumer, error) {
+			CreateConsumer: func() (kafka.EventConsumer, error) {
 				return nil, errors.New("error")
 			},
 		}

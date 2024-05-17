@@ -8,20 +8,107 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-const DEFAULT_DDR_CONSUMER_TOPIC = "ddr-scan"
 const DEFAULT_DDR_CONSUMER_GROUP = "ddr-scan-group"
-const DEFAULT_DDR_CONCURRENT_CONSUMER = 10
 
 type DDRProcessEventHandler struct {
-	EventProcessHandler
+	k.EventProcessHandler
 
 	QueryHandler query.ConventionalDNSQueryHandlerI
+}
+
+func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
+	ddrScan := &scan.DDRScan{}
+	err := json.Unmarshal(msg.Value, ddrScan)
+	if err != nil {
+		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(ddrScan).String())
+		return err
+	}
+
+	// execute query
+	var qErr custom_errors.DoEErrors
+	ddrScan.Meta.SetStarted()
+	ddrScan.Result, qErr = ddr.QueryHandler.Query(ddrScan.Query)
+	ddrScan.Meta.SetFinished()
+
+	if qErr != nil {
+		logrus.Errorf("failed to query %s: %v", ddrScan.Meta.ScanId, err)
+		ddrScan.Meta.AddError(qErr)
+	} else {
+		// produce DoE scans
+		scheduleDoEScans(ddrScan)
+
+		// produce PTR scan
+		schedulePTRScan(ddrScan)
+	}
+
+	err = storage.Store(ddrScan)
+	if err != nil {
+		logrus.Errorf("failed to store %s: %v", ddrScan.Meta.ScanId, err)
+	}
+
+	return err
+}
+
+func NewKafkaDDREventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
+	if config != nil && config.ConsumerGroup == "" {
+		config.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
+	}
+
+	ph := &DDRProcessEventHandler{
+		QueryHandler: query.NewDDRQueryHandler(),
+	}
+
+	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
+
+	return
+}
+
+func NewKafkaDDRParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
+	if config == nil {
+		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_DDR_CONSUMER_GROUP, k.DEFAULT_DDR_TOPIC)
+	}
+
+	if storageHandler == nil {
+		return nil, errors.New("no storage handler provided")
+	}
+
+	createConsumerFunc := func() (k.EventConsumer, error) {
+		return NewKafkaDDREventConsumer(
+			config.KafkaConsumerConfig,
+			storageHandler,
+		)
+	}
+	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
+
+	if err != nil {
+		logrus.Errorf("failed to create parallel consumer: %v", err)
+	}
+
+	return
+}
+
+func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, topic string) {
+	p, err := producer.NewScanProducer(topic, nil)
+	if err != nil {
+		logrus.Errorf("failed to create scan producer: %v", err)
+		cErr := custom_errors.NewGenericError(custom_errors.ErrProducerCreationFailed, true)
+		ddrScan.Meta.AddError(cErr)
+	}
+	err = p.Produce(scan)
+	if err != nil {
+		logrus.Errorf("failed to produce scan: %v", err)
+		cErr := custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true)
+		ddrScan.Meta.AddError(cErr)
+	}
+	p.Close()
 }
 
 func scheduleDoEScans(ddrScan *scan.DDRScan) {
@@ -38,11 +125,11 @@ func scheduleDoEScans(ddrScan *scan.DDRScan) {
 			for _, s := range scans {
 				switch s.GetType() {
 				case scan.DOH_SCAN_TYPE:
-					produceScan(ddrScan, s, producer.NewDoHScanProducer)
+					produceScan(ddrScan, s, k.DEFAULT_DOH_TOPIC)
 				case scan.DOQ_SCAN_TYPE:
-					produceScan(ddrScan, s, producer.NewDoQScanProducer)
+					produceScan(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
 				case scan.DOT_SCAN_TYPE:
-					produceScan(ddrScan, s, producer.NewDoTScanProducer)
+					produceScan(ddrScan, s, k.DEFAULT_DOT_TOPIC)
 				}
 			}
 		} else {
@@ -56,152 +143,35 @@ func scheduleDoEScans(ddrScan *scan.DDRScan) {
 func schedulePTRScan(ddrScan *scan.DDRScan) {
 	logrus.Infof("schedule PTR scan for DDR scan %s", ddrScan.Meta.ScanId)
 
+	ddrScan.Meta.PTRScheduled = true
+
 	// check if ddr scan was based on an IP address
 	ip := net.ParseIP(ddrScan.Query.Host)
 
 	if ip == nil {
 		logrus.Warnf("DDR scan %s was not based on an IP address, no PTR scan scheduled", ddrScan.Meta.ScanId)
+		ddrScan.Meta.PTRScheduled = false
 	} else {
 		logrus.Infof("DDR scan %s was based on an IP address, schedule PTR scan", ddrScan.Meta.ScanId)
 		q := query.NewPTRQuery()
 		q.SetQueryMsg(ip.String())
-		// TODO change to local stub
-		q.Host = "8.8.8.8"
+		q.QueryMsg.RecursionDesired = true
+		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
-		scan, err := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
-		if err != nil {
-			logrus.Errorf("failed to create PTR scan: %v", err)
-			ddrScan.Meta.AddError(err)
-			return
-		}
-		producer, err := producer.NewPTRScanProducer(nil)
-		if err != nil {
-			logrus.Errorf("failed to create PTR scan producer: %v", err)
-			ddrScan.Meta.AddError(err)
+		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
+		producer, cErr := producer.NewScanProducer(k.DEFAULT_PTR_TOPIC, nil)
+		if cErr != nil {
+			logrus.Errorf("failed to create PTR scan producer: %v", cErr.Error())
+			cErr := custom_errors.NewGenericError(custom_errors.ErrProducerCreationFailed, true)
+			ddrScan.Meta.AddError(cErr)
 			return
 		}
 
-		err = producer.Produce(scan)
+		err := producer.Produce(ptrScan)
 		if err != nil {
-			logrus.Errorf("failed to produce PTR scan: %v", err)
-			ddrScan.Meta.AddError(err)
+			logrus.Errorf("failed to produce PTR scan: %v", cErr)
+			cErr := custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true)
+			ddrScan.Meta.AddError(cErr)
 		}
 	}
-}
-
-func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) (err error) {
-	if msg == nil {
-		logrus.Warn("received nil message, nothing to consume")
-		return nil
-	}
-
-	ddrScan := &scan.DDRScan{}
-	err = json.Unmarshal(msg.Value, ddrScan)
-	if err != nil {
-		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(ddrScan).String())
-		return
-	}
-
-	logrus.Infof("received DDR scan %s of host %s with port %d", ddrScan.Meta.ScanId, ddrScan.Query.Host, ddrScan.Query.Port)
-
-	// execute query
-	ddrScan.Meta.SetStarted()
-	ddrScan.Result, err = ddr.QueryHandler.Query(ddrScan.Query)
-	ddrScan.Meta.SetFinished()
-
-	if err != nil {
-		logrus.Errorf("failed to query %s: %v", ddrScan.Meta.ScanId, err)
-		ddrScan.Meta.AddError(err)
-	} else {
-		logrus.Infof(
-			"successfully queried %s on host %s with port %d, received %d SVCB records",
-			ddrScan.Meta.ScanId,
-			ddrScan.Query.Host,
-			ddrScan.Query.Port,
-			len(ddrScan.Result.Response.ResponseMsg.Answer),
-		)
-
-		// produce DoE scans
-		scheduleDoEScans(ddrScan)
-
-		// produce PTR scan
-		schedulePTRScan(ddrScan)
-	}
-
-	err = storage.Store(ddrScan)
-	if err != nil {
-		logrus.Errorf("failed to store %s: %v", ddrScan.Meta.ScanId, err)
-	}
-
-	return
-}
-
-func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
-	if config != nil && config.ConsumerGroup == "" {
-		config.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
-	}
-
-	ph := &DDRProcessEventHandler{
-		QueryHandler: query.NewDDRQueryHandler(),
-	}
-
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
-
-	return
-}
-
-func NewKafkaDDRParallelEventConsumer(config *KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaParallelConsumer, err error) {
-	if config == nil {
-		config = &KafkaParallelConsumerConfig{
-			KafkaParallelEventConsumerConfig: &KafkaParallelEventConsumerConfig{
-				ConcurrentConsumer: DEFAULT_DDR_CONCURRENT_CONSUMER,
-			},
-			KafkaConsumerConfig: &KafkaConsumerConfig{
-				ConsumerGroup: DEFAULT_DDR_CONSUMER_GROUP,
-				Server:        DEFAULT_KAFKA_SERVER,
-			},
-		}
-		logrus.Warnf("no config provided, using default values: %v", config)
-	}
-
-	if config.KafkaConsumerConfig == nil {
-		config.KafkaConsumerConfig = &KafkaConsumerConfig{
-			ConsumerGroup: DEFAULT_DDR_CONSUMER_GROUP,
-			Server:        DEFAULT_KAFKA_SERVER,
-		}
-	}
-
-	if storageHandler == nil {
-		return nil, errors.New("no storage handler provided")
-	}
-
-	createConsumerFunc := func() (EventConsumer, error) {
-		return NewKafkaDDREventConsumer(
-			config.KafkaConsumerConfig,
-			storageHandler,
-		)
-	}
-	kec, err = NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
-
-	if err != nil {
-		logrus.Errorf("failed to create parallel consumer: %v", err)
-	}
-
-	return
-}
-
-type newScanProducer func(config *producer.ProducerConfig) (sp *producer.ScanProducer, err error)
-
-func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, create newScanProducer) {
-	p, err := create(nil)
-	if err != nil {
-		logrus.Errorf("failed to create scan producer: %v", err)
-		ddrScan.Meta.AddError(err)
-	}
-	err = p.Produce(scan)
-	if err != nil {
-		logrus.Errorf("failed to produce scan: %v", err)
-		ddrScan.Meta.AddError(err)
-	}
-	p.Close()
 }

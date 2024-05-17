@@ -5,7 +5,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	"github.com/steffsas/doe-hunter/lib/query"
 )
+
+type ScanIds struct {
+	ScanId string `json:"scan_id"`
+}
 
 type ScanMetaInformation struct {
 	ScanId       string `json:"scan_id"`
@@ -47,8 +52,14 @@ func (smi *ScanMetaInformation) Schedule() {
 
 type Scan interface {
 	GetType() string
-	GetScanId() string
+	GetMetaInformation() *ScanMetaInformation
 	Marshall() ([]byte, error)
+}
+
+type DoEScan interface {
+	Scan
+
+	GetDoEQuery() *query.DoEQuery
 }
 
 func NewScanMetaInformation(parentScanId, rootScanId string) *ScanMetaInformation {

@@ -41,9 +41,7 @@ type DoQResponse struct {
 }
 
 type DoQQuery struct {
-	DNSQuery
-
-	SkipCertificateVerify bool `json:"skip_certificate_verify"`
+	DoEQuery
 }
 
 type DoQQueryHandler struct {

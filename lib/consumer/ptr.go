@@ -6,34 +6,37 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-const DEFAULT_PTR_CONSUMER_TOPIC = "ptr-scan"
 const DEFAULT_PTR_CONSUMER_GROUP = "ptr-scan-group"
-const DEFAULT_PTR_CONCURRENT_CONSUMER = 10
 
 type PTRProcessEventHandler struct {
-	EventProcessHandler
+	k.EventProcessHandler
 
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
 
-func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) (err error) {
+func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
 	// unmarshal message
 	ptrScan := &scan.PTRScan{}
-	err = json.Unmarshal(msg.Value, ptrScan)
+	err := json.Unmarshal(msg.Value, ptrScan)
 	if err != nil {
 		return err
 	}
 
 	// process
-	ptrScan.Result, err = ph.QueryHandler.Query(ptrScan.Query)
-	if err != nil {
-		ptrScan.Meta.AddError(err)
-		logrus.Errorf("error processing PTR scan %s: %s", ptrScan.Meta.ScanId, err)
+	var qErr custom_errors.DoEErrors
+	ptrScan.Meta.SetStarted()
+	ptrScan.Result, qErr = ph.QueryHandler.Query(ptrScan.Query)
+	ptrScan.Meta.SetFinished()
+	if qErr != nil {
+		ptrScan.Meta.AddError(qErr)
+		logrus.Errorf("error processing PTR scan %s: %s", ptrScan.Meta.ScanId, qErr.Error())
 	}
 
 	// store
@@ -41,10 +44,10 @@ func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	if err != nil {
 		logrus.Errorf("failed to store %s: %v", ptrScan.Meta.ScanId, err)
 	}
-	return
+	return err
 }
 
-func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaPTREventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_PTR_CONSUMER_GROUP
 	}
@@ -53,43 +56,27 @@ func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		QueryHandler: query.NewPTRQueryHandler(),
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
 
 	return
 }
 
-func NewKafkaPTRParallelEventConsumer(config *KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaParallelConsumer, err error) {
+func NewKafkaPTRParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
 	if config == nil {
-		config = &KafkaParallelConsumerConfig{
-			KafkaParallelEventConsumerConfig: &KafkaParallelEventConsumerConfig{
-				ConcurrentConsumer: DEFAULT_PTR_CONCURRENT_CONSUMER,
-			},
-			KafkaConsumerConfig: &KafkaConsumerConfig{
-				ConsumerGroup: DEFAULT_PTR_CONSUMER_GROUP,
-				Server:        DEFAULT_KAFKA_SERVER,
-			},
-		}
-		logrus.Warnf("no config provided, using default values: %v", config)
-	}
-
-	if config.KafkaConsumerConfig == nil {
-		config.KafkaConsumerConfig = &KafkaConsumerConfig{
-			ConsumerGroup: DEFAULT_PTR_CONSUMER_GROUP,
-			Server:        DEFAULT_KAFKA_SERVER,
-		}
+		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_PTR_CONSUMER_GROUP, k.DEFAULT_PTR_TOPIC)
 	}
 
 	if storageHandler == nil {
 		return nil, errors.New("no storage handler provided")
 	}
 
-	createConsumerFunc := func() (EventConsumer, error) {
+	createConsumerFunc := func() (k.EventConsumer, error) {
 		return NewKafkaPTREventConsumer(
 			config.KafkaConsumerConfig,
 			storageHandler,
 		)
 	}
-	kec, err = NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
+	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
 
 	if err != nil {
 		logrus.Errorf("failed to create parallel consumer: %v", err)

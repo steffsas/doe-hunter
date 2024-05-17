@@ -13,6 +13,8 @@ type CertificateScanMetaInformation struct {
 }
 
 type CertificateScan struct {
+	Scan
+
 	Meta   *CertificateScanMetaInformation `json:"meta"`
 	Query  *query.CertificateQuery         `json:"query"`
 	Result *query.CertificateResponse      `json:"result"`
@@ -24,6 +26,10 @@ func (scan *CertificateScan) Marshall() (bytes []byte, err error) {
 
 func (scan *CertificateScan) GetScanId() string {
 	return scan.Meta.ScanId
+}
+
+func (scan *CertificateScan) GetMetaInformation() *ScanMetaInformation {
+	return &scan.Meta.ScanMetaInformation
 }
 
 func (scan *CertificateScan) GetType() string {
