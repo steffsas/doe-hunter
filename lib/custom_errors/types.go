@@ -35,6 +35,10 @@ var ErrURITooLong = errors.New("URI too long for GET request, POST fallback disa
 var ErrUnexpectedURIPath = errors.New("URI does not match the expected format")
 var ErrDNSPackFailed = errors.New("failed to pack DNS message")
 
+// parsing SVCB
+var ErrUnknownSvcbKey = errors.New("unknown SVCB key")
+var ErrParsingSvcbKey = errors.New("failed to parse SVCB key")
+
 // specific certificate errors
 var ErrCertificateInvalid = errors.New("certificate is invalid")
 
