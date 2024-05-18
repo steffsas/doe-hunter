@@ -56,7 +56,7 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 
 	return res, validateCertificateError(
 		queryErr,
-		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(queryErr),
+		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true),
 		&res.DoEResponse,
 	)
 }

@@ -19,11 +19,10 @@ func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoE
 			// at this point we cannot say if the certificate is valid or not
 			res.CertificateVerified = false
 			res.CertificateValid = false
-			return noCertificateErr
+			return noCertificateErr.AddInfo(queryErr)
 		}
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func checkForQueryParams(host string, port int, timeout time.Duration) (err custom_errors.DoEErrors) {

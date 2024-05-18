@@ -91,7 +91,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	if err != nil {
 		return res, validateCertificateError(
 			err,
-			custom_errors.NewQueryError(custom_errors.ErrSessionEstablishmentFailed, true).AddInfo(err),
+			custom_errors.NewQueryError(custom_errors.ErrSessionEstablishmentFailed, true),
 			&res.DoEResponse,
 		)
 	}
@@ -105,7 +105,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	if err != nil {
 		return res, validateCertificateError(
 			err,
-			custom_errors.NewQueryError(custom_errors.ErrOpenStreamFailed, true).AddInfo(err),
+			custom_errors.NewQueryError(custom_errors.ErrOpenStreamFailed, true),
 			&res.DoEResponse,
 		)
 	}
