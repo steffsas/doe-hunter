@@ -10,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/producer"
-	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
@@ -78,7 +77,10 @@ func setLogger() {
 }
 
 func produceDRScansFromFile(filePath string) {
-	resolvers := []string{}
+	resolvers := []struct {
+		Host string
+		Port int
+	}{}
 
 	// Open the file
 	file, err := os.Open(filePath)
@@ -93,7 +95,13 @@ func produceDRScansFromFile(filePath string) {
 	// Loop through lines
 	for scanner.Scan() {
 		line := scanner.Text()
-		resolvers = append(resolvers, line)
+		resolvers = append(resolvers, struct {
+			Host string
+			Port int
+		}{
+			Host: line,
+			Port: 53,
+		})
 		// Process the line here (e.g., store in a variable, perform further operations)
 	}
 
@@ -103,9 +111,11 @@ func produceDRScansFromFile(filePath string) {
 
 	file.Close()
 
-	for _, res := range resolvers {
-		// create query
-		producer.ProduceDDRScan(res, query.DEFAULT_DNS_PORT, true)
+	logrus.Infof("got %d resolvers", len(resolvers))
+
+	err = producer.ProduceDDRScans(resolvers, false)
+	if err != nil {
+		logrus.Errorf("failed to produce DDR scan: %v", err)
 	}
 }
 
