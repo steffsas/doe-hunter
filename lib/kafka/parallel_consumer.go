@@ -85,7 +85,6 @@ func (kpc *KafkaParallelConsumer) Consume(ctx context.Context) (err error) {
 	}()
 
 	wg.Wait()
-	logrus.Info("gracefully exit")
 
 	return
 }

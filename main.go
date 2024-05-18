@@ -113,7 +113,7 @@ func produceDRScansFromFile(filePath string) {
 
 	logrus.Infof("got %d resolvers", len(resolvers))
 
-	err = producer.ProduceDDRScans(resolvers, false)
+	err = producer.ProduceDDRScans(resolvers, true)
 	if err != nil {
 		logrus.Errorf("failed to produce DDR scan: %v", err)
 	}
@@ -145,14 +145,18 @@ func startConsumer(ctx context.Context, protocol string) {
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
-		pc, err := consumer.NewKafkaDoHEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoHParallelEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	case "doq":
@@ -162,6 +166,8 @@ func startConsumer(ctx context.Context, protocol string) {
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	case "dot":
@@ -171,6 +177,8 @@ func startConsumer(ctx context.Context, protocol string) {
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	case "ptr":
@@ -180,6 +188,8 @@ func startConsumer(ctx context.Context, protocol string) {
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	case "certificate":
@@ -189,6 +199,8 @@ func startConsumer(ctx context.Context, protocol string) {
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
 		pc.Consume(ctx)
 	}

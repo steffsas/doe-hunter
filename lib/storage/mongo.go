@@ -86,7 +86,7 @@ func (msh *MongoStorageHandler) Store(data interface{}) (err error) {
 func (msh *MongoStorageHandler) Close() (err error) {
 	if msh.Client != nil {
 		err = msh.Client.Disconnect(context.Background())
-		if err != nil {
+		if err != nil && err != mongo.ErrClientDisconnected {
 			logrus.Errorf("failed to disconnect from mongo: %v", err)
 			return err
 		}
