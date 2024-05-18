@@ -10,7 +10,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-const DEFAULT_KAFKA_READ_TIMEOUT = 1000 * time.Millisecond
+const DEFAULT_KAFKA_READ_TIMEOUT = 5000 * time.Millisecond
 const DEFAULT_KAFKA_SERVER = "localhost:29092"
 const DEFAULT_KAFKA_CONSUMER_GROUP = "default-consumer-group"
 
@@ -23,6 +23,7 @@ type KafkaConsumerConfig struct {
 type KafkaErr interface {
 	IsTimeout() bool
 	Error() string
+	Code() kafka.ErrorCode
 }
 
 type EventProcessHandler interface {
@@ -88,7 +89,8 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			logrus.Info("received termination signal ")
+			logrus.Debugf("received termination signal for %s consumer", keh.Config.Topic)
+			keh.StorageHandler.Close()
 			return nil
 		default:
 			msg, err := keh.Consumer.ReadMessage(keh.Timeout)
@@ -97,16 +99,19 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 				kfkerr, ok := err.(KafkaErr)
 				if ok {
 					// we ignore timeouts
-					if !kfkerr.IsTimeout() {
-						logrus.Error("kafka error reading message", err.Error())
+					if kfkerr.IsTimeout() {
+						continue
+					} else {
+						logrus.Errorf("kafka error reading message: %s", err.Error())
 						return err
 					}
 				} else {
-					logrus.Error("unknown error while reading message", err.Error())
+					logrus.Errorf("unknown error while reading message: %s", err.Error())
 					return err
 				}
 			} else {
 				// we got a message, let's process it
+				logrus.Debugf("received for message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
 				err := keh.ProcessHandler.Process(msg, keh.StorageHandler)
 				if err != nil {
 					logrus.Errorf("failed to process message: %v", err)
@@ -162,7 +167,23 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 		StorageHandler: storageHandler,
 	}
 
-	return
+	// create topic, make this beautfiul
+
+	admin, err := kafka.NewAdminClientFromConsumer(consumer)
+	if err != nil {
+		return nil, err
+	}
+	defer admin.Close()
+
+	_, err = admin.CreateTopics(context.Background(), []kafka.TopicSpecification{{
+		Topic:         config.Topic,
+		NumPartitions: DEFAULT_PARTITIONS,
+	}})
+	if err != nil {
+		return nil, err
+	}
+
+	return kec, nil
 }
 
 func GetDefaultKafkaConsumerConfig(consumerGroup string, topic string) *KafkaConsumerConfig {
