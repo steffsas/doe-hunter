@@ -99,8 +99,11 @@ func (ce *DoEError) IsError(errId string) bool {
 }
 
 func (ce *DoEError) AddInfo(err error) DoEErrors {
-	errStr := fmt.Sprintf("%s: %s", reflect.TypeOf(err).Name(), err.Error())
-	return ce.addInfoStr(errStr)
+	if err != nil {
+		errStr := fmt.Sprintf("%s: %s", reflect.TypeOf(err).Name(), err.Error())
+		return ce.addInfoStr(errStr)
+	}
+	return ce
 }
 
 func (ce *DoEError) AddInfoString(err string) DoEErrors {
