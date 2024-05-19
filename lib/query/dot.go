@@ -46,6 +46,10 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
+	if query.SNI != "" {
+		tlsConfig.ServerName = query.SNI
+	}
+
 	var queryErr error
 	res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),

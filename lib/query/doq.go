@@ -75,6 +75,10 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
+	if query.SNI != "" {
+		tlsConfig.ServerName = query.SNI
+	}
+
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout: query.Timeout,
 	}

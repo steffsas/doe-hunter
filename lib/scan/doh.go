@@ -12,11 +12,6 @@ type DoHScanMetaInformation struct {
 	ScanMetaInformation
 }
 
-// TODO
-// Introduce boolean scheduleCertificateScan
-// then produce certificate scan
-fail here
-
 type DoHScan struct {
 	Scan
 

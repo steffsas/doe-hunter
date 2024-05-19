@@ -44,7 +44,8 @@ func (q *DNSQuery) Check() (err custom_errors.DoEErrors) {
 type DoEQuery struct {
 	DNSQuery
 
-	SkipCertificateVerify bool `json:"skip_certificate_verify"`
+	SkipCertificateVerify bool   `json:"skip_certificate_verify"`
+	SNI                   string `json:"sni"`
 }
 
 type DoEResponse struct {

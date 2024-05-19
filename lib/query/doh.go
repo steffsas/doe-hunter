@@ -141,6 +141,10 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
 
+	if query.SNI != "" {
+		tlsConfig.ServerName = query.SNI
+	}
+
 	// set the transport based on the HTTP version
 	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
