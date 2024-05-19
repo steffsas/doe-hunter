@@ -39,6 +39,10 @@ type CertificateQuery struct {
 	Protocol string `json:"protocol"`
 	// Timeout is the timeout in ms (default: 2500)
 	Timeout time.Duration `json:"timeout"`
+	// SNI
+	SNI string `json:"sni"`
+	// ALPN protocol
+	ALPN []string `json:"alpn"`
 }
 
 func (cq *CertificateQuery) Check() (err custom_errors.DoEErrors) {
@@ -74,6 +78,15 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
+	}
+
+	// see https://dl.acm.org/doi/pdf/10.1145/3589334.3645539
+	if q.SNI != "" {
+		tlsConfig.ServerName = q.SNI
+	}
+
+	if len(q.ALPN) > 0 {
+		tlsConfig.NextProtos = q.ALPN
 	}
 
 	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)

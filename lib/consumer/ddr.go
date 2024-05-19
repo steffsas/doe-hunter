@@ -43,7 +43,7 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 		ddrScan.Meta.AddError(qErr)
 	} else {
 		// produce DoE scans
-		scheduleDoEScans(ddrScan)
+		scheduleDoEAndCertScans(ddrScan)
 
 		// produce PTR scan
 		schedulePTRScan(ddrScan)
@@ -111,14 +111,18 @@ func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, topic string) {
 	p.Close()
 }
 
-func scheduleDoEScans(ddrScan *scan.DDRScan) {
+func scheduleDoEAndCertScans(ddrScan *scan.DDRScan) []scan.Scan {
+	scans := []scan.Scan{}
+
 	// schedule DoE scans
 	if ddrScan.Meta.ScheduleDoEScans {
-		logrus.Infof("schedule DoE scans for DDR scan %s", ddrScan.Meta.ScanId)
+		logrus.Infof("schedule DoE and certificate scans for DDR scan %s", ddrScan.Meta.ScanId)
 
 		if len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
+			logrus.Debugf("got %d SVCB answers, schedule DoE scans", len(ddrScan.Result.Response.ResponseMsg.Answer))
 			// parse DDR response
-			scans, errColl := ddrScan.CreateScansFromResponse()
+			var errColl []custom_errors.DoEErrors
+			scans, errColl = ddrScan.CreateScansFromResponse()
 			ddrScan.Meta.AddError(errColl...)
 
 			// schedule
@@ -130,6 +134,8 @@ func scheduleDoEScans(ddrScan *scan.DDRScan) {
 					produceScan(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
 				case scan.DOT_SCAN_TYPE:
 					produceScan(ddrScan, s, k.DEFAULT_DOT_TOPIC)
+				case scan.CERTIFICATE_SCAN_TYPE:
+					produceScan(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
 				}
 			}
 		} else {
@@ -138,6 +144,8 @@ func scheduleDoEScans(ddrScan *scan.DDRScan) {
 	} else {
 		logrus.Warnf("scheduling DoE scans for DDR scan %s disabled!", ddrScan.Meta.ScanId)
 	}
+
+	return scans
 }
 
 func schedulePTRScan(ddrScan *scan.DDRScan) {
