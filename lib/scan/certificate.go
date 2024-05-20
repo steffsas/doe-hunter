@@ -36,11 +36,14 @@ func (scan *CertificateScan) GetType() string {
 	return CERTIFICATE_SCAN_TYPE
 }
 
-func NewCertificateScan(query *query.CertificateQuery, rootScanId string, parentScanId string) *CertificateScan {
+func NewCertificateScan(q *query.CertificateQuery, rootScanId string, parentScanId string) *CertificateScan {
+	if q == nil {
+		q = query.NewCertificateQuery()
+	}
 	scan := &CertificateScan{
 		Meta: &CertificateScanMetaInformation{},
 	}
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(rootScanId, parentScanId)
-	scan.Query = query
+	scan.Query = q
 	return scan
 }

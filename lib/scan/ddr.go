@@ -26,8 +26,6 @@ type DDRScan struct {
 	Meta   *DDRScanMetaInformation        `json:"meta"`
 	Query  *query.ConventionalDNSQuery    `json:"query"`
 	Result *query.ConventionalDNSResponse `json:"result"`
-
-	PTR []string `json:"ptr"`
 }
 
 func (scan *DDRScan) Marshall() (bytes []byte, err error) {
@@ -78,6 +76,7 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 
 		// create DoE scans for each ALPN and ip hint
 		for _, alpn := range svcb.Alpn.Alpn {
+
 			s, e := produceScansFromAlpn(scan.Meta.ScanId, svcb.Target, svcb.Target, alpn, svcb)
 			scans = append(scans, s...)
 			errorColl = append(errorColl, e...)
@@ -104,13 +103,17 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 	return scans, errorColl
 }
 
-func NewDDRScan(query *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRScan {
+func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRScan {
+	if q == nil {
+		q = query.NewDDRQuery()
+	}
+
 	scan := &DDRScan{
 		Meta: &DDRScanMetaInformation{},
 	}
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation("", "")
 	scan.Meta.ScheduleDoEScans = scheduleDoEScans
-	scan.Query = query
+	scan.Query = q
 	return scan
 }
 
@@ -146,7 +149,9 @@ func produceScansFromAlpn(
 	// create certificate query
 	certQuery := query.NewCertificateQuery()
 	certQuery.Host = host
-	certQuery.SNI = targetName
+	if host != targetName {
+		certQuery.SNI = targetName
+	}
 
 	var doeScan DoEScan
 	var sErr custom_errors.DoEErrors
@@ -182,9 +187,8 @@ func produceScansFromAlpn(
 		logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, q.Port, targetName)
 	case "h1", "http/1.0", "http/1.1":
 		var dohScan *DoHScan
-		dohScan, sErr = createDoHScan(parentScanId, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
-		if sErr == nil {
-			err = append(err, sErr)
+		dohScan, sErr := createDoHScan(parentScanId, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
+		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
@@ -194,10 +198,13 @@ func produceScansFromAlpn(
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
 			err = append(err, sErr)
 		}
+		if sErr != nil {
+			err = append(err, sErr)
+		}
 	case "h2", "http/2", "doh":
 		var dohScan *DoHScan
-		dohScan, sErr = createDoHScan(parentScanId, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
-		if sErr == nil {
+		dohScan, sErr := createDoHScan(parentScanId, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
+		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
@@ -205,13 +212,14 @@ func produceScansFromAlpn(
 			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
+		}
+		if sErr != nil {
 			err = append(err, sErr)
 		}
 	case "h3", "http/3":
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, queryMsg, host, targetName, query.HTTP_VERSION_3, port, dohpath)
-		if sErr == nil {
-			err = append(err, sErr)
+		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
@@ -219,6 +227,9 @@ func produceScansFromAlpn(
 			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
+			err = append(err, sErr)
+		}
+		if sErr != nil {
 			err = append(err, sErr)
 		}
 	default:
