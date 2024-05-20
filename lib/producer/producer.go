@@ -13,7 +13,7 @@ const DEFAULT_KAFKA_SERVER = "localhost:29092"
 const DEFAULT_ACKS = "1"
 const DEFAULT_KAFKA_WRITE_TIMEOUT = 10000 * time.Millisecond
 const DEFAULT_FLUSH_TIMEOUT_MS = 5000
-const DEFAULT_MAX_PARTITONS = 100
+const DEFAULT_MAX_PARTITIONS int32 = 100
 
 type KafkaProducerConfig struct {
 	Server  string
@@ -24,6 +24,13 @@ type KafkaProducerConfig struct {
 	ReplicationFactor int
 }
 
+type KafkaEventProducerI interface {
+	k.EventProducer
+
+	Events() chan kafka.Event
+	Flush(timeout int) int
+}
+
 type KafkaProducer interface {
 	Produce(msg *kafka.Message, deliveryChan chan kafka.Event) (err error)
 	Flush(timeout int) int
@@ -32,7 +39,7 @@ type KafkaProducer interface {
 }
 
 type KafkaEventProducer struct {
-	k.EventProducer
+	KafkaEventProducerI
 
 	Config   *KafkaProducerConfig
 	Topic    string
@@ -122,6 +129,6 @@ func GetDefaultKafkaProducerConfig() *KafkaProducerConfig {
 		Server:        DEFAULT_KAFKA_SERVER,
 		Timeout:       DEFAULT_KAFKA_WRITE_TIMEOUT,
 		Acks:          DEFAULT_ACKS,
-		MaxPartitions: DEFAULT_MAX_PARTITONS,
+		MaxPartitions: DEFAULT_MAX_PARTITIONS,
 	}
 }
