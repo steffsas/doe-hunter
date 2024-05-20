@@ -3,16 +3,16 @@ package producer
 import (
 	"errors"
 
-	k "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	"github.com/steffsas/doe-hunter/lib/kafka"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
 type ScanProducer struct {
-	kafka.EventProducer
+	k.EventProducer
 
-	Producer *KafkaEventProducer
+	Producer KafkaEventProducerI
 	Config   *KafkaProducerConfig
 }
 
@@ -45,7 +45,7 @@ func (sp *ScanProducer) Flush(timeout int) int {
 	return sp.Producer.Flush(timeout)
 }
 
-func (sp *ScanProducer) Events() chan k.Event {
+func (sp *ScanProducer) Events() chan kafka.Event {
 	if sp.Producer == nil {
 		return nil
 	}
