@@ -72,8 +72,16 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if err := query.Check(); err != nil {
+	if err := query.Check(false); err != nil {
 		return res, err
+	}
+
+	if query.MaxUDPRetries < 0 {
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidMaxUDPRetries, true).AddInfoString(fmt.Sprintf("max udp retries: %d", query.MaxUDPRetries))
+	}
+
+	if query.MaxTCPRetries < 0 {
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidMaxTCPRetries, true).AddInfoString(fmt.Sprintf("max tcp retries: %d", query.MaxTCPRetries))
 	}
 
 	if dq.QueryHandler == nil {
@@ -88,6 +96,8 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	if query.Timeout >= 0 {
 		query.TimeoutUDP = query.Timeout
 		query.TimeoutTCP = query.Timeout
+	} else if query.TimeoutUDP < 0 || query.TimeoutTCP < 0 {
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidTimeout, true).AddInfoString(fmt.Sprintf("timeout (ms): %d", query.Timeout))
 	}
 
 	truncated := false

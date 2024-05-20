@@ -23,7 +23,7 @@ import (
 
 const MAX_URI_LENGTH = 2048
 const DOH_MEDIA_TYPE = "application/dns-message"
-const DOH_DEFAULT_PARAM = "dns"
+const DEFAULT_DOH_PARAM = "dns"
 const HTTP_GET = "GET"
 const HTTP_POST = "POST"
 
@@ -40,7 +40,6 @@ type HttpHandler interface {
 	Do(req *http.Request) (*http.Response, error)
 	SetTransport(t http.RoundTripper)
 	SetTimeout(timeout time.Duration)
-	GetTimeout() time.Duration
 }
 
 type defaultHttpHandler struct {
@@ -57,10 +56,6 @@ func (h *defaultHttpHandler) SetTransport(t http.RoundTripper) {
 
 func (h *defaultHttpHandler) SetTimeout(timeout time.Duration) {
 	h.httpClient.Timeout = timeout
-}
-
-func (h *defaultHttpHandler) GetTimeout() time.Duration {
-	return h.httpClient.Timeout
 }
 
 func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom_errors.DoEError) {
@@ -114,7 +109,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if err := query.Check(); err != nil {
+	if err := query.Check(true); err != nil {
 		return res, err
 	}
 
@@ -220,6 +215,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		queryErr,
 		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true),
 		&res.DoEResponse,
+		query.SkipCertificateVerify,
 	)
 }
 

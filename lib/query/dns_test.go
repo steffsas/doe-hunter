@@ -62,7 +62,11 @@ func getDefaultQuery() *query.ConventionalDNSQuery {
 }
 
 func TestDNSQuery_RealWorld(t *testing.T) {
+	t.Parallel()
+
 	t.Run("hostname", func(t *testing.T) {
+		t.Parallel()
+
 		dq := getDefaultQueryHandler()
 
 		res, err := dq.Query(getDefaultQuery())
@@ -75,6 +79,8 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 	})
 
 	t.Run("IPv4", func(t *testing.T) {
+		t.Parallel()
+
 		dq := getDefaultQueryHandler()
 
 		res, err := dq.Query(getDefaultQuery())
@@ -104,6 +110,8 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 
 // TestDNSQuery_InvalidProtocol tests the DNS query with an invalid protocol
 func TestDNSQuery_InvalidProtocol(t *testing.T) {
+	t.Parallel()
+
 	dq := getDefaultQueryHandler()
 	q := getDefaultQuery()
 	q.Protocol = "invalid"
@@ -112,8 +120,106 @@ func TestDNSQuery_InvalidProtocol(t *testing.T) {
 	assert.NotNil(t, err, "should have returned an error")
 }
 
+func TestDNSQuery_QueryCheck(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error on nil query", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+
+		res, err := dq.Query(nil)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+
+	t.Run("should return error on empty query message", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.QueryMsg = nil
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+
+	t.Run("should return error on empty host", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.Host = ""
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+
+	t.Run("should return error on negative port", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.Port = -1
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+
+	t.Run("should return error on too large port", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.Port = 65536
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+
+	t.Run("should return error on negative timeout", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.Timeout = -1
+		q.TimeoutUDP = -1
+		q.TimeoutTCP = -1
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
+	})
+}
+
 func TestDNSQuery_Response(t *testing.T) {
+	t.Parallel()
+
 	t.Run("should return response and query", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -131,13 +237,15 @@ func TestDNSQuery_Response(t *testing.T) {
 		require.NotNil(t, res.Response, "response should not be nil")
 		require.NotNil(t, res.Response.ResponseMsg, "response message should not be nil")
 		assert.Equal(t, response, res.Response.ResponseMsg, "should have returned the response")
-		require.NotNil(t, res.Query, "query should not be nil")
-		assert.Equal(t, q, res.Query, "should have attached the query")
 	})
 }
 
 func TestDNSQuery_UDPAttempts(t *testing.T) {
+	t.Parallel()
+
 	t.Run("one attempt on success", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -156,6 +264,8 @@ func TestDNSQuery_UDPAttempts(t *testing.T) {
 	})
 
 	t.Run("max attempts on failure", func(t *testing.T) {
+		t.Parallel()
+
 		handler := &mockedQueryHandler{}
 		handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no response"))
 
@@ -177,7 +287,11 @@ func TestDNSQuery_UDPAttempts(t *testing.T) {
 }
 
 func TestDNSQuery_UDPRetries(t *testing.T) {
-	t.Run("fallback on negative retries", func(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error on negative retries", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -191,16 +305,19 @@ func TestDNSQuery_UDPRetries(t *testing.T) {
 
 		res, err := dq.Query(q)
 
-		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_UDP_RETRIES, res.Query.MaxUDPRetries, "should fall back to default retries")
-		require.NotNil(t, res.Response, "should have returned a response")
-		require.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
-		assert.Equal(t, response, res.Response.ResponseMsg, "should have returned the response")
+		assert.NotNil(t, err, "should have returned an error")
+		assert.NotNil(t, res, "response should not be nil")
+		assert.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
 	})
 }
 
 func TestDNSQuery_TCPAttempts(t *testing.T) {
+	t.Parallel()
+
 	t.Run("one attempt on success", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -223,6 +340,8 @@ func TestDNSQuery_TCPAttempts(t *testing.T) {
 	})
 
 	t.Run("max attempts on failure", func(t *testing.T) {
+		t.Parallel()
+
 		handler := &mockedQueryHandler{}
 		handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no response"))
 
@@ -242,8 +361,14 @@ func TestDNSQuery_TCPAttempts(t *testing.T) {
 		assert.NotNil(t, err, "should have returned an error")
 		assert.Nil(t, res.Response.ResponseMsg, "should not have returned a DNS response")
 	})
+}
 
-	t.Run("fallback on negative retries", func(t *testing.T) {
+func TestDNSQuery_TCPRetries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error on negative retries", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -253,20 +378,23 @@ func TestDNSQuery_TCPAttempts(t *testing.T) {
 		dq.QueryHandler = handler
 
 		q := getDefaultQuery()
-		q.Protocol = query.DNS_TCP
 		q.MaxTCPRetries = -1
 
 		res, err := dq.Query(q)
 
-		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_TCP_RETRIES, q.MaxTCPRetries, "should fall back to default retries")
-		require.NotNil(t, res.Response, "should have returned a response")
-		require.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
+		assert.NotNil(t, err, "should have returned an error")
+		assert.NotNil(t, res, "response should not be nil")
+		assert.NotNil(t, res.Response, "response should not be nil")
+		assert.Nil(t, res.Response.ResponseMsg, "response should not be nil")
 	})
 }
 
 func TestDNSQuery_TCPFallback(t *testing.T) {
+	t.Parallel()
+
 	t.Run("fallback on udp error", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -291,6 +419,8 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 	})
 
 	t.Run("no fallback if not set", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -315,6 +445,8 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 	})
 
 	t.Run("fallback on truncation bit", func(t *testing.T) {
+		t.Parallel()
+
 		responseUDP := &dns.Msg{}
 		responseUDP.Truncated = true
 
@@ -341,6 +473,8 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 	})
 
 	t.Run("no fallback on truncation bit if TCP fallback is not wanted", func(t *testing.T) {
+		t.Parallel()
+
 		responseUDP := &dns.Msg{}
 		responseUDP.Truncated = true
 
@@ -368,7 +502,11 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 }
 
 func TestDNSQuery_Protocol(t *testing.T) {
+	t.Parallel()
+
 	t.Run("udp", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -391,6 +529,8 @@ func TestDNSQuery_Protocol(t *testing.T) {
 	})
 
 	t.Run("tcp", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -413,48 +553,9 @@ func TestDNSQuery_Protocol(t *testing.T) {
 	})
 }
 
-func TestDNSQuery_EmptyHost(t *testing.T) {
-	response := &dns.Msg{}
-
-	handler := &mockedQueryHandler{}
-	handler.On("Query", mock.Anything, mock.Anything, query.DNS_UDP, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
-	handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
-
-	dq := getDefaultQueryHandler()
-	dq.QueryHandler = handler
-
-	q := getDefaultQuery()
-	q.Host = ""
-
-	res, err := dq.Query(q)
-
-	assert.NotNil(t, err, "should have returned an error")
-	require.NotNil(t, res, "response should not be nil")
-	assert.Equal(t, 0, res.UDPAttempts, "should not have tried UDP")
-	assert.Equal(t, 0, res.TCPAttempts, "should not have tried TCP")
-	require.NotNil(t, res.Response, "should have returned a response")
-	assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
-}
-
-func TestDNSQuery_NilQueryMessage(t *testing.T) {
-	handler := &mockedQueryHandler{}
-	handler.On("Query", mock.Anything, mock.Anything, query.DNS_UDP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no UDP response"))
-	handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no TCP response"))
-
-	dq := getDefaultQueryHandler()
-	dq.QueryHandler = handler
-
-	res, err := dq.Query(nil)
-
-	assert.NotNil(t, err, "should have returned an error")
-	require.NotNil(t, res, "response should not be nil")
-	assert.Equal(t, 0, res.UDPAttempts, "should not have tried UDP")
-	assert.Equal(t, 0, res.TCPAttempts, "should not have tried TCP")
-	require.NotNil(t, res.Response, "should have returned a response")
-	assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
-}
-
 func TestDNSQuery_NilQueryHandler(t *testing.T) {
+	t.Parallel()
+
 	dq := getDefaultQueryHandler()
 	dq.QueryHandler = nil
 
@@ -470,72 +571,12 @@ func TestDNSQuery_NilQueryHandler(t *testing.T) {
 	assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
 }
 
-func TestDNSQuery_Port(t *testing.T) {
-	t.Run("negative port", func(t *testing.T) {
-		handler := &mockedQueryHandler{}
-		handler.On("Query", mock.Anything, mock.Anything, query.DNS_UDP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no UDP response"))
-		handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no TCP response"))
-
-		dq := getDefaultQueryHandler()
-		dq.QueryHandler = handler
-
-		q := getDefaultQuery()
-		q.Port = -1
-
-		res, err := dq.Query(q)
-
-		assert.NotNil(t, err, "should have returned an error")
-		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 0, res.UDPAttempts, "should not have tried UDP")
-		assert.Equal(t, 0, res.TCPAttempts, "should not have tried TCP")
-		require.NotNil(t, res.Response, "should have returned a response")
-		assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
-	})
-
-	t.Run("too large port", func(t *testing.T) {
-		handler := &mockedQueryHandler{}
-		handler.On("Query", mock.Anything, mock.Anything, query.DNS_UDP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no UDP response"))
-		handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(nil, time.Duration(0), fmt.Errorf("no TCP response"))
-
-		dq := getDefaultQueryHandler()
-		dq.QueryHandler = handler
-
-		q := getDefaultQuery()
-		q.Port = 70000
-
-		res, err := dq.Query(q)
-
-		assert.NotNil(t, err, "should have returned an error")
-		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 0, res.UDPAttempts, "should not have tried UDP")
-		assert.Equal(t, 0, res.TCPAttempts, "should not have tried TCP")
-		require.NotNil(t, res.Response, "should have returned a response")
-		assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
-	})
-
-	t.Run("default port fallback", func(t *testing.T) {
-		msg := dns.Msg{}
-		handler := &mockedQueryHandler{}
-		handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(msg, time.Duration(0), nil)
-
-		dq := getDefaultQueryHandler()
-		dq.QueryHandler = handler
-
-		q := getDefaultQuery()
-		q.Port = 0
-
-		res, err := dq.Query(q)
-
-		assert.NotNil(t, err, "should have returned an error")
-		assert.Equal(t, 0, res.UDPAttempts, "should not have tried UDP")
-		assert.Equal(t, 0, res.TCPAttempts, "should not have tried TCP")
-		require.NotNil(t, res.Response, "should have returned a response")
-		assert.Nil(t, res.Response.ResponseMsg, "should not have returned any response")
-	})
-}
-
 func TestDNSQuery_UDPTimeout(t *testing.T) {
+	t.Parallel()
+
 	t.Run("negative timeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -550,14 +591,15 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		res, err := dq.Query(q)
 
-		assert.Nil(t, err, "should not have returned an error")
-		assert.Equal(t, query.DEFAULT_UDP_TIMEOUT, res.Query.TimeoutUDP, "should have used the default UDP timeout")
+		assert.NotNil(t, err, "should have returned an error")
 		require.NotNil(t, res, "response should not be nil")
 		require.NotNil(t, res.Response, "should have returned a response")
-		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
+		assert.Nil(t, res.Response.ResponseMsg, "should not have returned a DNS response")
 	})
 
 	t.Run("accept zero timeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -573,13 +615,13 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 0*time.Millisecond, res.Query.TimeoutUDP, "should have used the zero timeout value")
-		require.NotNil(t, res, "response should not be nil")
 		require.NotNil(t, res.Response, "should have returned a response")
 		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
 	})
 
 	t.Run("use timeout over UDPTimeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -596,15 +638,17 @@ func TestDNSQuery_UDPTimeout(t *testing.T) {
 
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "response should not be nil")
-		assert.Equal(t, 1000*time.Millisecond, res.Query.TimeoutUDP, "should have used the timeout value")
-		require.NotNil(t, res, "response should not be nil")
 		require.NotNil(t, res.Response, "should have returned a response")
 		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
 	})
 }
 
 func TestDNSQuery_TCPTimeout(t *testing.T) {
+	t.Parallel()
+
 	t.Run("negative timeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -620,14 +664,39 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 
 		res, err := dq.Query(q)
 
-		assert.Nil(t, err, "should not have returned an error")
+		assert.NotNil(t, err, "should have returned an error")
 		require.NotNil(t, res, "response should not be nil")
 		require.NotNil(t, res.Response, "should have returned a response")
-		assert.Equal(t, query.DEFAULT_TCP_TIMEOUT, res.Query.TimeoutTCP, "should have used the default TCP timeout")
-		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
+		assert.Nil(t, res.Response.ResponseMsg, "should not have returned a DNS response")
+	})
+
+	t.Run("negative tcp timeout", func(t *testing.T) {
+		t.Parallel()
+
+		response := &dns.Msg{}
+
+		handler := &mockedQueryHandler{}
+		handler.On("Query", mock.Anything, mock.Anything, query.DNS_TCP, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
+
+		dq := getDefaultQueryHandler()
+		dq.QueryHandler = handler
+
+		q := getDefaultQuery()
+		q.Protocol = query.DNS_TCP
+		q.Timeout = -1
+		q.TimeoutTCP = -1
+
+		res, err := dq.Query(q)
+
+		assert.NotNil(t, err, "should have returned an error")
+		require.NotNil(t, res, "response should not be nil")
+		require.NotNil(t, res.Response, "should have returned a response")
+		assert.Nil(t, res.Response.ResponseMsg, "should not have returned a DNS response")
 	})
 
 	t.Run("accept zero timeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -643,14 +712,14 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 		res, err := dq.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
-
 		require.NotNil(t, res, "response should not be nil")
 		require.NotNil(t, res.Response, "should have returned a response")
 		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
-		assert.Equal(t, 0*time.Millisecond, res.Query.TimeoutTCP, "should have used the zero timeout value")
 	})
 
 	t.Run("use timeout over TCPTimeout", func(t *testing.T) {
+		t.Parallel()
+
 		response := &dns.Msg{}
 
 		handler := &mockedQueryHandler{}
@@ -670,6 +739,5 @@ func TestDNSQuery_TCPTimeout(t *testing.T) {
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res.Response, "should have returned a response")
 		assert.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
-		assert.Equal(t, 1000*time.Millisecond, res.Query.TimeoutTCP, "should have used the timeout value")
 	})
 }

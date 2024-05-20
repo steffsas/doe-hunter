@@ -34,7 +34,7 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if err := query.Check(); err != nil {
+	if err := query.Check(true); err != nil {
 		return res, err
 	}
 
@@ -62,6 +62,7 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 		queryErr,
 		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true),
 		&res.DoEResponse,
+		query.SkipCertificateVerify,
 	)
 }
 
