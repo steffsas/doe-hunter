@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestScanMetaInformation(t *testing.T) {
 		t.Parallel()
 		// setup
 		smi := &scan.ScanMetaInformation{}
-		err := errors.New("test")
+		err := custom_errors.NewGenericError(errors.New("test"), true)
 		smi.AddError(err)
 
 		// test
@@ -64,5 +65,16 @@ func TestScanMetaInformation(t *testing.T) {
 
 		// test
 		assert.GreaterOrEqual(t, smi.Finished, time)
+	})
+
+	t.Run("schedule", func(t *testing.T) {
+		t.Parallel()
+		// setup
+		smi := &scan.ScanMetaInformation{}
+		smi.Schedule()
+
+		// test
+		assert.NotEmpty(t, smi.ScanId)
+		assert.GreaterOrEqual(t, smi.Scheduled, time.Time{})
 	})
 }
