@@ -3,7 +3,6 @@ package custom_errors
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"runtime"
 )
 
@@ -85,7 +84,7 @@ type DoEError struct {
 }
 
 func (ce *DoEError) Error() string {
-	if ce.AdditionalInfo != "" {
+	if ce.AdditionalInfo == "" {
 		return fmt.Sprintf(`%s in %s: %s`, ce.ErrId, ce.Location, ce.Err.Error())
 	} else {
 		return fmt.Sprintf(`%s in %s: %s - additional info: %s`, ce.ErrId, ce.Location, ce.Err.Error(), ce.AdditionalInfo)
@@ -102,8 +101,7 @@ func (ce *DoEError) IsError(errId string) bool {
 
 func (ce *DoEError) AddInfo(err error) DoEErrors {
 	if err != nil {
-		errStr := fmt.Sprintf("%s: %s", reflect.TypeOf(err).Name(), err.Error())
-		return ce.addInfoStr(errStr)
+		return ce.addInfoStr(err.Error())
 	}
 	return ce
 }
@@ -143,27 +141,28 @@ func getCallerName(skip int) string {
 }
 
 func NewUnknownError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: "unknown_error", Err: err, Location: getCallerName(2)}
+	return &DoEError{ErrId: "unknown_error", Err: err, Location: getCallerName(2), Critical: critical}
 }
 
 func NewGenericError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: GENERIC_ERROR, Err: err, Location: getCallerName(2)}
+	return &DoEError{ErrId: GENERIC_ERROR, Err: err, Location: getCallerName(2), Critical: critical}
 }
 
 func NewQueryError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: QUERY_ERROR, Err: err, Location: getCallerName(2)}
+	return &DoEError{ErrId: QUERY_ERROR, Err: err, Location: getCallerName(2), Critical: critical}
 }
 
 func NewQueryConfigError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: QUERY_CONFIG_ERROR, Err: err, Location: getCallerName(2)}
+	return &DoEError{ErrId: QUERY_CONFIG_ERROR, Err: err, Location: getCallerName(2), Critical: critical}
 }
 
 func NewCertificateError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: CERTIFICATE_ERROR, Err: err, Location: getCallerName(2)}
+	return &DoEError{ErrId: CERTIFICATE_ERROR, Err: err, Location: getCallerName(2), Critical: critical}
 }
 
 func ContainsCriticalErr(errColl []DoEErrors) bool {
 	for _, err := range errColl {
+		fmt.Println(err, err.IsCritical())
 		if err.IsCritical() {
 			return true
 		}
