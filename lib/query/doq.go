@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"time"
 
@@ -62,7 +63,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
 
-	if err := query.Check(); err != nil {
+	if err := query.Check(true); err != nil {
 		return res, err
 	}
 
@@ -93,11 +94,16 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 		quicConfig,
 	)
 	if err != nil {
-		return res, validateCertificateError(
+		cErr := validateCertificateError(
 			err,
 			custom_errors.NewQueryError(custom_errors.ErrSessionEstablishmentFailed, true),
 			&res.DoEResponse,
+			query.SkipCertificateVerify,
 		)
+
+		fmt.Println(err, res.CertificateValid, res.CertificateVerified)
+
+		return res, cErr
 	}
 	// for linting wrapped in a anon function
 	defer func() {
@@ -111,6 +117,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 			err,
 			custom_errors.NewQueryError(custom_errors.ErrOpenStreamFailed, true),
 			&res.DoEResponse,
+			query.SkipCertificateVerify,
 		)
 	}
 
@@ -164,6 +171,16 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	}
 
 	res.ResponseMsg = responseMsg
+
+	if query.SkipCertificateVerify {
+		// we cannot say anything about the certificate validity
+		res.CertificateValid = false
+		res.CertificateVerified = false
+	} else {
+		// the certificate must be valid
+		res.CertificateValid = true
+		res.CertificateVerified = true
+	}
 
 	return res, nil
 }

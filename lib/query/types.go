@@ -33,12 +33,12 @@ type DNSQuery struct {
 	Timeout time.Duration `json:"timeout"`
 }
 
-func (q *DNSQuery) Check() (err custom_errors.DoEErrors) {
+func (q *DNSQuery) Check(checkForTimeout bool) (err custom_errors.DoEErrors) {
 	if q.QueryMsg == nil {
 		return custom_errors.NewQueryConfigError(custom_errors.ErrEmptyQueryMessage, true)
 	}
 
-	return checkForQueryParams(q.Host, q.Port, q.Timeout)
+	return checkForQueryParams(q.Host, q.Port, q.Timeout, checkForTimeout)
 }
 
 type DoEQuery struct {

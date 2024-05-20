@@ -36,6 +36,7 @@ func NewPTRQuery() *PTRQuery {
 	q.QueryMsg = &dns.Msg{}
 	q.QueryMsg.SetQuestion("undefined", dns.TypePTR)
 	q.Port = DEFAULT_DNS_PORT
+	q.Host = DEFAULT_RECURSIVE_RESOLVER
 	return q
 }
 

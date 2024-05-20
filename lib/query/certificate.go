@@ -3,6 +3,7 @@ package query
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"net"
 	"time"
 
@@ -12,8 +13,8 @@ import (
 
 const TLS_PROTOCOL_TCP = "tcp"
 const TLS_PROTOCOL_UDP = "udp"
-const TLS_PORT = 443
-const TLS_DEFAULT_TIMEOUT time.Duration = 2500 * time.Millisecond
+const DEFAULT_TLS_PORT = 443
+const DEFAULT_TLS_TIMEOUT time.Duration = 2500 * time.Millisecond
 
 type Conn interface {
 	Close() error
@@ -46,7 +47,7 @@ type CertificateQuery struct {
 }
 
 func (cq *CertificateQuery) Check() (err custom_errors.DoEErrors) {
-	return checkForQueryParams(cq.Host, cq.Port, cq.Timeout)
+	return checkForQueryParams(cq.Host, cq.Port, cq.Timeout, true)
 }
 
 type CertificateQueryHandler struct {
@@ -90,6 +91,9 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 	}
 
 	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
+
+	fmt.Println(conn, err)
+
 	if err != nil {
 		if helper.IsCertificateError(err) {
 			// we will try to get the certificate without verification
@@ -112,9 +116,9 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 
 func NewCertificateQuery() (q *CertificateQuery) {
 	return &CertificateQuery{
-		Port:     TLS_PORT,
+		Port:     DEFAULT_TLS_PORT,
 		Protocol: TLS_PROTOCOL_TCP,
-		Timeout:  TLS_DEFAULT_TIMEOUT,
+		Timeout:  DEFAULT_TLS_TIMEOUT,
 	}
 }
 

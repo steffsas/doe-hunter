@@ -23,6 +23,8 @@ var ErrInvalidPort = errors.New("query invalid port")
 var ErrInvalidProtocol = errors.New("query invalid protocol")
 var ErrInvalidTimeout = errors.New("query invalid timeout")
 var ErrUnknownQueryErr = errors.New("unknown query error")
+var ErrInvalidMaxUDPRetries = errors.New("invalid max udp retries")
+var ErrInvalidMaxTCPRetries = errors.New("invalid max tcp retries")
 
 // specific dns query errors
 var ErrUDPAttemptFailed = errors.New("UDP DNS query attempt failed")
