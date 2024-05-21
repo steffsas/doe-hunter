@@ -245,6 +245,26 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
 		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
 	})
+
+	t.Run("http3 get dns.google.", func(t *testing.T) {
+		t.Parallel()
+
+		q := query.NewDoHQuery()
+		q.Host = "dns.google."
+		q.Port = 443
+		q.URI = "/dns-query{?dns}"
+		q.HTTPVersion = query.HTTP_VERSION_3
+		q.Method = query.HTTP_GET
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+	})
 }
 
 func TestDoHQuery_HTTPVersion(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
@@ -25,7 +26,7 @@ type ConventionalDNSResponse struct {
 	Response      *DNSResponse `json:"response"`
 	UDPAttempts   int          `json:"udp_attempts"`
 	TCPAttempts   int          `json:"tcp_attempts"`
-	AttemptErrors []error      `json:"attempt_errors"`
+	AttemptErrors []string     `json:"attempt_errors"`
 }
 
 type ConventionalDNSQuery struct {
@@ -94,6 +95,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 	// override upd and tcp timeouts if query.Timeout is set
 	if query.Timeout >= 0 {
+		logrus.Warnf("overwriting udp and tcp timeouts with query timeout: %d", query.Timeout)
 		query.TimeoutUDP = query.Timeout
 		query.TimeoutTCP = query.Timeout
 	} else if query.TimeoutUDP < 0 || query.TimeoutTCP < 0 {
@@ -118,7 +120,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 			)
 
 			if queryErr != nil {
-				res.AttemptErrors = append(res.AttemptErrors, queryErr)
+				res.AttemptErrors = append(res.AttemptErrors, queryErr.Error())
 			}
 
 			if queryErr == nil && res.Response.ResponseMsg != nil && !res.Response.ResponseMsg.Truncated {
@@ -156,7 +158,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 			)
 
 			if queryErr != nil {
-				res.AttemptErrors = append(res.AttemptErrors, queryErr)
+				res.AttemptErrors = append(res.AttemptErrors, queryErr.Error())
 			}
 
 			if queryErr == nil && res.Response != nil {
@@ -188,6 +190,8 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 		TimeoutTCP:      DEFAULT_TCP_TIMEOUT,
 		MaxBackoffTime:  DEFAULT_BACKOFF_TIME,
 	}
+	// because we'll take the timeoutUDP and timeoutTCP as the default timeout
+	q.Timeout = -1
 
 	q.Port = DEFAULT_DNS_PORT
 	return q

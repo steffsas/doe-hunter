@@ -3,6 +3,7 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -35,8 +36,10 @@ func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	ptrScan.Result, qErr = ph.QueryHandler.Query(ptrScan.Query)
 	ptrScan.Meta.SetFinished()
 	if qErr != nil {
+		if !strings.Contains(qErr.Error(), custom_errors.ErrNoResponse.Error()) {
+			logrus.Errorf("error processing PTR scan %s: %s", ptrScan.Meta.ScanId, qErr.Error())
+		}
 		ptrScan.Meta.AddError(qErr)
-		logrus.Errorf("error processing PTR scan %s: %s", ptrScan.Meta.ScanId, qErr.Error())
 	}
 
 	// store

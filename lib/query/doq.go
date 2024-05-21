@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"time"
 
@@ -100,8 +99,6 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 			&res.DoEResponse,
 			query.SkipCertificateVerify,
 		)
-
-		fmt.Println(err, res.CertificateValid, res.CertificateVerified)
 
 		return res, cErr
 	}

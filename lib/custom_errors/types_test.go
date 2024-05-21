@@ -2,7 +2,6 @@ package custom_errors_test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
@@ -77,8 +76,6 @@ func TestCustomErrors_ContainsCriticalError(t *testing.T) {
 		}
 
 		critical := custom_errors.ContainsCriticalErr(errColl)
-
-		fmt.Println(critical)
 
 		// test
 		assert.True(t, critical, "should return true")

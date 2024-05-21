@@ -352,8 +352,6 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 
 		res, err := qh.Query(q)
 
-		fmt.Println(res, err)
-
 		assert.NotNil(t, err, "should have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
 	})

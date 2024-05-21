@@ -14,7 +14,7 @@ func NewDDRQuery() *ConventionalDNSQuery {
 	// A validating security-aware stub resolver MUST set the DO bit,
 	// because otherwise it will not receive the DNSSEC RRs it needs to
 	// perform signature validation.
-	q.QueryMsg.SetEdns0(4096, true)
+	// q.QueryMsg.SetEdns0(4096, true)
 
 	return q
 }

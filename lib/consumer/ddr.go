@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"reflect"
+	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -28,7 +28,7 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 	ddrScan := &scan.DDRScan{}
 	err := json.Unmarshal(msg.Value, ddrScan)
 	if err != nil {
-		logrus.Errorf("failed to unmarshal message into %s", reflect.TypeOf(ddrScan).String())
+		logrus.Errorf("error unmarshaling DDR scan %s: %s", ddrScan.Meta.ScanId, err.Error())
 		return err
 	}
 
@@ -39,7 +39,9 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 	ddrScan.Meta.SetFinished()
 
 	if qErr != nil {
-		logrus.Errorf("failed to query %s: %v", ddrScan.Meta.ScanId, err)
+		if qErr.IsCritical() && !strings.Contains(qErr.Error(), custom_errors.ErrNoResponse.Error()) {
+			logrus.Errorf("fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
+		}
 		ddrScan.Meta.AddError(qErr)
 	} else {
 		// produce DoE scans
@@ -51,7 +53,7 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 
 	err = storage.Store(ddrScan)
 	if err != nil {
-		logrus.Errorf("failed to store %s: %v", ddrScan.Meta.ScanId, err)
+		logrus.Errorf("failed to store %s: %v", ddrScan.Meta.ScanId, qErr.Error())
 	}
 
 	return err
@@ -99,21 +101,22 @@ func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, topic string) {
 	p, err := producer.NewScanProducer(topic, nil)
 	if err != nil {
 		logrus.Errorf("failed to create scan producer: %v", err)
-		cErr := custom_errors.NewGenericError(custom_errors.ErrProducerCreationFailed, true)
-		ddrScan.Meta.AddError(cErr)
+		ddrScan.Meta.AddError(custom_errors.NewGenericError(
+			custom_errors.ErrProducerCreationFailed, true),
+		)
 	}
+	defer p.Close()
+
 	err = p.Produce(scan)
 	if err != nil {
 		logrus.Errorf("failed to produce scan: %v", err)
-		cErr := custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true)
-		ddrScan.Meta.AddError(cErr)
+		ddrScan.Meta.AddError(
+			custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
+		)
 	}
-	p.Close()
 }
 
-func scheduleDoEAndCertScans(ddrScan *scan.DDRScan) []scan.Scan {
-	scans := []scan.Scan{}
-
+func scheduleDoEAndCertScans(ddrScan *scan.DDRScan) {
 	// schedule DoE scans
 	if ddrScan.Meta.ScheduleDoEScans {
 		logrus.Infof("schedule DoE and certificate scans for DDR scan %s", ddrScan.Meta.ScanId)
@@ -121,8 +124,7 @@ func scheduleDoEAndCertScans(ddrScan *scan.DDRScan) []scan.Scan {
 		if len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
 			logrus.Debugf("got %d SVCB answers, schedule DoE scans", len(ddrScan.Result.Response.ResponseMsg.Answer))
 			// parse DDR response
-			var errColl []custom_errors.DoEErrors
-			scans, errColl = ddrScan.CreateScansFromResponse()
+			scans, errColl := ddrScan.CreateScansFromResponse()
 			ddrScan.Meta.AddError(errColl...)
 
 			// schedule
@@ -139,13 +141,9 @@ func scheduleDoEAndCertScans(ddrScan *scan.DDRScan) []scan.Scan {
 				}
 			}
 		} else {
-			logrus.Warnf("no DoE scans to schedule since there was no SVCB answers %s", ddrScan.Meta.ScanId)
+			logrus.Infof("no DoE scans to schedule since there was no SVCB answers %s", ddrScan.Meta.ScanId)
 		}
-	} else {
-		logrus.Warnf("scheduling DoE scans for DDR scan %s disabled!", ddrScan.Meta.ScanId)
 	}
-
-	return scans
 }
 
 func schedulePTRScan(ddrScan *scan.DDRScan) {
@@ -174,6 +172,7 @@ func schedulePTRScan(ddrScan *scan.DDRScan) {
 			ddrScan.Meta.AddError(cErr)
 			return
 		}
+		defer producer.Close()
 
 		err := producer.Produce(ptrScan)
 		if err != nil {

@@ -18,6 +18,23 @@ type DDRScanMetaInformation struct {
 
 	ScheduleDoEScans bool `json:"schedule_doe_scans"`
 	PTRScheduled     bool `json:"ptr_scheduled"`
+
+	// censys, see big query sql script
+	DNSVersion     string  `json:"dns_version"`
+	DNSServerType  string  `json:"dns_server_type"`
+	Continent      string  `json:"continent"`
+	Country        string  `json:"country"`
+	City           string  `json:"city"`
+	CountryCode    string  `json:"country_code"`
+	Latitude       float32 `json:"latitude"`
+	Longitude      float32 `json:"longitude"`
+	ASN            string  `json:"asn"`
+	ASNName        string  `json:"asn_name"`
+	ASNCountryCode string  `json:"asn_country_code"`
+	OSId           string  `json:"os_id"`
+	OSVendor       string  `json:"os_vendor"`
+	OSProduct      string  `json:"os_product"`
+	OSVersion      string  `json:"os_version"`
 }
 
 type DDRScan struct {
@@ -143,7 +160,7 @@ func produceScansFromAlpn(
 	}
 
 	// create query message for DoE
-	queryMsg := new(dns.Msg)
+	queryMsg := &dns.Msg{}
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
 
 	// create certificate query

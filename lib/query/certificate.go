@@ -3,7 +3,6 @@ package query
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"net"
 	"time"
 
@@ -91,8 +90,6 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 	}
 
 	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
-
-	fmt.Println(conn, err)
 
 	if err != nil {
 		if helper.IsCertificateError(err) {

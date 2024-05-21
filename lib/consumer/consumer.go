@@ -18,6 +18,7 @@ func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, n
 				logrus.Errorf("error creating DoH scan producer: %s", pErr)
 				oldScan.GetMetaInformation().AddError(genericErr)
 			}
+			defer p.Close()
 
 			pErr = p.Produce(newScan)
 			if pErr != nil {
