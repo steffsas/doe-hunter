@@ -3,8 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
+	"io"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -49,7 +53,10 @@ var (
 	parallelConsumer = flag.Int("parallelConsumer", 1, "number of parallel consumers")
 )
 
+const DDR_CONSUMER = 100
+
 func main() {
+	logrus.SetLevel(logrus.WarnLevel)
 	ctx := context.Background()
 
 	// flag.Parse()
@@ -58,8 +65,9 @@ func main() {
 
 	if os.Args[1] == "consumer" {
 		startAllConsumer(ctx)
+		// startConsumer(ctx, "ddr")
 	} else {
-		produceDRScansFromFile("resolvers.txt")
+		produceDDRScansFromCensys("data/censys_100k.json", true)
 	}
 }
 
@@ -74,12 +82,160 @@ func setLogger() {
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
 	logrus.SetOutput(os.Stdout)
-
-	// Only logrus the warning severity or above.
-	logrus.SetLevel(logrus.DebugLevel)
 }
 
-func produceDRScansFromFile(filePath string) {
+type CensysData struct {
+	Ipv4             string  `json:"ipv4"`
+	Ipv6             string  `json:"ipv6"`
+	Dns_version      string  `json:"dns_version"`
+	Dns_server_type  string  `json:"dns_server_type"`
+	Continent        string  `json:"continent"`
+	Country          string  `json:"country"`
+	City             string  `json:"city"`
+	Country_code     string  `json:"country_code"`
+	Latitude         float32 `json:"latitude"`
+	Longitude        float32 `json:"longitude"`
+	Asn              string  `json:"asn"`
+	Asn_name         string  `json:"asn_name"`
+	Asn_country_code string  `json:"asn_country_code"`
+	Os_id            string  `json:"os_id"`
+	Os_vendor        string  `json:"os_vendor"`
+	Os_product       string  `json:"os_product"`
+	Os_version       string  `json:"os_version"`
+}
+
+func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
+	// read json file with censys data
+	file, err := os.Open(filePath)
+	if err != nil {
+		logrus.Errorf("failed to open file: %v", err)
+		return err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		logrus.Errorf("failed to read file: %v", err)
+		return err
+	}
+
+	contentSplit := strings.Split(string(content), "\n")
+	contentSplit = contentSplit[:len(contentSplit)-1] // remove last empty line
+
+	// marshall the json data
+	censysData := []CensysData{}
+	for _, line := range contentSplit {
+		c := &CensysData{}
+		if err := json.Unmarshal([]byte(line), c); err != nil {
+			logrus.Errorf("failed to unmarshal json: %v, %s", err, line)
+			return err
+		}
+		censysData = append(censysData, *c)
+	}
+
+	logrus.Infof("got %d resolvers from censys data", len(censysData))
+
+	// create a new producer
+	config := producer.GetDefaultKafkaProducerConfig()
+	config.MaxPartitions = DDR_CONSUMER
+	p, err := producer.NewScanProducer(kafka.DEFAULT_DDR_TOPIC, config)
+
+	if err != nil {
+		logrus.Errorf("failed to create DDR producer: %v", err)
+		return err
+	}
+	defer p.Close()
+
+	wg := sync.WaitGroup{}
+
+	ipv4Considered := []string{}
+	ipv6Considered := []string{}
+
+	for _, res := range censysData {
+		if res.Ipv4 != "" {
+			if !slices.Contains(ipv4Considered, res.Ipv4) {
+				ipv4Considered = append(ipv4Considered, res.Ipv4)
+
+				// create DDR query
+				q := query.NewDDRQuery()
+				q.Host = res.Ipv4
+				q.AutoFallbackTCP = true
+				q.Protocol = query.DNS_UDP
+				q.Port = 53
+
+				// create scan
+				scan := scan.NewDDRScan(q, scheduleDoEScans)
+				fillCensysMetaInformation(scan, res)
+
+				wg.Add(1)
+				go scheduleScan(scan, p, &wg)
+			} else {
+				logrus.Infof("skipping ipv4 %s as it was already considered", res.Ipv4)
+			}
+		}
+
+		if res.Ipv6 != "" {
+			if !slices.Contains(ipv6Considered, res.Ipv6) {
+				ipv6Considered = append(ipv6Considered, res.Ipv6)
+
+				// create DDR query
+				q := query.NewDDRQuery()
+				q.Host = res.Ipv6
+				q.AutoFallbackTCP = true
+				q.Protocol = query.DNS_UDP
+				q.Port = 53
+
+				// create scan
+				scan := scan.NewDDRScan(q, scheduleDoEScans)
+				fillCensysMetaInformation(scan, res)
+
+				wg.Add(1)
+				go scheduleScan(scan, p, &wg)
+			} else {
+				logrus.Infof("skipping ipv6 %s as it was already considered", res.Ipv6)
+			}
+		}
+	}
+
+	wg.Wait()
+
+	// Flush and close the producer and the events channel
+	for p.Flush(10000) > 0 {
+		logrus.Info("still waiting for events to be flushed")
+	}
+
+	p.Close()
+
+	return nil
+}
+
+func fillCensysMetaInformation(scan *scan.DDRScan, c CensysData) {
+	scan.Meta.DNSVersion = c.Dns_version
+	scan.Meta.DNSServerType = c.Dns_server_type
+	scan.Meta.Continent = c.Continent
+	scan.Meta.Country = c.Country
+	scan.Meta.City = c.City
+	scan.Meta.CountryCode = c.Country_code
+	scan.Meta.Latitude = c.Latitude
+	scan.Meta.Longitude = c.Longitude
+	scan.Meta.ASN = c.Asn
+	scan.Meta.ASNName = c.Asn_name
+	scan.Meta.ASNCountryCode = c.Asn_country_code
+	scan.Meta.OSId = c.Os_id
+	scan.Meta.OSVendor = c.Os_vendor
+	scan.Meta.OSProduct = c.Os_product
+	scan.Meta.OSVersion = c.Os_version
+}
+
+func scheduleScan(scan *scan.DDRScan, p *producer.ScanProducer, wg *sync.WaitGroup) {
+	defer wg.Done()
+	// produce the scan
+	if err := p.Produce(scan); err != nil {
+		logrus.Errorf("failed to produce DDR scan: %v", err)
+	}
+}
+
+func produceDRScansFromTXTFile(filePath string) {
 	resolvers := []struct {
 		Host string
 		Port int
@@ -144,7 +300,9 @@ func startConsumer(ctx context.Context, protocol string) {
 	switch protocol {
 	case "ddr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
-		pc, err := consumer.NewKafkaDDRParallelEventConsumer(nil, sh)
+		config := kafka.GetDefaultKafkaParallelConsumerConfig(consumer.DEFAULT_DDR_CONSUMER_GROUP, kafka.DEFAULT_DDR_TOPIC)
+		config.ConcurrentConsumer = DDR_CONSUMER
+		pc, err := consumer.NewKafkaDDRParallelEventConsumer(config, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -165,7 +323,7 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "doq":
 		// start the DOQ scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
-		pc, err := consumer.NewKafkaDoTParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoQParallelEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return

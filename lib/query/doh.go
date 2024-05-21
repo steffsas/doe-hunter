@@ -18,7 +18,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
-	"golang.org/x/net/http2"
 )
 
 const MAX_URI_LENGTH = 2048
@@ -47,7 +46,8 @@ type defaultHttpHandler struct {
 }
 
 func (h *defaultHttpHandler) Do(req *http.Request) (*http.Response, error) {
-	return h.httpClient.Do(req)
+	res, err := h.httpClient.Do(req)
+	return res, err
 }
 
 func (h *defaultHttpHandler) SetTransport(t http.RoundTripper) {
@@ -146,16 +146,38 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		qh.QueryHandler.SetTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
-			TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+			TLSNextProto:        map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+			IdleConnTimeout:     query.Timeout,
+			TLSHandshakeTimeout: query.Timeout,
+			MaxConnsPerHost:     1,
+			MaxIdleConns:        1,
+			DisableKeepAlives:   true,
+			ForceAttemptHTTP2:   false,
 		})
 	case HTTP_VERSION_2:
-		qh.QueryHandler.SetTransport(&http2.Transport{
+		// qh.QueryHandler.SetTransport(&http2.Transport{
+		// 	TLSClientConfig: tlsConfig,
+		// 	AllowHTTP:       false,
+		// })
+		qh.QueryHandler.SetTransport(&http.Transport{
 			TLSClientConfig: tlsConfig,
+			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
+			TLSNextProto:        map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+			IdleConnTimeout:     query.Timeout,
+			TLSHandshakeTimeout: query.Timeout,
+			MaxConnsPerHost:     1,
+			MaxIdleConns:        1,
+			DisableKeepAlives:   true,
+			ForceAttemptHTTP2:   true,
 		})
 	case HTTP_VERSION_3:
 		qh.QueryHandler.SetTransport(&http3.RoundTripper{
 			TLSClientConfig: tlsConfig,
-			QUICConfig:      &quic.Config{},
+			QUICConfig: &quic.Config{
+				Allow0RTT:       true,
+				MaxIdleTimeout:  query.Timeout,
+				KeepAlivePeriod: 0,
+			},
 		})
 	}
 
@@ -243,7 +265,7 @@ func (q *DoHQueryHandler) doHttpRequest(httpReq *http.Request) (r *dns.Msg, http
 		return
 	}
 
-	r = new(dns.Msg)
+	r = &dns.Msg{}
 	err = r.Unpack(content)
 	if err != nil {
 		return

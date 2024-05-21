@@ -26,6 +26,7 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	doqScan := &scan.DoQScan{}
 	err = json.Unmarshal(msg.Value, doqScan)
 	if err != nil {
+		logrus.Errorf("error unmarshaling DoQ scan %s: %s", doqScan.Meta.ScanId, err.Error())
 		return err
 	}
 
@@ -37,7 +38,7 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	doqScan.Meta.SetFinished()
 	if qErr != nil {
 		doqScan.Meta.AddError(qErr)
-		logrus.Errorf("error processing DoH scan %s: %s", doqScan.Meta.ScanId, err)
+		logrus.Errorf("error processing DoQ scan %s to %s:%d: %s", doqScan.Meta.ScanId, doqScan.Query.Host, doqScan.Query.Port, qErr.Error())
 	}
 
 	RedoDoEScanOnCertError(

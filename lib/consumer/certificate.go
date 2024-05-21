@@ -26,7 +26,7 @@ func (ph *CertificateProcessEventHandler) Process(msg *kafka.Message, storage st
 	certificateScan := &scan.CertificateScan{}
 	umErr := json.Unmarshal(msg.Value, certificateScan)
 	if umErr != nil {
-		logrus.Errorf("error unmarshalling DoH scan: %s", umErr)
+		logrus.Errorf("error unmarshalling certificate scan: %s", umErr)
 		return umErr
 	}
 
@@ -36,7 +36,7 @@ func (ph *CertificateProcessEventHandler) Process(msg *kafka.Message, storage st
 	certificateScan.Result, qErr = ph.QueryHandler.Query(certificateScan.Query)
 	certificateScan.Meta.SetFinished()
 	if qErr != nil {
-		logrus.Errorf("error processing DoH scan %s: %s", certificateScan.Meta.ScanId, qErr.Error())
+		logrus.Errorf("error processing certificate scan %s to %s:%d: %s", certificateScan.Meta.ScanId, certificateScan.Query.Host, certificateScan.Query.Port, qErr.Error())
 		certificateScan.Meta.AddError(qErr)
 	}
 
