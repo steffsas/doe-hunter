@@ -21,6 +21,7 @@ type SVCBRR struct {
 
 func ParseDDRSVCB(scanId string, rr *dns.SVCB) (*SVCBRR, []custom_errors.DoEErrors) {
 	svcb := &SVCBRR{}
+	svcb.Alpn = &dns.SVCBAlpn{}
 	svcb.Target = rr.Target
 	svcb.ODoH = false
 
@@ -80,8 +81,9 @@ func ParseDDRSVCB(scanId string, rr *dns.SVCB) (*SVCBRR, []custom_errors.DoEErro
 			svcb.ODoH = true
 		default:
 			logrus.Warnf("parsing DDR scan %s: got unknown SVCB key %s and value %s, ignore", scanId, value.Key(), value.String())
-			custom_errors.NewQueryError(custom_errors.ErrUnknownSvcbKey, false).
+			err := custom_errors.NewQueryError(custom_errors.ErrUnknownSvcbKey, false).
 				AddInfoString(fmt.Sprintf("key: %d, value: %s", value.Key(), value.String()))
+			errs = append(errs, err)
 		}
 	}
 
