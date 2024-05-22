@@ -24,6 +24,7 @@ const DEFAULT_BACKOFF_TIME time.Duration = 2500 * time.Millisecond
 
 type ConventionalDNSResponse struct {
 	Response      *DNSResponse `json:"response"`
+	WasTruncated  bool         `json:"was_truncated"`
 	UDPAttempts   int          `json:"udp_attempts"`
 	TCPAttempts   int          `json:"tcp_attempts"`
 	AttemptErrors []string     `json:"attempt_errors"`
@@ -102,7 +103,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidTimeout, true).AddInfoString(fmt.Sprintf("timeout (ms): %d", query.Timeout))
 	}
 
-	truncated := false
+	res.WasTruncated = false
 	if query.Protocol == DNS_UDP {
 		// create exponential timeout backoff
 		b := getBackOffHandler(query.MaxBackoffTime)
@@ -130,7 +131,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 			// if response is truncated, we need to retry with TCP [RFC7766]
 			if res.Response.ResponseMsg != nil && res.Response.ResponseMsg.Truncated {
-				truncated = true
+				res.WasTruncated = true
 				break
 			}
 
@@ -141,7 +142,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		}
 	}
 
-	if query.AutoFallbackTCP || query.Protocol == DNS_TCP || (truncated && query.AutoFallbackTCP) {
+	if query.AutoFallbackTCP || query.Protocol == DNS_TCP || (res.WasTruncated && query.AutoFallbackTCP) {
 		// create exponential timeout backoff
 		b := getBackOffHandler(query.MaxBackoffTime)
 
