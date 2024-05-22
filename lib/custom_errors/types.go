@@ -55,6 +55,7 @@ var ErrUnknownSvcbKey = errors.New("unknown SVCB key")
 var ErrParsingSvcbKey = errors.New("failed to parse SVCB key")
 var ErrDoHPathNotProvided = errors.New("DoH path not provided")
 var ErrUnknownALPN = errors.New("unknown ALPN in SVCB record")
+var ErrInvalidSVCBRR = errors.New("invalid DNS RR")
 
 // specific certificate errors
 var ErrCertificateInvalid = errors.New("certificate is invalid")

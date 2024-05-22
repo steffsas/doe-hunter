@@ -81,6 +81,7 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 		svcRecord, ok := answer.(*dns.SVCB)
 		if !ok {
 			logrus.Warnf("parsing DDR scan %s: could not cast DDR DNS answer to SVCB, ignore DNS RR", scan.Meta.ScanId)
+			errorColl = append(errorColl, custom_errors.NewQueryError(custom_errors.ErrInvalidSVCBRR, false).AddInfoString("could not cast DNS answer to SVCB"))
 			continue
 		}
 
