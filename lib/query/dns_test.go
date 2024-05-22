@@ -470,6 +470,7 @@ func TestDNSQuery_TCPFallback(t *testing.T) {
 		require.NotNil(t, res.Response, "should have returned the TCP response")
 		require.NotNil(t, res.Response.ResponseMsg, "should have returned a DNS response")
 		require.Equal(t, res.Response.ResponseMsg, responseTCP, "should have returned the TCP response")
+		assert.Equal(t, true, res.WasTruncated, "should have set the truncation bit")
 	})
 
 	t.Run("no fallback on truncation bit if TCP fallback is not wanted", func(t *testing.T) {
