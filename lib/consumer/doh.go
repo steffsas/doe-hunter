@@ -15,10 +15,14 @@ import (
 
 const DEFAULT_DOH_CONSUMER_GROUP = "doh-scan-group"
 
+type DoHQueryHandler interface {
+	Query(query *query.DoHQuery) (response *query.DoHResponse, err custom_errors.DoEErrors)
+}
+
 type DoHProcessEventHandler struct {
 	k.EventProcessHandler
 
-	QueryHandler *query.DoHQueryHandler
+	QueryHandler DoHQueryHandler
 }
 
 func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
@@ -26,7 +30,7 @@ func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	dohScan := &scan.DoHScan{}
 	err := json.Unmarshal(msg.Value, dohScan)
 	if err != nil {
-		logrus.Errorf("error unmarshaling DoH scan %s: %s", dohScan.Meta.ScanId, err.Error())
+		logrus.Errorf("error unmarshaling DoH scan: %s", err.Error())
 		return err
 	}
 

@@ -81,7 +81,7 @@ package consumer_test
 // 		// test
 // 		err := wrapConsume(kc.Consume)
 
-// 		assert.NotNil(t, err, "expected error on nil consumer")
+// 		assert.NoError(t, err, "expected error on nil consumer")
 // 	})
 
 // 	t.Run("nil storage", func(t *testing.T) {
@@ -96,7 +96,7 @@ package consumer_test
 // 		// test
 // 		err := wrapConsume(kc.Consume)
 
-// 		assert.NotNil(t, err, "expected error on nil storage")
+// 		assert.NoError(t, err, "expected error on nil storage")
 // 	})
 
 // 	t.Run("failed open storage", func(t *testing.T) {
@@ -117,7 +117,7 @@ package consumer_test
 // 		// test
 // 		err := wrapConsume(kc.Consume)
 
-// 		assert.NotNil(t, err, "expected error on open storage")
+// 		assert.NoError(t, err, "expected error on open storage")
 // 	})
 
 // 	t.Run("failed store", func(t *testing.T) {
@@ -314,7 +314,7 @@ package consumer_test
 
 // 		kc, err := consumer.NewKafkaDDRParallelEventConsumer(config, nil)
 
-// 		assert.NotNil(t, err, "expected error on nil storage")
+// 		assert.NoError(t, err, "expected error on nil storage")
 // 		assert.Nil(t, kc, "expected no kafka parallel event consumer")
 // 	})
 // }

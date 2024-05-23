@@ -15,10 +15,14 @@ import (
 
 const DEFAULT_DOQ_CONSUMER_GROUP = "doq-scan-group"
 
+type DoQQueryHandler interface {
+	Query(query *query.DoQQuery) (response *query.DoQResponse, err custom_errors.DoEErrors)
+}
+
 type DoQProcessEventHandler struct {
 	k.EventProcessHandler
 
-	QueryHandler *query.DoQQueryHandler
+	QueryHandler DoQQueryHandler
 }
 
 func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) (err error) {
@@ -26,11 +30,10 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	doqScan := &scan.DoQScan{}
 	err = json.Unmarshal(msg.Value, doqScan)
 	if err != nil {
-		logrus.Errorf("error unmarshaling DoQ scan %s: %s", doqScan.Meta.ScanId, err.Error())
+		logrus.Errorf("error unmarshaling DoQ scan: %s", err.Error())
 		return err
 	}
 
-	// process
 	// process
 	var qErr custom_errors.DoEErrors
 	doqScan.Meta.SetStarted()

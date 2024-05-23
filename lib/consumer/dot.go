@@ -15,10 +15,14 @@ import (
 
 const DEFAULT_DOT_CONSUMER_GROUP = "dot-scan-group"
 
+type DoTQueryHandler interface {
+	Query(query *query.DoTQuery) (response *query.DoTResponse, err custom_errors.DoEErrors)
+}
+
 type DoTProcessEventHandler struct {
 	k.EventProcessHandler
 
-	QueryHandler *query.DoTQueryHandler
+	QueryHandler DoTQueryHandler
 }
 
 func (ph *DoTProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
@@ -26,7 +30,7 @@ func (ph *DoTProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	dotScan := &scan.DoTScan{}
 	err := json.Unmarshal(msg.Value, dotScan)
 	if err != nil {
-		logrus.Errorf("error unmarshaling DoT scan %s: %s", dotScan.Meta.ScanId, err.Error())
+		logrus.Errorf("error unmarshaling DoT scan %s", err.Error())
 		return err
 	}
 
