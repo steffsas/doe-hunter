@@ -175,7 +175,7 @@ func TestCertificate_Process(t *testing.T) {
 
 		err := cc.Process(&kafka.Message{Value: certScanBytes}, msh)
 
-		assert.NoError(t, err, "storage errors should be returned")
+		assert.Error(t, err, "storage errors should be returned")
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
 }
@@ -212,7 +212,7 @@ func TestNewKafkaCertificateParallelEventConsumer(t *testing.T) {
 
 		kec, err := consumer.NewKafkaCertificateParallelEventConsumer(nil, nil)
 
-		assert.NoError(t, err, "should return an error on invalid storage handler")
+		assert.Error(t, err, "should return an error on invalid storage handler")
 		assert.Nil(t, kec, "should not return a valid consumer")
 	})
 }

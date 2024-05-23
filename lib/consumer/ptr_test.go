@@ -82,7 +82,7 @@ func TestPTR_Process(t *testing.T) {
 		// test
 		err := pph.Process(&kafka.Message{Value: []byte("invalid")}, &msh)
 
-		assert.NoError(t, err, "should return an error on invalid processing msg")
+		assert.Error(t, err, "should return an error on invalid processing msg")
 		msh.AssertNotCalled(t, "Store", mock.Anything)
 	})
 
@@ -142,7 +142,7 @@ func TestPTR_Process(t *testing.T) {
 		// test
 		err := pph.Process(&kafka.Message{Value: ptrScanBytes}, &msh)
 
-		assert.NoError(t, err, "should return an error on storage error")
+		assert.Error(t, err, "should return an error on storage error")
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
 }
@@ -179,7 +179,7 @@ func TestNewKafkaPTRParallelEventConsumer(t *testing.T) {
 
 		kec, err := consumer.NewKafkaPTRParallelEventConsumer(&k.KafkaParallelConsumerConfig{}, nil)
 
-		assert.NoError(t, err, "should return an error on no storage handler")
+		assert.Error(t, err, "should return an error on no storage handler")
 		assert.Nil(t, kec, "should not return a valid consumer")
 	})
 }
