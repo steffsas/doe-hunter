@@ -13,12 +13,16 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
+type CertificateQueryHandler interface {
+	Query(query *query.CertificateQuery) (response *query.CertificateResponse, err custom_errors.DoEErrors)
+}
+
 const DEFAULT_CERTIFICATE_CONSUMER_GROUP = "certificate-scan-group"
 
 type CertificateProcessEventHandler struct {
 	k.EventProcessHandler
 
-	QueryHandler *query.CertificateQueryHandler
+	QueryHandler CertificateQueryHandler
 }
 
 func (ph *CertificateProcessEventHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
