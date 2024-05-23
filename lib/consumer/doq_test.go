@@ -91,7 +91,7 @@ func TestDoQProcessEventHandler_Process(t *testing.T) {
 		// test
 		err := dph.Process(msg, &msh)
 
-		assert.NoError(t, err, "should return an error on invalid processing msg")
+		assert.Error(t, err, "should return an error on invalid processing msg")
 		msh.AssertNotCalled(t, "Store", mock.Anything)
 	})
 
@@ -161,7 +161,7 @@ func TestDoQProcessEventHandler_Process(t *testing.T) {
 		// test
 		err := dph.Process(msg, &msh)
 
-		assert.NoError(t, err, "should return an error on storage error")
+		assert.Error(t, err, "should return an error on storage error")
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
 }
@@ -199,7 +199,7 @@ func TestNewKafkaDoQParallelConsumer(t *testing.T) {
 		kec, err := consumer.NewKafkaDoQParallelEventConsumer(
 			k.GetDefaultKafkaParallelConsumerConfig("test", "test"), nil)
 
-		assert.NoError(t, err, "should return an error on no storage handler")
+		assert.Error(t, err, "should return an error on no storage handler")
 		assert.Nil(t, kec, "should not return a valid consumer")
 	})
 }
