@@ -9,6 +9,14 @@ import (
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
+// TODO rename interfaces to inofficial naming convention https://www.reddit.com/r/golang/comments/cjrk46/is_there_a_naming_convention_for_interface_struct/
+type ScanProducerI interface {
+	Produce(scan scan.Scan) error
+	Close()
+	Flush(timeout int) int
+	Events() chan kafka.Event
+}
+
 type ScanProducer struct {
 	k.EventProducer
 
