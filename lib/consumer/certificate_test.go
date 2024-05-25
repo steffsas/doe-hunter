@@ -105,7 +105,7 @@ func TestCertificate_Process(t *testing.T) {
 
 		err := cc.Process(&kafka.Message{Value: []byte("some invalid bytes")}, msh)
 
-		assert.NoError(t, err, "should not return an error on valid processing")
+		assert.Error(t, err, "should return an error on invalid processing")
 		msh.AssertNotCalled(t, "Store", mock.Anything)
 	})
 
