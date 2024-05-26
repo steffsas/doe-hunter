@@ -1,193 +1,223 @@
 package kafka_test
 
-// type MockedKafkaEventConsumer struct {
-// 	mock.Mock
-// }
+import (
+	"context"
+	"errors"
+	"testing"
 
-// func (mkec *MockedKafkaEventConsumer) Consume(ctx context.Context, topic string) error {
-// 	args := mkec.Called(ctx, topic)
-// 	return args.Error(0)
-// }
+	"github.com/steffsas/doe-hunter/lib/kafka"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
 
-// func (mkec *MockedKafkaEventConsumer) Close() error {
-// 	args := mkec.Called()
-// 	return args.Error(0)
-// }
+type MockedKafkaEventConsumer struct {
+	mock.Mock
+}
 
-// func TestParallelConsumer_Consume(t *testing.T) {
-// 	t.Parallel()
-// 	t.Run("valid consumer", func(t *testing.T) {
-// 		t.Parallel()
+func (mkec *MockedKafkaEventConsumer) Consume(ctx context.Context) error {
+	args := mkec.Called(ctx)
+	return args.Error(0)
+}
 
-// 		disableLog()
+func (mkec *MockedKafkaEventConsumer) Close() error {
+	args := mkec.Called()
+	return args.Error(0)
+}
 
-// 		mkec := &MockedKafkaEventConsumer{}
-// 		mkec.On("Consume", mock.Anything, mock.Anything).Return(nil)
-// 		mkec.On("Close").Return(nil)
+func TestParallelConsumer_Consume(t *testing.T) {
+	t.Parallel()
+	t.Run("valid consumer", func(t *testing.T) {
+		t.Parallel()
 
-// 		// setup
-// 		mc := &kafka.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 10,
-// 			CreateConsumer: func() (kafka.EventConsumer, error) {
-// 				return mkec, nil
-// 			},
-// 		}
+		mkec := &MockedKafkaEventConsumer{}
+		mkec.On("Consume", mock.Anything).Return(nil)
+		mkec.On("Close").Return(nil)
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 		assert.Nil(t, err, "expected no error on valid configuration and consumer")
-// 	})
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+			CreateConsumer: func() (kafka.EventConsumer, error) {
+				return mkec, nil
+			},
+		}
 
-// 	t.Run("nil consumer and nil error", func(t *testing.T) {
-// 		t.Parallel()
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 		// setup
-// 		mc := &kafka.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 10,
-// 			CreateConsumer: func() (kafka.EventConsumer, error) {
-// 				return nil, nil
-// 			},
-// 		}
+		assert.Nil(t, err, "expected no error on valid configuration and consumer")
+	})
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+	t.Run("nil consumer and nil error", func(t *testing.T) {
+		t.Parallel()
 
-// 		assert.NotNil(t, err, "expected error on nil consumer")
-// 	})
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 	t.Run("error on consumer creation", func(t *testing.T) {
-// 		t.Parallel()
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+			CreateConsumer: func() (kafka.EventConsumer, error) {
+				return nil, nil
+			},
+		}
 
-// 		// setup
-// 		mc := &kafka.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 10,
-// 			CreateConsumer: func() (kafka.EventConsumer, error) {
-// 				return nil, errors.New("error")
-// 			},
-// 		}
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+		assert.NotNil(t, err, "expected error on nil consumer")
+	})
 
-// 		assert.NotNil(t, err, "expected error on nil consumer")
-// 	})
+	t.Run("error on consumer creation", func(t *testing.T) {
+		t.Parallel()
 
-// 	t.Run("negative or zero concurrent consumer", func(t *testing.T) {
-// 		t.Parallel()
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 		// setup
-// 		mc := &consumer.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 0,
-// 			CreateConsumer: func() (consumer.EventConsumer, error) {
-// 				return nil, nil
-// 			},
-// 		}
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+			CreateConsumer: func() (kafka.EventConsumer, error) {
+				return nil, errors.New("error")
+			},
+		}
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 		assert.NotNil(t, err, "expected error on invalid concurrent consumer number")
-// 	})
+		assert.NotNil(t, err, "expected error on nil consumer")
+	})
 
-// 	t.Run("no consumer creation method given", func(t *testing.T) {
-// 		t.Parallel()
+	t.Run("negative or zero concurrent consumer", func(t *testing.T) {
+		t.Parallel()
 
-// 		// setup
-// 		mc := &consumer.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 10,
-// 		}
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 0,
+		}
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+			CreateConsumer: func() (kafka.EventConsumer, error) {
+				return nil, nil
+			},
+		}
 
-// 		assert.NotNil(t, err, "expected error on nil consumer creation method")
-// 	})
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 	t.Run("error on consume", func(t *testing.T) {
-// 		t.Parallel()
+		assert.NotNil(t, err, "expected error on invalid concurrent consumer number")
+	})
 
-// 		disableLog()
+	t.Run("no consumer creation method given", func(t *testing.T) {
+		t.Parallel()
 
-// 		mkec := &MockedKafkaEventConsumer{}
-// 		mkec.On("Consume", mock.Anything, mock.Anything).Return(errors.New("error"))
-// 		mkec.On("Close").Return(nil)
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 		// setup
-// 		mc := &consumer.KafkaParallelConsumer{
-// 			ConcurrentConsumer: 10,
-// 			CreateConsumer: func() (consumer.EventConsumer, error) {
-// 				return mkec, nil
-// 			},
-// 		}
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+		}
 
-// 		// test
-// 		err := wrapConsume(mc.Consume)
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 		assert.NotNil(t, err, "expected error on consume")
-// 	})
-// }
+		assert.NotNil(t, err, "expected error on nil consumer creation method")
+	})
 
-// func TestKafkaParallelConsumer_New(t *testing.T) {
-// 	t.Parallel()
-// 	t.Run("valid config", func(t *testing.T) {
-// 		t.Parallel()
+	t.Run("error on consume", func(t *testing.T) {
+		t.Parallel()
 
-// 		// setup
-// 		config := &consumer.KafkaParallelEventConsumerConfig{
-// 			ConcurrentConsumer: 10,
-// 		}
+		mkec := &MockedKafkaEventConsumer{}
+		mkec.On("Consume", mock.Anything, mock.Anything).Return(errors.New("error"))
+		mkec.On("Close").Return(nil)
 
-// 		// test
-// 		mc, err := consumer.NewKafkaParallelEventConsumer(func() (consumer.EventConsumer, error) {
-// 			return nil, nil
-// 		}, config)
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 		assert.Nil(t, err, "expected no error on valid configuration")
-// 		assert.NotNil(t, mc, "expected consumer")
-// 	})
+		// setup
+		mc := &kafka.KafkaParallelConsumer{
+			Config: config,
+			CreateConsumer: func() (kafka.EventConsumer, error) {
+				return mkec, nil
+			},
+		}
 
-// 	t.Run("nil config", func(t *testing.T) {
-// 		t.Parallel()
+		// test
+		err := wrapConsume(mc.Consume)
 
-// 		// test
-// 		mc, err := consumer.NewKafkaParallelEventConsumer(func() (consumer.EventConsumer, error) {
-// 			return nil, nil
-// 		}, nil)
+		assert.NotNil(t, err, "expected error on consume")
+	})
+}
 
-// 		assert.NotNil(t, err, "expected error on nil configuration")
-// 		assert.Nil(t, mc, "expected no consumer")
-// 	})
+func TestKafkaParallelConsumer_New(t *testing.T) {
+	t.Parallel()
+	t.Run("valid config", func(t *testing.T) {
+		t.Parallel()
 
-// 	t.Run("invalid concurrent consumer number", func(t *testing.T) {
-// 		t.Parallel()
+		// setup
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
 
-// 		// setup
-// 		config := &consumer.KafkaParallelEventConsumerConfig{
-// 			ConcurrentConsumer: 0,
-// 		}
+		// test
+		mc, err := kafka.NewKafkaParallelEventConsumer(func() (kafka.EventConsumer, error) {
+			return nil, nil
+		}, config)
 
-// 		// test
-// 		mc, err := consumer.NewKafkaParallelEventConsumer(func() (consumer.EventConsumer, error) {
-// 			return nil, nil
-// 		}, config)
+		assert.Nil(t, err, "expected no error on valid configuration")
+		assert.NotNil(t, mc, "expected consumer")
+	})
 
-// 		assert.NotNil(t, err, "expected error on invalid concurrent consumer number")
-// 		assert.Nil(t, mc, "expected no consumer")
-// 	})
+	t.Run("nil config", func(t *testing.T) {
+		t.Parallel()
 
-// 	t.Run("nil create consumer function", func(t *testing.T) {
-// 		t.Parallel()
+		// test
+		mc, err := kafka.NewKafkaParallelEventConsumer(func() (kafka.EventConsumer, error) {
+			return nil, nil
+		}, nil)
 
-// 		// setup
-// 		config := &consumer.KafkaParallelEventConsumerConfig{
-// 			ConcurrentConsumer: 10,
-// 		}
+		assert.NotNil(t, err, "expected error on nil configuration")
+		assert.Nil(t, mc, "expected no consumer")
+	})
 
-// 		// test
-// 		mc, err := consumer.NewKafkaParallelEventConsumer(nil, config)
+	t.Run("invalid concurrent consumer number", func(t *testing.T) {
+		t.Parallel()
 
-// 		assert.NotNil(t, err, "expected error on nil create consumer function")
-// 		assert.Nil(t, mc, "expected no consumer")
-// 	})
-// }
+		// setup
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 0,
+		}
+
+		// test
+		mc, err := kafka.NewKafkaParallelEventConsumer(func() (kafka.EventConsumer, error) {
+			return nil, nil
+		}, config)
+
+		assert.NotNil(t, err, "expected error on invalid concurrent consumer number")
+		assert.Nil(t, mc, "expected no consumer")
+	})
+
+	t.Run("nil create consumer function", func(t *testing.T) {
+		t.Parallel()
+
+		// setup
+		config := &kafka.KafkaParallelEventConsumerConfig{
+			ConcurrentConsumer: 10,
+		}
+
+		// test
+		mc, err := kafka.NewKafkaParallelEventConsumer(nil, config)
+
+		assert.NotNil(t, err, "expected error on nil create consumer function")
+		assert.Nil(t, mc, "expected no consumer")
+	})
+}
