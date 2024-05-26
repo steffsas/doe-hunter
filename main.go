@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -18,27 +20,9 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-// the type of the scanner (e.g. consumer, producer)
-const ENV_RUN_TYPE = "DOE_RUN_TYPE"
-
-// the protocol to be considered (e.g. ddr, doh, doq, dot)
-const ENV_PROTOCOL_TYPE = "DOE_PROTOCOL_TYPE"
-
-// if set, the consumer will use this kafka server, otherwise localhost:9092 is used
-const ENV_KAFKA_SERVER = "DOE_KAFKA_SERVER"
-
-// if set, the consumer will use this consumer group (defaults to the consumer/producer's default settings otherwise)
-const ENV_KAFKA_CONSUMER_GROUP = "DOE_KAFKA_CONSUMER_GROUP"
-
-// if set to a value >= 1, multiple consumers will be started (optional, defaults to 1)
-const ENV_PARALLEL_CONSUMER = "DOE_PARALLEL_CONSUMER"
-
-const DEFAULT_KAFKA_SERVER = "localhost:29092"
-const DEFAULT_PARALLEL_CONSUMER = 1 // no parallelism
-
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "all",
 }
 
 // nolint: gochecknoglobals
@@ -46,31 +30,63 @@ var SUPPORTED_RUN_TYPES = []string{
 	"consumer", "producer",
 }
 
-// var (
-// 	scanType         = flag.String("scanType", "consumer", "consumer or producer")
-// 	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr)")
-// 	parallelConsumer = flag.Int("parallelConsumer", 1, "number of parallel consumers")
-// )
-
-const DDR_CONSUMER = 100
+// nolint: gochecknoglobals
+var (
+	exec             = flag.String("exec", "consumer", "consumer or producer")
+	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr, all)")
+	threads          = flag.Int("threads", consumer.DEFAULT_CONCURRENT_THREADS, "number of threads used for consuming scan tasks")
+	kakfaServer      = flag.String("kafkaServer", kafka.DEFAULT_KAFKA_SERVER, "kafka server address")
+	mongoServer      = flag.String("mongoServer", storage.DEFAULT_MONGO_URL, "mongo server address")
+	vantagePoint     = flag.String("vantagePoint", "default", "vantage point name, used for meta data of scan and kafka topics")
+	debugLevel       = flag.String("debugLevel", "info", "debug level (trace, debug, info, warn, error, fatal, panic)")
+	producerFilePath = flag.String("producerFilePath", "data/censys_100k.json", "file path to the producer file to produce ddr scans")
+)
 
 func main() {
-	logrus.SetLevel(logrus.InfoLevel)
 	ctx := context.Background()
 
-	// flag.Parse()
+	flag.Parse()
 
 	setLogger()
 
-	if os.Args[1] == "consumer" {
-		startAllConsumer(ctx)
-		// startConsumer(ctx, "ddr")
+	if *exec == "consumer" {
+		switch *protocol {
+		case "all":
+			startAllConsumer(ctx)
+		default:
+			startConsumer(ctx, *protocol)
+		}
 	} else {
-		_ = produceDDRScansFromCensys("data/censys_100k.json", true)
+		if *protocol == "ddr" {
+			if err := produceDDRScansFromCensys(*producerFilePath, true); err != nil {
+				logrus.Fatalf("failed to produce DDR scans: %v", err)
+			}
+		} else {
+			logrus.Fatalf("unsupported protocol type %s", *protocol)
+		}
 	}
 }
 
 func setLogger() {
+	switch *debugLevel {
+	case "trace":
+		logrus.SetLevel(logrus.TraceLevel)
+	case "debug":
+		logrus.SetLevel(logrus.DebugLevel)
+	case "info":
+		logrus.SetLevel(logrus.InfoLevel)
+	case "warn":
+		logrus.SetLevel(logrus.WarnLevel)
+	case "error":
+		logrus.SetLevel(logrus.ErrorLevel)
+	case "fatal":
+		logrus.SetLevel(logrus.FatalLevel)
+	case "panic":
+		logrus.SetLevel(logrus.PanicLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+
 	customFormatter := new(logrus.TextFormatter)
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 	customFormatter.FullTimestamp = true
@@ -123,12 +139,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 
 	// marshall the json data
 	censysData := []CensysData{}
-	counter := 0
 	for _, line := range contentSplit {
-		counter++
-		if counter >= 1000 {
-			break
-		}
 		c := &CensysData{}
 		if err := json.Unmarshal([]byte(line), c); err != nil {
 			logrus.Errorf("failed to unmarshal json: %v, %s", err, line)
@@ -141,8 +152,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 
 	// create a new producer
 	config := producer.GetDefaultKafkaProducerConfig()
-	config.MaxPartitions = DDR_CONSUMER
-	p, err := producer.NewScanProducer(kafka.DEFAULT_DDR_TOPIC, config)
+	p, err := producer.NewScanProducer(consumer.GetKafkaVPTopic(kafka.DEFAULT_DDR_TOPIC, *vantagePoint), config)
 
 	if err != nil {
 		logrus.Errorf("failed to create DDR producer: %v", err)
@@ -168,7 +178,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				q.Port = 53
 
 				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans)
+				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint)
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
@@ -190,7 +200,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				q.Port = 53
 
 				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans)
+				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint)
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
@@ -239,49 +249,6 @@ func scheduleScan(scan *scan.DDRScan, p *producer.ScanProducer, wg *sync.WaitGro
 	}
 }
 
-// func produceDRScansFromTXTFile(filePath string) {
-// 	resolvers := []struct {
-// 		Host string
-// 		Port int
-// 	}{}
-
-// 	// Open the file
-// 	file, err := os.Open(filePath)
-// 	if err != nil {
-// 		logrus.Errorf("failed to open file: %v", err)
-// 		return
-// 	}
-
-// 	// Create a new scanner
-// 	scanner := bufio.NewScanner(file)
-
-// 	// Loop through lines
-// 	for scanner.Scan() {
-// 		line := scanner.Text()
-// 		resolvers = append(resolvers, struct {
-// 			Host string
-// 			Port int
-// 		}{
-// 			Host: line,
-// 			Port: 53,
-// 		})
-// 		// Process the line here (e.g., store in a variable, perform further operations)
-// 	}
-
-// 	if err := scanner.Err(); err != nil {
-// 		logrus.Errorf("error during file reading: %s", err.Error())
-// 	}
-
-// 	file.Close()
-
-// 	logrus.Infof("got %d resolvers", len(resolvers))
-
-// 	err = ProduceDDRScans(resolvers, true)
-// 	if err != nil {
-// 		logrus.Errorf("failed to produce DDR scan: %v", err)
-// 	}
-// }
-
 func startAllConsumer(ctx context.Context) {
 	wg := sync.WaitGroup{}
 
@@ -297,13 +264,24 @@ func startAllConsumer(ctx context.Context) {
 }
 
 func startConsumer(ctx context.Context, protocol string) {
+	if vantagePoint == nil || *vantagePoint == "" {
+		logrus.Fatalf("vantage point name is missing")
+		return
+	}
+
+	consumerConfig := &consumer.KafkaConsumerConfig{
+		Server:  *kakfaServer,
+		Threads: *threads,
+	}
+
 	switch protocol {
 	case "ddr":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
-		config := consumer.GetDefaultKafkaConsumerConfig(consumer.DEFAULT_DDR_CONSUMER_GROUP, kafka.DEFAULT_DDR_TOPIC)
-		config.Threads = DDR_CONSUMER
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDDREventConsumer(config, sh)
+		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -312,9 +290,12 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "doh":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoHEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -323,8 +304,10 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "doq":
-		// start the DOQ scanner
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh)
 		if err != nil {
@@ -335,8 +318,10 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "dot":
-		// start the DOT scanner
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh)
 		if err != nil {
@@ -347,8 +332,10 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "ptr":
-		// start the PTR scanner
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh)
 		if err != nil {
@@ -359,8 +346,10 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "certificate":
-		// start the PTR scanner
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, *mongoServer)
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh)
 		if err != nil {
@@ -370,56 +359,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
+	default:
+		logrus.Fatalf("unsupported protocol type %s", protocol)
 	}
-}
-
-func ProduceDDRScans(resolvers []struct {
-	Host string
-	Port int
-}, scheduleDoEScans bool) error {
-	// create a new producer
-	// create a new producer
-	p, err := producer.NewScanProducer(kafka.DEFAULT_DDR_TOPIC, nil)
-
-	if err != nil {
-		logrus.Errorf("failed to create DDR producer: %v", err)
-		return err
-	}
-
-	wg := sync.WaitGroup{}
-
-	for _, res := range resolvers {
-		// create DDR query
-		q := query.NewDDRQuery()
-		q.Host = res.Host
-		q.AutoFallbackTCP = true
-		q.Protocol = query.DNS_UDP
-		q.Port = res.Port
-
-		// create a new DDR scan
-		scan := scan.NewDDRScan(q, scheduleDoEScans)
-
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-			// produce the scan
-			if err := p.Produce(scan); err != nil {
-				logrus.Errorf("failed to produce DDR scan: %v", err)
-			} else {
-				logrus.Infof("produced DDR scan %s to scan resolver %s:%d", scan.GetScanId(), res.Host, res.Port)
-			}
-		}()
-	}
-
-	wg.Wait()
-
-	// Flush and close the producer and the events channel
-	for p.Flush(10000) > 0 {
-		logrus.Info("still waiting for events to be flushed")
-	}
-
-	p.Close()
-
-	return nil
 }

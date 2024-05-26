@@ -11,7 +11,7 @@ import (
 
 const ENV_MONGO_URI = "MONGO_USERNAME"
 
-const DEFAULT_MONGO_URI = "mongodb://root:example@localhost:27017/"
+const DEFAULT_MONGO_URL = "mongodb://root:example@localhost:27017/"
 
 const DEFAULT_DATABASE = "doe"
 
@@ -43,14 +43,15 @@ type MongoStorageHandler struct {
 	Connect MongoConnect
 	Client  MongoClient
 
-	DatabaseName   string
-	CollectionName string
+	ConnectionString string
+	DatabaseName     string
+	CollectionName   string
 }
 
 func (msh *MongoStorageHandler) Open() (err error) {
 	msh.Client, err = msh.Connect(
 		context.Background(),
-		options.Client().ApplyURI(DEFAULT_MONGO_URI),
+		options.Client().ApplyURI(msh.ConnectionString),
 	)
 
 	if msh.Client == nil {
@@ -61,6 +62,7 @@ func (msh *MongoStorageHandler) Open() (err error) {
 		logrus.Errorf("failed to connect to mongo: %v", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -96,7 +98,7 @@ func (msh *MongoStorageHandler) Close() (err error) {
 	return nil
 }
 
-func NewDefaultMongoStorageHandler(ctx context.Context, collectionName string) *MongoStorageHandler {
+func NewDefaultMongoStorageHandler(ctx context.Context, collectionName string, databaseURL string) *MongoStorageHandler {
 	ch := &MongoStorageHandler{
 		Connect: func(ctx context.Context, opts ...*options.ClientOptions) (MongoClient, error) {
 			client, err := mongo.Connect(ctx, opts...)
@@ -105,8 +107,9 @@ func NewDefaultMongoStorageHandler(ctx context.Context, collectionName string) *
 			}
 			return &MongoClientWrapper{Client: client}, nil
 		},
-		DatabaseName:   DEFAULT_DATABASE,
-		CollectionName: collectionName,
+		ConnectionString: databaseURL,
+		DatabaseName:     DEFAULT_DATABASE,
+		CollectionName:   collectionName,
 	}
 
 	return ch
