@@ -2,12 +2,10 @@ package consumer
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
@@ -20,7 +18,7 @@ type CertificateQueryHandler interface {
 const DEFAULT_CERTIFICATE_CONSUMER_GROUP = "certificate-scan-group"
 
 type CertificateProcessEventHandler struct {
-	k.EventProcessHandler
+	EventProcessHandler
 
 	QueryHandler CertificateQueryHandler
 }
@@ -52,7 +50,7 @@ func (ph *CertificateProcessEventHandler) Process(msg *kafka.Message, storage st
 	return err
 }
 
-func NewKafkaCertificateEventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
+func NewKafkaCertificateEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_CERTIFICATE_CONSUMER_GROUP
 	}
@@ -61,31 +59,7 @@ func NewKafkaCertificateEventConsumer(config *k.KafkaConsumerConfig, storageHand
 		QueryHandler: query.NewCertificateQueryHandler(),
 	}
 
-	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
-
-	return
-}
-
-func NewKafkaCertificateParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
-	if config == nil {
-		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_CERTIFICATE_CONSUMER_GROUP, k.DEFAULT_CERTIFICATE_TOPIC)
-	}
-
-	if storageHandler == nil {
-		return nil, errors.New("no storage handler provided")
-	}
-
-	createConsumerFunc := func() (k.EventConsumer, error) {
-		return NewKafkaCertificateEventConsumer(
-			config.KafkaConsumerConfig,
-			storageHandler,
-		)
-	}
-	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
-
-	if err != nil {
-		logrus.Errorf("failed to create parallel consumer: %v", err)
-	}
+	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
 
 	return
 }

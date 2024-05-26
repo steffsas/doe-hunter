@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 )
 
 const DEFAULT_KAFKA_SERVER = "localhost:29092"
@@ -14,6 +13,11 @@ const DEFAULT_ACKS = "1"
 const DEFAULT_KAFKA_WRITE_TIMEOUT = 10000 * time.Millisecond
 const DEFAULT_FLUSH_TIMEOUT_MS = 5000
 const DEFAULT_MAX_PARTITIONS int32 = 100
+
+type EventProducer interface {
+	Produce(msg []byte) (err error)
+	Close()
+}
 
 type KafkaProducerConfig struct {
 	Server  string
@@ -25,7 +29,7 @@ type KafkaProducerConfig struct {
 }
 
 type KafkaEventProducerI interface {
-	k.EventProducer
+	EventProducer
 
 	Events() chan kafka.Event
 	Flush(timeout int) int

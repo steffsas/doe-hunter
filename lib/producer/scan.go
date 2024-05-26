@@ -5,7 +5,6 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
@@ -18,7 +17,7 @@ type ScanProducerI interface {
 }
 
 type ScanProducer struct {
-	k.EventProducer
+	EventProducer
 
 	Producer KafkaEventProducerI
 	Config   *KafkaProducerConfig

@@ -8,7 +8,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
@@ -177,42 +176,5 @@ func TestCertificate_Process(t *testing.T) {
 
 		assert.Error(t, err, "storage errors should be returned")
 		msh.AssertCalled(t, "Store", mock.Anything)
-	})
-}
-
-func TestNewKafkaCertificateParallelEventConsumer(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid consumer", func(t *testing.T) {
-		t.Parallel()
-
-		msh := &mockedStorageHandler{}
-
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-
-		kec, err := consumer.NewKafkaCertificateParallelEventConsumer(config, msh)
-
-		assert.Nil(t, err, "should not return an error on valid consumer creation")
-		assert.NotNil(t, kec, "should return a valid consumer")
-	})
-
-	t.Run("default config", func(t *testing.T) {
-		t.Parallel()
-
-		msh := &mockedStorageHandler{}
-
-		kec, err := consumer.NewKafkaCertificateParallelEventConsumer(nil, msh)
-
-		assert.Nil(t, err, "should not return an error on valid consumer creation")
-		assert.NotNil(t, kec, "should return a valid consumer")
-	})
-
-	t.Run("no storage handler", func(t *testing.T) {
-		t.Parallel()
-
-		kec, err := consumer.NewKafkaCertificateParallelEventConsumer(nil, nil)
-
-		assert.Error(t, err, "should return an error on invalid storage handler")
-		assert.Nil(t, kec, "should not return a valid consumer")
 	})
 }

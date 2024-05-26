@@ -195,42 +195,6 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 }
 
-func TestNewKAfkaDDRParallelEventConsumer(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid consumer", func(t *testing.T) {
-		t.Parallel()
-
-		msh := &mockedStorageHandler{}
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-
-		kec, err := consumer.NewKafkaDDRParallelEventConsumer(config, msh)
-
-		assert.NoError(t, err, "should not return an error")
-		assert.NotNil(t, kec, "should return a valid consumer")
-	})
-
-	t.Run("default config", func(t *testing.T) {
-		t.Parallel()
-
-		msh := &mockedStorageHandler{}
-		kec, err := consumer.NewKafkaDDRParallelEventConsumer(nil, msh)
-
-		assert.NoError(t, err, "should not return an error")
-		assert.NotNil(t, kec, "should return a valid consumer")
-	})
-
-	t.Run("not storage handler", func(t *testing.T) {
-		t.Parallel()
-
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-		kec, err := consumer.NewKafkaDDRParallelEventConsumer(config, nil)
-
-		assert.Error(t, err, "should return an error")
-		assert.Nil(t, kec, "should not return a valid consumer")
-	})
-}
-
 type MockedProducerFactory struct {
 	mock.Mock
 }
