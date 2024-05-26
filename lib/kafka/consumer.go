@@ -156,12 +156,16 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 		return nil, errors.New("server not set")
 	}
 
-	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+	var consumer *kafka.Consumer
+	consumer, err = kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":  config.Server,
 		"group.id":           config.ConsumerGroup,
 		"auto.offset.reset":  "earliest",
 		"enable.auto.commit": "true",
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	kec = &KafkaEventConsumer{
 		Config:         config,

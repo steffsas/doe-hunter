@@ -23,6 +23,7 @@ func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoE
 }
 
 func setCertificateValidationToResponse(queryErr error, res *DoEResponse, skipCertificateVerification bool) {
+	//nolint:gocritic
 	if queryErr != nil {
 		if helper.IsCertificateError(queryErr) {
 			res.CertificateValid = false

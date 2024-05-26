@@ -60,7 +60,7 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 
 	return res, validateCertificateError(
 		queryErr,
-		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true),
+		custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true),
 		&res.DoEResponse,
 		query.SkipCertificateVerify,
 	)

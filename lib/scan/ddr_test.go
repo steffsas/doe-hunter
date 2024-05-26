@@ -12,6 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const VALID_QUERY_PATH = "/query{?dns}"
+const SAMPLE_TARGET = "example.com"
+
 func TestDDRScan_Constructor(t *testing.T) {
 	t.Parallel()
 	t.Run("nil query", func(t *testing.T) {
@@ -61,6 +64,8 @@ func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil result", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
@@ -73,6 +78,8 @@ func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {
 	})
 
 	t.Run("nil response", func(t *testing.T) {
+		t.Parallel()
+
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
@@ -111,15 +118,13 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
-
 		s.Result = &query.ConventionalDNSResponse{}
 		s.Result.Response = &query.DNSResponse{
 			ResponseMsg: &dns.Msg{
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -149,7 +154,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
 
-				assert.Equal(t, target, certScan.Query.Host, "should have returned target")
+				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned SAMPLE_TARGET")
 				assert.Equal(t, query.DEFAULT_TLS_PORT, certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 			} else {
@@ -157,7 +162,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned SAMPLE_TARGET")
 				assert.Equal(t, query.DEFAULT_DOH_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, query.DEFAULT_DOH_PORT, dohScan.Query.Port, "should have returned default port")
 			}
@@ -170,7 +175,6 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
 
 		s.Result = &query.ConventionalDNSResponse{}
@@ -179,7 +183,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -213,7 +217,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
 
-				assert.Equal(t, target, certScan.Query.Host, "should have returned target")
+				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 				assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 			} else {
@@ -221,7 +225,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
 				assert.Equal(t, query.DEFAULT_DOH_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 			}
@@ -234,9 +238,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
-		dohQueryPath := "/query{?dns}"
 
 		s.Result = &query.ConventionalDNSResponse{}
 		s.Result.Response = &query.DNSResponse{
@@ -244,7 +246,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -253,7 +255,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 								Port: port,
 							},
 							&dns.SVCBDoHPath{
-								Template: dohQueryPath,
+								Template: VALID_QUERY_PATH,
 							},
 						},
 					},
@@ -288,8 +290,8 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
-				assert.Equal(t, dohQueryPath, dohScan.Query.URI, "should have returned default template URI")
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 			}
 		}
@@ -301,9 +303,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
-		dohQueryPath := "/query{?dns}"
 
 		ipv4HintHost := "8.8.8.8"
 		ipv4hint := net.ParseIP(ipv4HintHost)
@@ -314,7 +314,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -323,7 +323,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 								Port: port,
 							},
 							&dns.SVCBDoHPath{
-								Template: dohQueryPath,
+								Template: VALID_QUERY_PATH,
 							},
 							&dns.SVCBIPv4Hint{
 								Hint: []net.IP{ipv4hint},
@@ -363,7 +363,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				if certScan.Query.Host == ipv4HintHost {
 					assert.NotEmpty(t, certScan.Query.SNI, "should not have returned empty SNI")
 					certIPConsidered = true
-				} else if certScan.Query.Host == target {
+				} else if certScan.Query.Host == SAMPLE_TARGET {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
@@ -372,11 +372,11 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, dohQueryPath, dohScan.Query.URI, "should have returned default template URI")
+				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 				if dohScan.Query.Host == ipv4HintHost {
 					doeIpConsidered = true
-				} else if dohScan.Query.Host == target {
+				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
 			}
@@ -394,9 +394,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
-		dohQueryPath := "/query{?dns}"
 
 		ipv4hint1 := net.ParseIP("8.8.8.8")
 		ipv4hint2 := net.ParseIP("8.8.8.9")
@@ -408,7 +406,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -417,7 +415,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 								Port: port,
 							},
 							&dns.SVCBDoHPath{
-								Template: dohQueryPath,
+								Template: VALID_QUERY_PATH,
 							},
 							&dns.SVCBIPv4Hint{
 								Hint: []net.IP{ipv4hint1, ipv4hint2},
@@ -456,7 +454,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				if slices.Contains(ipHints, certScan.Query.Host) {
 					assert.NotEmpty(t, certScan.Query.SNI, "should not have returned empty SNI")
 					certIPConsidered = true
-				} else if certScan.Query.Host == target {
+				} else if certScan.Query.Host == SAMPLE_TARGET {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
@@ -466,12 +464,12 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, dohQueryPath, dohScan.Query.URI, "should have returned default template URI")
+				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 
 				if slices.Contains(ipHints, dohScan.Query.Host) {
 					doeIpConsidered = true
-				} else if dohScan.Query.Host == target {
+				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
 			}
@@ -489,9 +487,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
-		dohQueryPath := "/query{?dns}"
 
 		ipv6hint := net.ParseIP("2001:0db8:85a3:0001:0000:8a2e:0370:7334")
 
@@ -501,7 +497,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -510,7 +506,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 								Port: port,
 							},
 							&dns.SVCBDoHPath{
-								Template: dohQueryPath,
+								Template: VALID_QUERY_PATH,
 							},
 							&dns.SVCBIPv6Hint{
 								Hint: []net.IP{ipv6hint},
@@ -549,7 +545,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				if certScan.Query.Host == ipv6hint.String() {
 					assert.NotEmpty(t, certScan.Query.SNI, "should not have returned empty SNI")
 					certIPConsidered = true
-				} else if certScan.Query.Host == target {
+				} else if certScan.Query.Host == SAMPLE_TARGET {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
@@ -559,12 +555,12 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, dohQueryPath, dohScan.Query.URI, "should have returned default template URI")
+				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 
 				if dohScan.Query.Host == ipv6hint.String() {
 					doeIpConsidered = true
-				} else if dohScan.Query.Host == target {
+				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
 			}
@@ -582,9 +578,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
 		port := uint16(4443)
-		dohQueryPath := "/query{?dns}"
 
 		ipv6hint1 := net.ParseIP("2001:0db8:85a3:0001:0000:8a2e:0370:7334")
 		ipv6hint2 := net.ParseIP("2001:0db8:85a3:0001:0000:8a2e:0370:7335")
@@ -596,7 +590,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"h1", "h2", "h3"},
@@ -605,7 +599,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 								Port: port,
 							},
 							&dns.SVCBDoHPath{
-								Template: dohQueryPath,
+								Template: VALID_QUERY_PATH,
 							},
 							&dns.SVCBIPv6Hint{
 								Hint: []net.IP{ipv6hint1, ipv6hint2},
@@ -644,7 +638,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				if slices.Contains(ipHints, certScan.Query.Host) {
 					assert.NotEmpty(t, certScan.Query.SNI, "should not have returned empty SNI")
 					certIPConsidered = true
-				} else if certScan.Query.Host == target {
+				} else if certScan.Query.Host == SAMPLE_TARGET {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
@@ -654,12 +648,12 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, dohQueryPath, dohScan.Query.URI, "should have returned default template URI")
+				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 
 				if slices.Contains(ipHints, dohScan.Query.Host) {
 					doeIpConsidered = true
-				} else if dohScan.Query.Host == target {
+				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
 			}
@@ -676,128 +670,120 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 	t.Parallel()
 
 	t.Run("test valid DoT without port", func(t *testing.T) {
-		t.Run("test valid DoT without dohparam and port", func(t *testing.T) {
-			t.Parallel()
+		t.Parallel()
 
-			q := query.NewDDRQuery()
-			s := scan.NewDDRScan(q, false)
+		q := query.NewDDRQuery()
+		s := scan.NewDDRScan(q, false)
 
-			target := "example.com"
-
-			s.Result = &query.ConventionalDNSResponse{}
-			s.Result.Response = &query.DNSResponse{
-				ResponseMsg: &dns.Msg{
-					Answer: []dns.RR{
-						&dns.SVCB{
-							Priority: 1,
-							Target:   target,
-							Value: []dns.SVCBKeyValue{
-								&dns.SVCBAlpn{
-									Alpn: []string{"dot"},
-								},
+		s.Result = &query.ConventionalDNSResponse{}
+		s.Result.Response = &query.DNSResponse{
+			ResponseMsg: &dns.Msg{
+				Answer: []dns.RR{
+					&dns.SVCB{
+						Priority: 1,
+						Target:   SAMPLE_TARGET,
+						Value: []dns.SVCBKeyValue{
+							&dns.SVCBAlpn{
+								Alpn: []string{"dot"},
 							},
 						},
 					},
 				},
+			},
+		}
+
+		scans, errors := s.CreateScansFromResponse()
+
+		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
+		require.NotNil(t, errors, "should have returned errors")
+		assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
+
+		for _, err := range errors {
+			assert.NotNil(t, err, "should have returned an error")
+			assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
+		}
+
+		for _, ss := range scans {
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+
+			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+				// cast to certificate scan
+				certScan, ok := ss.(*scan.CertificateScan)
+				require.True(t, ok, "should have returned a certificate scan")
+
+				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
+				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
+			} else {
+				// cast to DoT scan
+				dohScan, ok := ss.(*scan.DoTScan)
+				require.True(t, ok, "should have returned a DoH scan")
+
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOT_PORT, dohScan.Query.Port, "should have returned default port")
 			}
-
-			scans, errors := s.CreateScansFromResponse()
-
-			require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
-			require.NotNil(t, errors, "should have returned errors")
-			assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
-
-			for _, err := range errors {
-				assert.NotNil(t, err, "should have returned an error")
-				assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
-			}
-
-			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
-
-				if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
-					// cast to certificate scan
-					certScan, ok := ss.(*scan.CertificateScan)
-					require.True(t, ok, "should have returned a certificate scan")
-
-					assert.Equal(t, target, certScan.Query.Host, "should have returned target")
-					assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
-					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-				} else {
-					// cast to DoT scan
-					dohScan, ok := ss.(*scan.DoTScan)
-					require.True(t, ok, "should have returned a DoH scan")
-
-					assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
-					assert.Equal(t, query.DEFAULT_DOT_PORT, dohScan.Query.Port, "should have returned default port")
-				}
-			}
-		})
+		}
 	})
 
 	t.Run("test valid DoT with port", func(t *testing.T) {
-		t.Run("test valid DoT without dohparam and port", func(t *testing.T) {
-			t.Parallel()
+		t.Parallel()
 
-			q := query.NewDDRQuery()
-			s := scan.NewDDRScan(q, false)
+		q := query.NewDDRQuery()
+		s := scan.NewDDRScan(q, false)
 
-			target := "example.com"
+		port := uint16(4443)
 
-			port := uint16(4443)
-
-			s.Result = &query.ConventionalDNSResponse{}
-			s.Result.Response = &query.DNSResponse{
-				ResponseMsg: &dns.Msg{
-					Answer: []dns.RR{
-						&dns.SVCB{
-							Priority: 1,
-							Target:   target,
-							Value: []dns.SVCBKeyValue{
-								&dns.SVCBAlpn{
-									Alpn: []string{"dot"},
-								},
-								&dns.SVCBPort{
-									Port: port,
-								},
+		s.Result = &query.ConventionalDNSResponse{}
+		s.Result.Response = &query.DNSResponse{
+			ResponseMsg: &dns.Msg{
+				Answer: []dns.RR{
+					&dns.SVCB{
+						Priority: 1,
+						Target:   SAMPLE_TARGET,
+						Value: []dns.SVCBKeyValue{
+							&dns.SVCBAlpn{
+								Alpn: []string{"dot"},
+							},
+							&dns.SVCBPort{
+								Port: port,
 							},
 						},
 					},
 				},
+			},
+		}
+
+		scans, errors := s.CreateScansFromResponse()
+
+		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
+		require.NotNil(t, errors, "should have returned errors")
+		assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
+
+		for _, err := range errors {
+			assert.NotNil(t, err, "should have returned an error")
+			assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
+		}
+
+		for _, ss := range scans {
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+
+			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+				// cast to certificate scan
+				certScan, ok := ss.(*scan.CertificateScan)
+				require.True(t, ok, "should have returned a certificate scan")
+
+				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
+				assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
+				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
+			} else {
+				// cast to DoT scan
+				dohScan, ok := ss.(*scan.DoTScan)
+				require.True(t, ok, "should have returned a DoH scan")
+
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 			}
-
-			scans, errors := s.CreateScansFromResponse()
-
-			require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
-			require.NotNil(t, errors, "should have returned errors")
-			assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
-
-			for _, err := range errors {
-				assert.NotNil(t, err, "should have returned an error")
-				assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
-			}
-
-			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
-
-				if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
-					// cast to certificate scan
-					certScan, ok := ss.(*scan.CertificateScan)
-					require.True(t, ok, "should have returned a certificate scan")
-
-					assert.Equal(t, target, certScan.Query.Host, "should have returned target")
-					assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
-					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-				} else {
-					// cast to DoT scan
-					dohScan, ok := ss.(*scan.DoTScan)
-					require.True(t, ok, "should have returned a DoH scan")
-
-					assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
-					assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
-				}
-			}
-		})
+		}
 	})
 }
 
@@ -805,63 +791,59 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 	t.Parallel()
 
 	t.Run("test valid DoQ without port", func(t *testing.T) {
-		t.Run("test valid DoQ without dohparam and port", func(t *testing.T) {
-			t.Parallel()
+		t.Parallel()
 
-			q := query.NewDDRQuery()
-			s := scan.NewDDRScan(q, false)
+		q := query.NewDDRQuery()
+		s := scan.NewDDRScan(q, false)
 
-			target := "example.com"
-
-			s.Result = &query.ConventionalDNSResponse{}
-			s.Result.Response = &query.DNSResponse{
-				ResponseMsg: &dns.Msg{
-					Answer: []dns.RR{
-						&dns.SVCB{
-							Priority: 1,
-							Target:   target,
-							Value: []dns.SVCBKeyValue{
-								&dns.SVCBAlpn{
-									Alpn: []string{"doq"},
-								},
+		s.Result = &query.ConventionalDNSResponse{}
+		s.Result.Response = &query.DNSResponse{
+			ResponseMsg: &dns.Msg{
+				Answer: []dns.RR{
+					&dns.SVCB{
+						Priority: 1,
+						Target:   SAMPLE_TARGET,
+						Value: []dns.SVCBKeyValue{
+							&dns.SVCBAlpn{
+								Alpn: []string{"doq"},
 							},
 						},
 					},
 				},
+			},
+		}
+
+		scans, errors := s.CreateScansFromResponse()
+
+		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
+		require.NotNil(t, errors, "should have returned errors")
+		assert.Equal(t, 2, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN)")
+
+		for _, err := range errors {
+			assert.NotNil(t, err, "should have returned an error")
+			assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
+		}
+
+		for _, ss := range scans {
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+
+			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+				// cast to certificate scan
+				certScan, ok := ss.(*scan.CertificateScan)
+				require.True(t, ok, "should have returned a certificate scan")
+
+				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
+				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
+			} else {
+				// cast to DoT scan
+				dohScan, ok := ss.(*scan.DoQScan)
+				require.True(t, ok, "should have returned a DoH scan")
+
+				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOQ_PORT, dohScan.Query.Port, "should have returned default port")
 			}
-
-			scans, errors := s.CreateScansFromResponse()
-
-			require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
-			require.NotNil(t, errors, "should have returned errors")
-			assert.Equal(t, 2, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN)")
-
-			for _, err := range errors {
-				assert.NotNil(t, err, "should have returned an error")
-				assert.False(t, err.IsCritical(), "should not have returned a critical error, we expect default template URI")
-			}
-
-			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
-
-				if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
-					// cast to certificate scan
-					certScan, ok := ss.(*scan.CertificateScan)
-					require.True(t, ok, "should have returned a certificate scan")
-
-					assert.Equal(t, target, certScan.Query.Host, "should have returned target")
-					assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
-					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-				} else {
-					// cast to DoT scan
-					dohScan, ok := ss.(*scan.DoQScan)
-					require.True(t, ok, "should have returned a DoH scan")
-
-					assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
-					assert.Equal(t, query.DEFAULT_DOQ_PORT, dohScan.Query.Port, "should have returned default port")
-				}
-			}
-		})
+		}
 	})
 
 	t.Run("test valid DoQ with port", func(t *testing.T) {
@@ -871,8 +853,6 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			q := query.NewDDRQuery()
 			s := scan.NewDDRScan(q, false)
 
-			target := "example.com"
-
 			port := uint16(4443)
 
 			s.Result = &query.ConventionalDNSResponse{}
@@ -881,7 +861,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					Answer: []dns.RR{
 						&dns.SVCB{
 							Priority: 1,
-							Target:   target,
+							Target:   SAMPLE_TARGET,
 							Value: []dns.SVCBKeyValue{
 								&dns.SVCBAlpn{
 									Alpn: []string{"doq"},
@@ -914,7 +894,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					certScan, ok := ss.(*scan.CertificateScan)
 					require.True(t, ok, "should have returned a certificate scan")
 
-					assert.Equal(t, target, certScan.Query.Host, "should have returned target")
+					assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 					assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 				} else {
@@ -922,7 +902,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					dohScan, ok := ss.(*scan.DoQScan)
 					require.True(t, ok, "should have returned a DoH scan")
 
-					assert.Equal(t, target, dohScan.Query.Host, "should have returned target")
+					assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
 					assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
 				}
 			}
@@ -939,8 +919,6 @@ func TestDDRScan_CreateScansFromResponse_UnkownALPN(t *testing.T) {
 		q := query.NewDDRQuery()
 		s := scan.NewDDRScan(q, false)
 
-		target := "example.com"
-
 		port := uint16(4443)
 
 		s.Result = &query.ConventionalDNSResponse{}
@@ -949,7 +927,7 @@ func TestDDRScan_CreateScansFromResponse_UnkownALPN(t *testing.T) {
 				Answer: []dns.RR{
 					&dns.SVCB{
 						Priority: 1,
-						Target:   target,
+						Target:   SAMPLE_TARGET,
 						Value: []dns.SVCBKeyValue{
 							&dns.SVCBAlpn{
 								Alpn: []string{"unknown"},

@@ -21,7 +21,7 @@ var ErrEmptyQueryMessage = errors.New("query message must not be nil")
 var ErrInvalidPort = errors.New("query invalid port")
 var ErrInvalidProtocol = errors.New("query invalid protocol")
 var ErrInvalidTimeout = errors.New("query invalid timeout")
-var ErrUnknownQueryErr = errors.New("unknown query error")
+var ErrUnknownQuery = errors.New("unknown query error")
 var ErrInvalidMaxUDPRetries = errors.New("invalid max udp retries")
 var ErrInvalidMaxTCPRetries = errors.New("invalid max tcp retries")
 
@@ -129,8 +129,8 @@ func (ce *DoEError) IsCertificateError() bool {
 	return ce.ErrId == CERTIFICATE_ERROR
 }
 
-func getCallerName(skip int) string {
-	pc, _, _, ok := runtime.Caller(skip + 1) // +1 to skip current frame
+func getCallerName() string {
+	pc, _, _, ok := runtime.Caller(3) // +1 to skip current frame
 	if !ok {
 		return "unknown"
 	}
@@ -142,23 +142,23 @@ func getCallerName(skip int) string {
 }
 
 func NewUnknownError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: "unknown_error", Err: err.Error(), Location: getCallerName(2), Critical: critical}
+	return &DoEError{ErrId: "unknown_error", Err: err.Error(), Location: getCallerName(), Critical: critical}
 }
 
 func NewGenericError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: GENERIC_ERROR, Err: err.Error(), Location: getCallerName(2), Critical: critical}
+	return &DoEError{ErrId: GENERIC_ERROR, Err: err.Error(), Location: getCallerName(), Critical: critical}
 }
 
 func NewQueryError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: QUERY_ERROR, Err: err.Error(), Location: getCallerName(2), Critical: critical}
+	return &DoEError{ErrId: QUERY_ERROR, Err: err.Error(), Location: getCallerName(), Critical: critical}
 }
 
 func NewQueryConfigError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: QUERY_CONFIG_ERROR, Err: err.Error(), Location: getCallerName(2), Critical: critical}
+	return &DoEError{ErrId: QUERY_CONFIG_ERROR, Err: err.Error(), Location: getCallerName(), Critical: critical}
 }
 
 func NewCertificateError(err error, critical bool) *DoEError {
-	return &DoEError{ErrId: CERTIFICATE_ERROR, Err: err.Error(), Location: getCallerName(2), Critical: critical}
+	return &DoEError{ErrId: CERTIFICATE_ERROR, Err: err.Error(), Location: getCallerName(), Critical: critical}
 }
 
 func ContainsCriticalErr(errColl []DoEErrors) bool {

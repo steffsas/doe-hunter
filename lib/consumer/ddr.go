@@ -3,7 +3,6 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -148,20 +147,19 @@ func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 			logrus.Debugf("got %d SVCB answers, schedule DoE scans", len(ddrScan.Result.Response.ResponseMsg.Answer))
 			// parse DDR response
 			scans, errColl := ddrScan.CreateScansFromResponse()
-			fmt.Println(scans, errColl)
 			ddrScan.Meta.AddError(errColl...)
 
 			// schedule
 			for _, s := range scans {
 				switch s.GetType() {
 				case scan.DOH_SCAN_TYPE:
-					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOH_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOH_TOPIC)
 				case scan.DOQ_SCAN_TYPE:
-					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
 				case scan.DOT_SCAN_TYPE:
-					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOT_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOT_TOPIC)
 				case scan.CERTIFICATE_SCAN_TYPE:
-					dss.Producer.Produce(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
 				}
 			}
 		} else {
@@ -188,13 +186,20 @@ func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 	} else {
 		logrus.Infof("DDR scan %s was based on an IP address, schedule PTR scan", ddrScan.Meta.ScanId)
 		q := query.NewPTRQuery()
-		q.SetQueryMsg(ip.String())
+		// getting error on invalid ip is not possible at this point
+		_ = q.SetQueryMsg(ip.String())
+
 		q.QueryMsg.RecursionDesired = true
 		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
 		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
 
 		// produce PTR scan
-		pss.Producer.Produce(ddrScan, ptrScan, k.DEFAULT_PTR_TOPIC)
+		if err := pss.Producer.Produce(ddrScan, ptrScan, k.DEFAULT_PTR_TOPIC); err != nil {
+			logrus.Errorf("failed to produce PTR scan: %v", err)
+			ddrScan.Meta.AddError(
+				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
+			)
+		}
 	}
 }

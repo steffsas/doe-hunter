@@ -106,6 +106,12 @@ issues:
     - path: "(.+)_test\\.go$"
       linters:
         - dupl
+    - path: "consumer/"
+      linters:
+        - dupl
+    - path: "scan/"
+      linters:
+        - dupl
 
 run:
   go: '1.22.3'

@@ -94,7 +94,6 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 
 		// create DoE scans for each ALPN and ip hint
 		for _, alpn := range svcb.Alpn.Alpn {
-
 			s, e := produceScansFromAlpn(scan.Meta.ScanId, svcb.Target, svcb.Target, alpn, svcb)
 			scans = append(scans, s...)
 			errorColl = append(errorColl, e...)

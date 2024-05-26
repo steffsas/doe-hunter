@@ -15,7 +15,10 @@ type mockedKafkaProducer struct {
 	mock.Mock
 }
 
+//nolint:gochecknoglobals
 var eventMsgLock = &sync.Mutex{}
+
+//nolint:gochecknoglobals
 var eventMsg kafka.Event = &kafka.Message{}
 
 func (mkp *mockedKafkaProducer) Produce(msg *kafka.Message, deliveryChan chan kafka.Event) error {

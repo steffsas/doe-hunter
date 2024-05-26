@@ -335,7 +335,6 @@ func TestDoQQuery_SkipCertificateVerify(t *testing.T) {
 		assert.False(t, res.CertificateValid, "certificate should be valid")
 		assert.False(t, res.CertificateVerified, "certificate should be verified")
 	})
-
 }
 
 func getMockedQuicConnection(response *dns.Msg, err error) (conn query.QuicConn) {

@@ -749,5 +749,4 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 		require.NotNil(t, res, "result should not be nil")
 		assert.Nil(t, res.ResponseMsg, "response should be nil")
 	})
-
 }

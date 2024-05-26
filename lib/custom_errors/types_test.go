@@ -6,6 +6,7 @@ import (
 
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCustomErrors_Constructors(t *testing.T) {
@@ -122,10 +123,11 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfoString("additional info")
+		infoAdderr := ce.AddInfoString("additional info")
 
 		// test
 		assert.Equal(t, "additional info", ce.AdditionalInfo)
+		assert.NotNil(t, infoAdderr)
 	})
 
 	t.Run("additional info twice", func(t *testing.T) {
@@ -133,8 +135,10 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfoString("additional info")
-		ce.AddInfoString("additional info")
+		infoAdderr := ce.AddInfoString("additional info")
+		require.NotNil(t, infoAdderr)
+		infoAdderr = ce.AddInfoString("additional info")
+		assert.NotNil(t, infoAdderr)
 
 		// test
 		assert.Equal(t, "additional info, additional info", ce.AdditionalInfo)
@@ -145,10 +149,11 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfo(errors.New("additional info"))
+		infoAdderr := ce.AddInfo(errors.New("additional info"))
 
 		// test
 		assert.Equal(t, "additional info", ce.AdditionalInfo)
+		assert.NotNil(t, infoAdderr)
 	})
 
 	t.Run("add info on custom error error obj", func(t *testing.T) {
@@ -156,10 +161,11 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfo(custom_errors.NewGenericError(errors.New("some info"), true))
+		infoAddErr := ce.AddInfo(custom_errors.NewGenericError(errors.New("some info"), true))
 
 		// test
 		assert.Equal(t, "scan_error in testing.tRunner: some info", ce.AdditionalInfo)
+		assert.NotNil(t, infoAddErr)
 	})
 
 	t.Run("check for error type", func(t *testing.T) {
@@ -178,10 +184,11 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfo(nil)
+		infoAddErr := ce.AddInfo(nil)
 
 		// test
 		assert.Equal(t, "", ce.AdditionalInfo)
+		assert.NotNil(t, infoAddErr)
 	})
 
 	t.Run("error output with additional info", func(t *testing.T) {
@@ -189,9 +196,10 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		// setup
 		err := errors.New("test")
 		ce := custom_errors.NewGenericError(err, true)
-		ce.AddInfoString("additional info")
+		infoAddErr := ce.AddInfo(nil)
 
 		// test
-		assert.Equal(t, "scan_error in testing.tRunner: test - additional info: additional info", ce.Error())
+		assert.Equal(t, "scan_error in testing.tRunner: test", ce.Error())
+		assert.NotNil(t, infoAddErr)
 	})
 }
