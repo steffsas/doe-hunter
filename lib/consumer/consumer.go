@@ -3,7 +3,6 @@ package consumer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -172,7 +171,6 @@ func (keh *KafkaEventConsumer) Fetch(ctx context.Context, out chan *kafka.Messag
 				if ok {
 					// we ignore timeouts
 					if kfkerr.IsTimeout() {
-						fmt.Print("GOT TIMEOUT; CONTINUE!!")
 						continue
 					} else {
 						logrus.Errorf("kafka error reading message: %s", err.Error())
