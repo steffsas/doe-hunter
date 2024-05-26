@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -20,7 +19,7 @@ type DoHQueryHandler interface {
 }
 
 type DoHProcessEventHandler struct {
-	k.EventProcessHandler
+	EventProcessHandler
 
 	QueryHandler DoHQueryHandler
 }
@@ -59,7 +58,7 @@ func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaDoHEventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
+func NewKafkaDoHEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_DOH_CONSUMER_GROUP
 	}
@@ -68,31 +67,7 @@ func NewKafkaDoHEventConsumer(config *k.KafkaConsumerConfig, storageHandler stor
 		QueryHandler: query.NewDoHQueryHandler(),
 	}
 
-	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
-
-	return
-}
-
-func NewKafkaDoHParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
-	if config == nil {
-		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_DOH_CONSUMER_GROUP, k.DEFAULT_DOH_TOPIC)
-	}
-
-	if storageHandler == nil {
-		return nil, errors.New("no storage handler provided")
-	}
-
-	createConsumerFunc := func() (k.EventConsumer, error) {
-		return NewKafkaDoHEventConsumer(
-			config.KafkaConsumerConfig,
-			storageHandler,
-		)
-	}
-	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
-
-	if err != nil {
-		logrus.Errorf("failed to create parallel consumer: %v", err)
-	}
+	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
 
 	return
 }

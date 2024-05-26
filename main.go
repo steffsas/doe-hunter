@@ -55,7 +55,7 @@ var SUPPORTED_RUN_TYPES = []string{
 const DDR_CONSUMER = 100
 
 func main() {
-	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 	ctx := context.Background()
 
 	// flag.Parse()
@@ -123,7 +123,12 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 
 	// marshall the json data
 	censysData := []CensysData{}
+	counter := 0
 	for _, line := range contentSplit {
+		counter++
+		if counter >= 1000 {
+			break
+		}
 		c := &CensysData{}
 		if err := json.Unmarshal([]byte(line), c); err != nil {
 			logrus.Errorf("failed to unmarshal json: %v, %s", err, line)
@@ -295,68 +300,68 @@ func startConsumer(ctx context.Context, protocol string) {
 	switch protocol {
 	case "ddr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
-		config := kafka.GetDefaultKafkaParallelConsumerConfig(consumer.DEFAULT_DDR_CONSUMER_GROUP, kafka.DEFAULT_DDR_TOPIC)
-		config.ConcurrentConsumer = DDR_CONSUMER
-		pc, err := consumer.NewKafkaDDRParallelEventConsumer(config, sh)
+		config := consumer.GetDefaultKafkaConsumerConfig(consumer.DEFAULT_DDR_CONSUMER_GROUP, kafka.DEFAULT_DDR_TOPIC)
+		config.Threads = DDR_CONSUMER
+		pc, err := consumer.NewKafkaDDREventConsumer(config, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
-		pc, err := consumer.NewKafkaDoHParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoHEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	case "doq":
 		// start the DOQ scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
-		pc, err := consumer.NewKafkaDoQParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	case "dot":
 		// start the DOT scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
-		pc, err := consumer.NewKafkaDoTParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	case "ptr":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
-		pc, err := consumer.NewKafkaPTRParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	case "certificate":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
-		pc, err := consumer.NewKafkaCertificateParallelEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
 		} else {
-			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
 	}

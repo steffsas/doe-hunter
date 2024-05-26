@@ -2,7 +2,6 @@ package consumer
 
 import (
 	"encoding/json"
-	"errors"
 	"net"
 	"strings"
 
@@ -19,7 +18,7 @@ import (
 const DEFAULT_DDR_CONSUMER_GROUP = "ddr-scan-group"
 
 type DDRProcessEventHandler struct {
-	k.EventProcessHandler
+	EventProcessHandler
 
 	DoeProducer  DoECertScanScheduler
 	PTRProducer  PTRScanScheduler
@@ -61,7 +60,7 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 	return err
 }
 
-func NewKafkaDDREventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
+func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
 	}
@@ -72,31 +71,7 @@ func NewKafkaDDREventConsumer(config *k.KafkaConsumerConfig, storageHandler stor
 		PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
 	}
 
-	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
-
-	return
-}
-
-func NewKafkaDDRParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
-	if config == nil {
-		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_DDR_CONSUMER_GROUP, k.DEFAULT_DDR_TOPIC)
-	}
-
-	if storageHandler == nil {
-		return nil, errors.New("no storage handler provided")
-	}
-
-	createConsumerFunc := func() (k.EventConsumer, error) {
-		return NewKafkaDDREventConsumer(
-			config.KafkaConsumerConfig,
-			storageHandler,
-		)
-	}
-	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
-
-	if err != nil {
-		logrus.Errorf("failed to create parallel consumer: %v", err)
-	}
+	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
 
 	return
 }

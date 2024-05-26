@@ -2,13 +2,11 @@ package consumer
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
@@ -17,7 +15,7 @@ import (
 const DEFAULT_PTR_CONSUMER_GROUP = "ptr-scan-group"
 
 type PTRProcessEventHandler struct {
-	k.EventProcessHandler
+	EventProcessHandler
 
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
@@ -50,7 +48,7 @@ func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaPTREventConsumer(config *k.KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaEventConsumer, err error) {
+func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_PTR_CONSUMER_GROUP
 	}
@@ -59,31 +57,7 @@ func NewKafkaPTREventConsumer(config *k.KafkaConsumerConfig, storageHandler stor
 		QueryHandler: query.NewPTRQueryHandler(),
 	}
 
-	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
-
-	return
-}
-
-func NewKafkaPTRParallelEventConsumer(config *k.KafkaParallelConsumerConfig, storageHandler storage.StorageHandler) (kec *k.KafkaParallelConsumer, err error) {
-	if config == nil {
-		config = k.GetDefaultKafkaParallelConsumerConfig(DEFAULT_PTR_CONSUMER_GROUP, k.DEFAULT_PTR_TOPIC)
-	}
-
-	if storageHandler == nil {
-		return nil, errors.New("no storage handler provided")
-	}
-
-	createConsumerFunc := func() (k.EventConsumer, error) {
-		return NewKafkaPTREventConsumer(
-			config.KafkaConsumerConfig,
-			storageHandler,
-		)
-	}
-	kec, err = k.NewKafkaParallelEventConsumer(createConsumerFunc, config.KafkaParallelEventConsumerConfig)
-
-	if err != nil {
-		logrus.Errorf("failed to create parallel consumer: %v", err)
-	}
+	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
 
 	return
 }

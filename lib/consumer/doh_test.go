@@ -8,7 +8,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
@@ -125,46 +124,5 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 
 		assert.NoError(t, err, "although there is a query error, the process handler does only care about handling errors")
 		msh.AssertCalled(t, "Store", mock.Anything)
-	})
-}
-
-func TestNewKafkaDoHParallelEventConsumer(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid consumer", func(t *testing.T) {
-		t.Parallel()
-
-		msh := mockedStorageHandler{}
-
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-
-		kc, err := consumer.NewKafkaDoHParallelEventConsumer(config, &msh)
-
-		assert.NotNil(t, kc)
-		assert.NoError(t, err)
-	})
-
-	t.Run("default config", func(t *testing.T) {
-		t.Parallel()
-
-		msh := mockedStorageHandler{}
-
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-
-		kec, err := consumer.NewKafkaDoHParallelEventConsumer(config, &msh)
-
-		assert.NoError(t, err)
-		assert.NotNil(t, kec)
-	})
-
-	t.Run("no storage handler", func(t *testing.T) {
-		t.Parallel()
-
-		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
-
-		kec, err := consumer.NewKafkaDoHParallelEventConsumer(config, nil)
-
-		assert.Error(t, err)
-		assert.Nil(t, kec)
 	})
 }
