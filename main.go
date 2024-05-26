@@ -302,6 +302,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION)
 		config := consumer.GetDefaultKafkaConsumerConfig(consumer.DEFAULT_DDR_CONSUMER_GROUP, kafka.DEFAULT_DDR_TOPIC)
 		config.Threads = DDR_CONSUMER
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDDREventConsumer(config, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -312,6 +313,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		_ = pc.Consume(ctx)
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoHEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -323,6 +325,7 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "doq":
 		// start the DOQ scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -334,6 +337,7 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "dot":
 		// start the DOT scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -345,6 +349,7 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "ptr":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
@@ -356,6 +361,7 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "certificate":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
+		//nolint:contextcheck
 		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
