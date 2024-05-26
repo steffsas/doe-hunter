@@ -170,7 +170,7 @@ func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
 
 		// produce PTR scan
-		if err := pss.Producer.Produce(ddrScan, ptrScan, k.DEFAULT_PTR_TOPIC); err != nil {
+		if err := pss.Producer.Produce(ddrScan, ptrScan, GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {
 			logrus.Errorf("failed to produce PTR scan: %v", err)
 			ddrScan.Meta.AddError(
 				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),

@@ -208,6 +208,8 @@ func (mpf *MockedProducerFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Sc
 func TestDoECertScanScheduler(t *testing.T) {
 	t.Parallel()
 
+	const vantagePoint = "test"
+
 	t.Run("schedule scans", func(t *testing.T) {
 		t.Parallel()
 
@@ -220,8 +222,10 @@ func TestDoECertScanScheduler(t *testing.T) {
 
 		scan := &scan.DDRScan{
 			Meta: &scan.DDRScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-				ScheduleDoEScans:    true,
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
 			},
 			Query: &query.ConventionalDNSQuery{},
 			Result: &query.ConventionalDNSResponse{
@@ -248,10 +252,10 @@ func TestDoECertScanScheduler(t *testing.T) {
 
 		scheduler.ScheduleScans(scan)
 
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOH_TOPIC)
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOQ_TOPIC)
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOT_TOPIC)
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_CERTIFICATE_TOPIC)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOQ_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
 	})
 
 	t.Run("schedule scans no response", func(t *testing.T) {
@@ -307,7 +311,7 @@ func TestPTRScanScheduler(t *testing.T) {
 		scheduler.ScheduleScans(scan)
 
 		assert.True(t, scan.Meta.PTRScheduled)
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_PTR_TOPIC)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, scan.Meta.VantagePoint))
 	})
 
 	t.Run("schedule no PTR scan on hostname", func(t *testing.T) {
@@ -335,6 +339,6 @@ func TestPTRScanScheduler(t *testing.T) {
 		scheduler.ScheduleScans(scan)
 
 		assert.False(t, scan.Meta.PTRScheduled)
-		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_PTR_TOPIC)
+		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, scan.Meta.VantagePoint))
 	})
 }
