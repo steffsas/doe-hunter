@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"flag"
 	"io"
 	"os"
 	"slices"
@@ -47,11 +45,12 @@ var SUPPORTED_PROTOCOL_TYPES = []string{
 var SUPPORTED_RUN_TYPES = []string{
 	"consumer", "producer",
 }
-var (
-	scanType         = flag.String("scanType", "consumer", "consumer or producer")
-	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr)")
-	parallelConsumer = flag.Int("parallelConsumer", 1, "number of parallel consumers")
-)
+
+// var (
+// 	scanType         = flag.String("scanType", "consumer", "consumer or producer")
+// 	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr)")
+// 	parallelConsumer = flag.Int("parallelConsumer", 1, "number of parallel consumers")
+// )
 
 const DDR_CONSUMER = 100
 
@@ -67,7 +66,7 @@ func main() {
 		startAllConsumer(ctx)
 		// startConsumer(ctx, "ddr")
 	} else {
-		produceDDRScansFromCensys("data/censys_100k.json", true)
+		_ = produceDDRScansFromCensys("data/censys_100k.json", true)
 	}
 }
 
@@ -235,52 +234,48 @@ func scheduleScan(scan *scan.DDRScan, p *producer.ScanProducer, wg *sync.WaitGro
 	}
 }
 
-func produceDRScansFromTXTFile(filePath string) {
-	resolvers := []struct {
-		Host string
-		Port int
-	}{}
+// func produceDRScansFromTXTFile(filePath string) {
+// 	resolvers := []struct {
+// 		Host string
+// 		Port int
+// 	}{}
 
-	// Open the file
-	file, err := os.Open(filePath)
-	if err != nil {
-		logrus.Errorf("failed to open file: %v", err)
-		return
-	}
+// 	// Open the file
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		logrus.Errorf("failed to open file: %v", err)
+// 		return
+// 	}
 
-	// Create a new scanner
-	scanner := bufio.NewScanner(file)
+// 	// Create a new scanner
+// 	scanner := bufio.NewScanner(file)
 
-	// Loop through lines
-	for scanner.Scan() {
-		line := scanner.Text()
-		resolvers = append(resolvers, struct {
-			Host string
-			Port int
-		}{
-			Host: line,
-			Port: 53,
-		})
-		// Process the line here (e.g., store in a variable, perform further operations)
-	}
+// 	// Loop through lines
+// 	for scanner.Scan() {
+// 		line := scanner.Text()
+// 		resolvers = append(resolvers, struct {
+// 			Host string
+// 			Port int
+// 		}{
+// 			Host: line,
+// 			Port: 53,
+// 		})
+// 		// Process the line here (e.g., store in a variable, perform further operations)
+// 	}
 
-	if err := scanner.Err(); err != nil {
-		logrus.Errorf("error during file reading: %s", err.Error())
-	}
+// 	if err := scanner.Err(); err != nil {
+// 		logrus.Errorf("error during file reading: %s", err.Error())
+// 	}
 
-	file.Close()
+// 	file.Close()
 
-	logrus.Infof("got %d resolvers", len(resolvers))
+// 	logrus.Infof("got %d resolvers", len(resolvers))
 
-	err = ProduceDDRScans(resolvers, true)
-	if err != nil {
-		logrus.Errorf("failed to produce DDR scan: %v", err)
-	}
-}
-
-func isConsumer(scanType string) bool {
-	return scanType == "consumer"
-}
+// 	err = ProduceDDRScans(resolvers, true)
+// 	if err != nil {
+// 		logrus.Errorf("failed to produce DDR scan: %v", err)
+// 	}
+// }
 
 func startAllConsumer(ctx context.Context) {
 	wg := sync.WaitGroup{}
@@ -309,7 +304,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION)
 		pc, err := consumer.NewKafkaDoHParallelEventConsumer(nil, sh)
@@ -319,7 +314,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	case "doq":
 		// start the DOQ scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION)
@@ -330,7 +325,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	case "dot":
 		// start the DOT scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION)
@@ -341,7 +336,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	case "ptr":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION)
@@ -352,7 +347,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	case "certificate":
 		// start the PTR scanner
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION)
@@ -363,7 +358,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		} else {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.ConcurrentConsumer)
 		}
-		pc.Consume(ctx)
+		_ = pc.Consume(ctx)
 	}
 }
 

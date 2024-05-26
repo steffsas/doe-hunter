@@ -213,12 +213,13 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
 
 	var queryErr error
+	//nolint:gocritic
 	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
 		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, _, res.RTT, queryErr = qh.doHttpRequest(httpReq)
+		res.ResponseMsg, res.RTT, queryErr = qh.doHttpRequest(httpReq)
 	} else if query.POSTFallback || query.Method == HTTP_POST {
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
@@ -228,22 +229,22 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, _, res.RTT, queryErr = qh.doHttpRequest(httpReq)
+		res.ResponseMsg, res.RTT, queryErr = qh.doHttpRequest(httpReq)
 	} else {
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, true).AddInfo(fmt.Errorf("URI length is %d characters", len(fullGetURI)))
 	}
 
 	return res, validateCertificateError(
 		queryErr,
-		custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true),
+		custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true),
 		&res.DoEResponse,
 		query.SkipCertificateVerify,
 	)
 }
 
-func (q *DoHQueryHandler) doHttpRequest(httpReq *http.Request) (r *dns.Msg, httpRes *http.Response, rtt time.Duration, err error) {
+func (q *DoHQueryHandler) doHttpRequest(httpReq *http.Request) (r *dns.Msg, rtt time.Duration, err error) {
 	begin := time.Now()
-	httpRes, err = q.QueryHandler.Do(httpReq)
+	httpRes, err := q.QueryHandler.Do(httpReq)
 
 	if httpRes != nil && httpRes.Body != nil {
 		defer httpRes.Body.Close()

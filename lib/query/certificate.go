@@ -98,10 +98,10 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 			conn, err = qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
 
 			if err != nil {
-				return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
+				return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true).AddInfo(err)
 			}
 		} else {
-			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQueryErr, true).AddInfo(err)
+			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true).AddInfo(err)
 		}
 	}
 	defer conn.Close()
