@@ -120,7 +120,7 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 	return scans, errorColl
 }
 
-func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRScan {
+func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool, vantagePoint string) *DDRScan {
 	if q == nil {
 		q = query.NewDDRQuery()
 	}
@@ -130,6 +130,7 @@ func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool) *DDRScan {
 	}
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation("", "")
 	scan.Meta.ScheduleDoEScans = scheduleDoEScans
+	scan.Meta.VantagePoint = vantagePoint
 	scan.Query = q
 	return scan
 }

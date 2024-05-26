@@ -20,7 +20,7 @@ func TestDDRScan_Constructor(t *testing.T) {
 	t.Run("nil query", func(t *testing.T) {
 		t.Parallel()
 
-		scan := scan.NewDDRScan(nil, false)
+		scan := scan.NewDDRScan(nil, false, "test")
 
 		// test
 		assert.Equal(t, "DDR", scan.GetType(), "should have returned PTR")
@@ -36,7 +36,7 @@ func TestDDRScan_Constructor(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		scan := scan.NewDDRScan(q, false)
+		scan := scan.NewDDRScan(q, false, "test")
 
 		// test
 		assert.Equal(t, "DDR", scan.GetType(), "should have returned PTR")
@@ -52,7 +52,7 @@ func TestDDRScan_Constructor(t *testing.T) {
 
 func TestDDRScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewDDRScan(nil, false)
+	scan := scan.NewDDRScan(nil, false, "test")
 	bytes, err := scan.Marshall()
 
 	// test
@@ -67,7 +67,7 @@ func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = nil
 
@@ -81,7 +81,7 @@ func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = &query.ConventionalDNSResponse{}
 
@@ -93,7 +93,7 @@ func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {
 
 	t.Run("nil response DNS msg", func(t *testing.T) {
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = &query.ConventionalDNSResponse{
 			Response: &query.DNSResponse{
@@ -116,7 +116,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = &query.ConventionalDNSResponse{}
 		s.Result.Response = &query.DNSResponse{
@@ -173,7 +173,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -236,7 +236,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -301,7 +301,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -392,7 +392,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -485,7 +485,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -576,7 +576,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -673,7 +673,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = &query.ConventionalDNSResponse{}
 		s.Result.Response = &query.DNSResponse{
@@ -729,7 +729,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 
@@ -794,7 +794,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		s.Result = &query.ConventionalDNSResponse{}
 		s.Result.Response = &query.DNSResponse{
@@ -851,7 +851,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			t.Parallel()
 
 			q := query.NewDDRQuery()
-			s := scan.NewDDRScan(q, false)
+			s := scan.NewDDRScan(q, false, "test")
 
 			port := uint16(4443)
 
@@ -917,7 +917,7 @@ func TestDDRScan_CreateScansFromResponse_UnkownALPN(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewDDRQuery()
-		s := scan.NewDDRScan(q, false)
+		s := scan.NewDDRScan(q, false, "test")
 
 		port := uint16(4443)
 

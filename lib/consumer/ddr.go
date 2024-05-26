@@ -128,13 +128,13 @@ func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 			for _, s := range scans {
 				switch s.GetType() {
 				case scan.DOH_SCAN_TYPE:
-					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOH_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, ddrScan.Meta.VantagePoint))
 				case scan.DOQ_SCAN_TYPE:
-					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, GetKafkaVPTopic(k.DEFAULT_DOQ_TOPIC, ddrScan.Meta.VantagePoint))
 				case scan.DOT_SCAN_TYPE:
-					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOT_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, ddrScan.Meta.VantagePoint))
 				case scan.CERTIFICATE_SCAN_TYPE:
-					_ = dss.Producer.Produce(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
+					_ = dss.Producer.Produce(ddrScan, s, GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, ddrScan.Meta.VantagePoint))
 				}
 			}
 		} else {

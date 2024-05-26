@@ -15,7 +15,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-const DEFAULT_CONCURRENT_THREADS = 1000
+const DEFAULT_CONCURRENT_THREADS = 100
 
 type KafkaConsumerConfig struct {
 	Server        string
@@ -211,7 +211,7 @@ func (keh *KafkaEventConsumer) Close() (err error) {
 
 func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProcessHandler, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config == nil {
-		config = GetDefaultKafkaConsumerConfig("na", "na")
+		return nil, errors.New("config not set")
 	}
 
 	if processHandler == nil {
@@ -265,14 +265,4 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 	}
 
 	return kec, nil
-}
-
-func GetDefaultKafkaConsumerConfig(consumerGroup string, topic string) *KafkaConsumerConfig {
-	return &KafkaConsumerConfig{
-		Server:        k.DEFAULT_KAFKA_SERVER,
-		ConsumerGroup: consumerGroup,
-		Topic:         topic,
-		Timeout:       k.DEFAULT_KAFKA_READ_TIMEOUT,
-		Threads:       DEFAULT_CONCURRENT_THREADS,
-	}
 }

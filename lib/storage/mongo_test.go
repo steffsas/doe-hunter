@@ -278,7 +278,7 @@ func TestMongoStorageHandler_New(t *testing.T) {
 	disableLog()
 
 	t.Run("valid new", func(t *testing.T) {
-		msh := storage.NewDefaultMongoStorageHandler(context.Background(), "test")
+		msh := storage.NewDefaultMongoStorageHandler(context.Background(), "test", "test")
 		assert.NotNil(t, msh, "expect no error on valid new")
 	})
 }
