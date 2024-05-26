@@ -70,6 +70,10 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 		return errors.New("storage handler not initialized")
 	}
 
+	if keh.Config == nil {
+		return errors.New("kafka consumer config not initialized")
+	}
+
 	// open connection to storage
 	err := keh.StorageHandler.Open()
 	if err != nil {

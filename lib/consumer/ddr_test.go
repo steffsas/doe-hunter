@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
@@ -190,5 +192,185 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 
 		assert.Error(t, err)
 		msh.AssertCalled(t, "Store", mock.Anything)
+	})
+}
+
+func TestNewKAfkaDDRParallelEventConsumer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid consumer", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
+
+		kec, err := consumer.NewKafkaDDRParallelEventConsumer(config, msh)
+
+		assert.NoError(t, err, "should not return an error")
+		assert.NotNil(t, kec, "should return a valid consumer")
+	})
+
+	t.Run("default config", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		kec, err := consumer.NewKafkaDDRParallelEventConsumer(nil, msh)
+
+		assert.NoError(t, err, "should not return an error")
+		assert.NotNil(t, kec, "should return a valid consumer")
+	})
+
+	t.Run("not storage handler", func(t *testing.T) {
+		t.Parallel()
+
+		config := k.GetDefaultKafkaParallelConsumerConfig("test", "test")
+		kec, err := consumer.NewKafkaDDRParallelEventConsumer(config, nil)
+
+		assert.Error(t, err, "should return an error")
+		assert.Nil(t, kec, "should not return a valid consumer")
+	})
+}
+
+type MockedProducerFactory struct {
+	mock.Mock
+}
+
+func (mpf *MockedProducerFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
+	args := mpf.Called(ddrScan, newScan, topic)
+
+	return args.Error(0)
+}
+
+func TestDoECertScanScheduler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("schedule scans", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &MockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		scheduler := consumer.DoECertScanScheduler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+				ScheduleDoEScans:    true,
+			},
+			Query: &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2", "dot", "doq"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		scheduler.ScheduleScans(scan)
+
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOH_TOPIC)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOQ_TOPIC)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_DOT_TOPIC)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_CERTIFICATE_TOPIC)
+	})
+
+	t.Run("schedule scans no response", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &MockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		scheduler := consumer.DoECertScanScheduler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+				ScheduleDoEScans:    true,
+			},
+			Query:  &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{},
+		}
+
+		scheduler.ScheduleScans(scan)
+
+		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, mock.Anything)
+	})
+}
+
+func TestPTRScanScheduler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("schedule valid PTR scan", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &MockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		scheduler := consumer.PTRScanScheduler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "8.8.8.8",
+					Port: 53,
+				},
+			},
+		}
+
+		scheduler.ScheduleScans(scan)
+
+		assert.True(t, scan.Meta.PTRScheduled)
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_PTR_TOPIC)
+	})
+
+	t.Run("schedule no PTR scan on hostname", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &MockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		scheduler := consumer.PTRScanScheduler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "google.de",
+					Port: 53,
+				},
+			},
+		}
+
+		scheduler.ScheduleScans(scan)
+
+		assert.False(t, scan.Meta.PTRScheduled)
+		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, k.DEFAULT_PTR_TOPIC)
 	})
 }

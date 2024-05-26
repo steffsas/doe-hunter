@@ -3,6 +3,7 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 
@@ -68,8 +69,8 @@ func NewKafkaDDREventConsumer(config *k.KafkaConsumerConfig, storageHandler stor
 
 	ph := &DDRProcessEventHandler{
 		QueryHandler: query.NewDDRQueryHandler(),
-		DoeProducer:  DoECertScanScheduler{Producer: produceScan},
-		PTRProducer:  PTRScanScheduler{Producer: produceScan},
+		DoeProducer:  DoECertScanScheduler{Producer: &ProduceFactory{}},
+		PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
 	}
 
 	kec, err = k.NewKafkaEventConsumer(config, ph, storageHandler)
@@ -101,10 +102,38 @@ func NewKafkaDDRParallelEventConsumer(config *k.KafkaParallelConsumerConfig, sto
 	return
 }
 
-type Producer func(ddrScan *scan.DDRScan, newScan scan.Scan, topic string)
+type ProduceFactoryI interface {
+	Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error
+}
+
+type ProduceFactory struct {
+	Topic string
+}
+
+func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
+	pr, err := producer.NewScanProducer(topic, nil)
+	if err != nil {
+		logrus.Errorf("failed to create scan producer: %v", err)
+		ddrScan.Meta.AddError(custom_errors.NewGenericError(
+			custom_errors.ErrProducerCreationFailed, true),
+		)
+		return err
+	}
+	defer pr.Close()
+
+	err = pr.Produce(newScan)
+	if err != nil {
+		logrus.Errorf("failed to produce scan: %v", err)
+		ddrScan.Meta.AddError(
+			custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
+		)
+	}
+
+	return err
+}
 
 type DoECertScanScheduler struct {
-	Producer Producer
+	Producer ProduceFactoryI
 }
 
 func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
@@ -112,23 +141,27 @@ func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 	if ddrScan.Meta.ScheduleDoEScans {
 		logrus.Infof("schedule DoE and certificate scans for DDR scan %s", ddrScan.Meta.ScanId)
 
-		if len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
+		if ddrScan.Result != nil &&
+			ddrScan.Result.Response != nil &&
+			ddrScan.Result.Response.ResponseMsg != nil &&
+			len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
 			logrus.Debugf("got %d SVCB answers, schedule DoE scans", len(ddrScan.Result.Response.ResponseMsg.Answer))
 			// parse DDR response
 			scans, errColl := ddrScan.CreateScansFromResponse()
+			fmt.Println(scans, errColl)
 			ddrScan.Meta.AddError(errColl...)
 
 			// schedule
 			for _, s := range scans {
 				switch s.GetType() {
 				case scan.DOH_SCAN_TYPE:
-					dss.Producer(ddrScan, s, k.DEFAULT_DOH_TOPIC)
+					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOH_TOPIC)
 				case scan.DOQ_SCAN_TYPE:
-					dss.Producer(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
+					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOQ_TOPIC)
 				case scan.DOT_SCAN_TYPE:
-					dss.Producer(ddrScan, s, k.DEFAULT_DOT_TOPIC)
+					dss.Producer.Produce(ddrScan, s, k.DEFAULT_DOT_TOPIC)
 				case scan.CERTIFICATE_SCAN_TYPE:
-					dss.Producer(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
+					dss.Producer.Produce(ddrScan, s, k.DEFAULT_CERTIFICATE_TOPIC)
 				}
 			}
 		} else {
@@ -138,7 +171,7 @@ func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 }
 
 type PTRScanScheduler struct {
-	Producer Producer
+	Producer ProduceFactoryI
 }
 
 func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
@@ -162,25 +195,6 @@ func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
 
 		// produce PTR scan
-		pss.Producer(ddrScan, ptrScan, k.DEFAULT_PTR_TOPIC)
-	}
-}
-
-func produceScan(ddrScan *scan.DDRScan, scan scan.Scan, topic string) {
-	p, err := producer.NewScanProducer(topic, nil)
-	if err != nil {
-		logrus.Errorf("failed to create scan producer: %v", err)
-		ddrScan.Meta.AddError(custom_errors.NewGenericError(
-			custom_errors.ErrProducerCreationFailed, true),
-		)
-	}
-	defer p.Close()
-
-	err = p.Produce(scan)
-	if err != nil {
-		logrus.Errorf("failed to produce scan: %v", err)
-		ddrScan.Meta.AddError(
-			custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
-		)
+		pss.Producer.Produce(ddrScan, ptrScan, k.DEFAULT_PTR_TOPIC)
 	}
 }
