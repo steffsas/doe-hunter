@@ -65,13 +65,15 @@ func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		config.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
 	}
 
-	ph := &DDRProcessEventHandler{
-		QueryHandler: query.NewDDRQueryHandler(),
-		DoeProducer:  DoECertScanScheduler{Producer: &ProduceFactory{}},
-		PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
+	newPh := func() EventProcessHandler {
+		return &DDRProcessEventHandler{
+			QueryHandler: query.NewDDRQueryHandler(),
+			DoeProducer:  DoECertScanScheduler{Producer: &ProduceFactory{}},
+			PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
+		}
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
 
 	return
 }

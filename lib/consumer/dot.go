@@ -63,11 +63,13 @@ func NewKafkaDoTEventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		config.ConsumerGroup = DEFAULT_DOT_CONSUMER_GROUP
 	}
 
-	ph := &DoTProcessEventHandler{
-		QueryHandler: query.NewDoTQueryHandler(),
+	newPh := func() EventProcessHandler {
+		return &DoTProcessEventHandler{
+			QueryHandler: query.NewDoTQueryHandler(),
+		}
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
 
 	return
 }

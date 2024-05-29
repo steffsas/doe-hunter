@@ -63,11 +63,13 @@ func NewKafkaDoQEventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		config.ConsumerGroup = DEFAULT_DOQ_CONSUMER_GROUP
 	}
 
-	ph := &DoQProcessEventHandler{
-		QueryHandler: query.NewDoQQueryHandler(),
+	newPh := func() EventProcessHandler {
+		return &DoQProcessEventHandler{
+			QueryHandler: query.NewDoQQueryHandler(),
+		}
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
 
 	return
 }

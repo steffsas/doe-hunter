@@ -55,11 +55,13 @@ func NewKafkaCertificateEventConsumer(config *KafkaConsumerConfig, storageHandle
 		config.ConsumerGroup = DEFAULT_CERTIFICATE_CONSUMER_GROUP
 	}
 
-	ph := &CertificateProcessEventHandler{
-		QueryHandler: query.NewCertificateQueryHandler(),
+	newPh := func() EventProcessHandler {
+		return &CertificateProcessEventHandler{
+			QueryHandler: query.NewCertificateQueryHandler(),
+		}
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
 
 	return
 }
