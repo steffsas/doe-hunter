@@ -53,11 +53,13 @@ func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storag
 		config.ConsumerGroup = DEFAULT_PTR_CONSUMER_GROUP
 	}
 
-	ph := &PTRProcessEventHandler{
-		QueryHandler: query.NewPTRQueryHandler(),
+	newPh := func() EventProcessHandler {
+		return &PTRProcessEventHandler{
+			QueryHandler: query.NewConventionalDNSQueryHandler(),
+		}
 	}
 
-	kec, err = NewKafkaEventConsumer(config, ph, storageHandler)
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
 
 	return
 }

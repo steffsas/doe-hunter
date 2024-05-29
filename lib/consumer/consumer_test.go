@@ -86,6 +86,10 @@ func (msh *MockedStorageHandler) Open() error {
 	return args.Error(0)
 }
 
+func NewEmptyProcessHandler() consumer.EventProcessHandler {
+	return &consumer.EmptyProcessHandler{}
+}
+
 func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Parallel()
 
@@ -98,9 +102,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
@@ -121,9 +125,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       nil,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          nil,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
@@ -142,9 +146,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       &MockedKafkaConsumer{},
-			StorageHandler: nil,
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          &MockedKafkaConsumer{},
+			StorageHandler:    nil,
+			NewProcessHandler: NewEmptyProcessHandler,
 
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
@@ -169,9 +173,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		msh.On("Close").Return(nil)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: msh,
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    msh,
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -193,13 +197,16 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
 
-		mph := &MockedProcessHandler{}
-		mph.On("Process", mock.Anything, mock.Anything).Return(errors.New("failed to process"))
+		mph := func() consumer.EventProcessHandler {
+			mph := &MockedProcessHandler{}
+			mph.On("Process", mock.Anything, mock.Anything).Return(errors.New("failed to process"))
+			return mph
+		}
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: mph,
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: mph,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -217,9 +224,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       nil,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          nil,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -240,9 +247,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(io.EOF)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -270,9 +277,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, mke)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -300,9 +307,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, mke)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -326,9 +333,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("ReadMessage", mock.Anything).Return(nil, io.EOF)
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       mkc,
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -346,10 +353,10 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       &MockedKafkaConsumer{},
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
-			Config:         nil,
+			Consumer:          &MockedKafkaConsumer{},
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
+			Config:            nil,
 		}
 
 		err := wrapConsume(kc.Consume)
@@ -360,9 +367,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:       &MockedKafkaConsumer{},
-			StorageHandler: &storage.EmptyStorageHandler{},
-			ProcessHandler: &consumer.EmptyProcessHandler{},
+			Consumer:          &MockedKafkaConsumer{},
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
 				Server:        "localhost:9092",
 				ConsumerGroup: "test",
@@ -389,7 +396,7 @@ func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
 
 	t.Run("no storage handler", func(t *testing.T) {
 		t.Parallel()
-		kc, err := consumer.NewKafkaEventConsumer(nil, &consumer.EmptyProcessHandler{}, nil)
+		kc, err := consumer.NewKafkaEventConsumer(nil, NewEmptyProcessHandler, nil)
 		assert.NotNil(t, err, "expected error on nil storage handler")
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})
@@ -399,7 +406,7 @@ func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
 		kc, err := consumer.NewKafkaEventConsumer(&consumer.KafkaConsumerConfig{
 			Server: "localhost:9092",
 			Topic:  "test-topic",
-		}, &consumer.EmptyProcessHandler{}, &storage.EmptyStorageHandler{})
+		}, NewEmptyProcessHandler, &storage.EmptyStorageHandler{})
 		assert.NotNil(t, err, "expected error on nil consumer group config")
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})
@@ -409,7 +416,7 @@ func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
 		kc, err := consumer.NewKafkaEventConsumer(&consumer.KafkaConsumerConfig{
 			Topic:         "test-topic",
 			ConsumerGroup: "test",
-		}, &consumer.EmptyProcessHandler{}, &storage.EmptyStorageHandler{})
+		}, NewEmptyProcessHandler, &storage.EmptyStorageHandler{})
 		assert.NotNil(t, err, "expected error on nil consumer group config")
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})

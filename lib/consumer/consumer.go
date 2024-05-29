@@ -35,6 +35,8 @@ type EventProcessHandler interface {
 	Process(msg *kafka.Message, storage storage.StorageHandler) (err error)
 }
 
+type NewEventProcessHandlerFunc func() EventProcessHandler
+
 type EventConsumer interface {
 	Consume(ctx context.Context) (err error)
 	Close() (err error)
@@ -57,10 +59,10 @@ func (eph *EmptyProcessHandler) Process(msg *kafka.Message, storage storage.Stor
 }
 
 type KafkaEventConsumer struct {
-	Config         *KafkaConsumerConfig
-	ProcessHandler EventProcessHandler
-	StorageHandler storage.StorageHandler
-	Consumer       KafkaConsumer
+	Config            *KafkaConsumerConfig
+	NewProcessHandler NewEventProcessHandlerFunc
+	StorageHandler    storage.StorageHandler
+	Consumer          KafkaConsumer
 }
 
 func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
@@ -144,10 +146,18 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 
 func (keh *KafkaEventConsumer) Process(workerNum int, in chan *kafka.Message, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	// let's create a process handler for thread
+	ph := keh.NewProcessHandler()
+	if ph == nil {
+		logrus.Errorf("failed to create process handler")
+		return
+	}
+
 	for msg := range in {
 		// we got a message, let's process it
 		logrus.Debugf("received for message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
-		err := keh.ProcessHandler.Process(msg, keh.StorageHandler)
+		err := ph.Process(msg, keh.StorageHandler)
 		if err != nil {
 			logrus.Errorf("failed to process message: %v", err)
 			continue
@@ -209,12 +219,12 @@ func (keh *KafkaEventConsumer) Close() (err error) {
 	return
 }
 
-func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProcessHandler, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaEventConsumer(config *KafkaConsumerConfig, newProcessHandler NewEventProcessHandlerFunc, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
 	if config == nil {
 		return nil, errors.New("config not set")
 	}
 
-	if processHandler == nil {
+	if newProcessHandler == nil {
 		return nil, errors.New("process handler not set")
 	}
 
@@ -230,6 +240,10 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 		return nil, errors.New("server not set")
 	}
 
+	if config.Threads <= 0 {
+		return nil, errors.New("threads not set")
+	}
+
 	var consumer *kafka.Consumer
 	consumer, err = kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers":  config.Server,
@@ -242,10 +256,10 @@ func NewKafkaEventConsumer(config *KafkaConsumerConfig, processHandler EventProc
 	}
 
 	kec = &KafkaEventConsumer{
-		Config:         config,
-		Consumer:       consumer,
-		ProcessHandler: processHandler,
-		StorageHandler: storageHandler,
+		Config:            config,
+		Consumer:          consumer,
+		NewProcessHandler: newProcessHandler,
+		StorageHandler:    storageHandler,
 	}
 
 	// create topic, make this beautfiul
