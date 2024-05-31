@@ -2,6 +2,7 @@ package query
 
 import (
 	"crypto/tls"
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
@@ -11,19 +12,31 @@ type QueryHandlerDNS interface {
 	Query(host string, query *dns.Msg, protocol string, timeout time.Duration, tlsConfig *tls.Config) (answer *dns.Msg, rtt time.Duration, err error)
 }
 
-type DefaultQueryHandlerDNS struct{}
+type DefaultQueryHandlerDNS struct {
+	dialer *net.Dialer
+}
 
 func (df *DefaultQueryHandlerDNS) Query(host string, query *dns.Msg, protocol string, timeout time.Duration, tlsConfig *tls.Config) (answer *dns.Msg, rtt time.Duration, err error) {
 	c := &dns.Client{
 		Timeout:   timeout,
 		TLSConfig: tlsConfig,
 		Net:       protocol,
+		Dialer:    df.dialer,
 	}
 	answer, rtt, err = c.Exchange(query, host)
 
 	return
 }
 
-func NewDefaultQueryHandler() *DefaultQueryHandlerDNS {
-	return &DefaultQueryHandlerDNS{}
+func NewDefaultQueryHandler(config *QueryConfig) *DefaultQueryHandlerDNS {
+	dialer := &net.Dialer{}
+	if config != nil {
+		dialer.LocalAddr = &net.UDPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
+	}
+	return &DefaultQueryHandlerDNS{
+		dialer: dialer,
+	}
 }

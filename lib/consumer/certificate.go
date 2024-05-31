@@ -50,15 +50,15 @@ func (ph *CertificateProcessEventHandler) Process(msg *kafka.Message, storage st
 	return err
 }
 
-func NewKafkaCertificateEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaCertificateEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_CERTIFICATE_CONSUMER_GROUP
 	}
 
-	newPh := func() EventProcessHandler {
+	newPh := func() (EventProcessHandler, error) {
 		return &CertificateProcessEventHandler{
-			QueryHandler: query.NewCertificateQueryHandler(),
-		}
+			QueryHandler: query.NewCertificateQueryHandler(queryConfig),
+		}, nil
 	}
 
 	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)

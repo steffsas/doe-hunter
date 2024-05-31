@@ -201,9 +201,9 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 	return q
 }
 
-func NewConventionalDNSQueryHandler() *ConventionalDNSQueryHandler {
+func NewConventionalDNSQueryHandler(config *QueryConfig) *ConventionalDNSQueryHandler {
 	query := &ConventionalDNSQueryHandler{
-		QueryHandler: NewDefaultQueryHandler(),
+		QueryHandler: NewDefaultQueryHandler(config),
 		Sleeper:      newDefaultSleeper(),
 	}
 

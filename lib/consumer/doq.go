@@ -58,15 +58,20 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaDoQEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaDoQEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_DOQ_CONSUMER_GROUP
 	}
 
-	newPh := func() EventProcessHandler {
-		return &DoQProcessEventHandler{
-			QueryHandler: query.NewDoQQueryHandler(),
+	newPh := func() (EventProcessHandler, error) {
+		qh, err := query.NewDoQQueryHandler(queryConfig)
+		if err != nil {
+			logrus.Errorf("error creating DoQ query handler: %s", err.Error())
+			return nil, err
 		}
+		return &DoQProcessEventHandler{
+			QueryHandler: qh,
+		}, nil
 	}
 
 	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)

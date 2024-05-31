@@ -23,7 +23,7 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 		qm := new(dns.Msg)
 		qm.SetQuestion(dotQueryName, dns.TypeA)
 
-		qh := query.NewDoTQueryHandler()
+		qh := query.NewDoTQueryHandler(nil)
 
 		q := query.NewDoTQuery()
 		q.Host = "94.140.14.140"
@@ -41,7 +41,7 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 	// 	qm := new(dns.Msg)
 	// 	qm.SetQuestion(dotQueryName, dns.TypeA)
 
-	// 	qh := query.NewDoTQueryHandler()
+	// 	qh := query.NewDoTQueryHandler(nil)
 
 	// 	q := query.NewDoTQuery()
 	// 	q.Host = "2a10:50c0::1:ff"
@@ -67,7 +67,7 @@ func TestDoTQuery_EmptyHost(t *testing.T) {
 	qm := new(dns.Msg)
 	qm.SetQuestion(dotQueryName, dns.TypeA)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 
 	q := query.NewDoTQuery()
 	q.Host = ""
@@ -91,7 +91,7 @@ func TestDoTQuery_QueryMsg(t *testing.T) {
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 	qh.QueryHandler = handler
 
 	t.Run("valid query msg", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestDoTQuery_Response(t *testing.T) {
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 	qh.QueryHandler = handler
 
 	qm := new(dns.Msg)
@@ -156,7 +156,7 @@ func TestDoTQuery_NilQueryMsg(t *testing.T) {
 	q.Host = dotQueryName
 	q.QueryMsg = nil
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 
 	res, err := qh.Query(q)
 
@@ -179,7 +179,7 @@ func TestDoTQuery_Handler(t *testing.T) {
 		qm := new(dns.Msg)
 		qm.SetQuestion(dotQueryName, dns.TypeA)
 
-		qh := query.NewDoTQueryHandler()
+		qh := query.NewDoTQueryHandler(nil)
 		qh.QueryHandler = handler
 
 		q := query.NewDoTQuery()
@@ -199,7 +199,7 @@ func TestDoTQuery_Handler(t *testing.T) {
 		qm := new(dns.Msg)
 		qm.SetQuestion(dotQueryName, dns.TypeA)
 
-		qh := query.NewDoTQueryHandler()
+		qh := query.NewDoTQueryHandler(nil)
 		qh.QueryHandler = nil
 
 		q := query.NewDoTQuery()
@@ -222,7 +222,7 @@ func TestDoTQuery_Port(t *testing.T) {
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 	qh.QueryHandler = handler
 
 	t.Run("valid port", func(t *testing.T) {
@@ -286,7 +286,7 @@ func TestDoTQuery_Host(t *testing.T) {
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 	qh.QueryHandler = handler
 
 	t.Run("valid host", func(t *testing.T) {
@@ -327,7 +327,7 @@ func TestDoTQuery_Host(t *testing.T) {
 func TestDoTQuery_NilQuery(t *testing.T) {
 	t.Parallel()
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 
 	res, err := qh.Query(nil)
 
@@ -343,7 +343,7 @@ func TestDoTQuery_SNI(t *testing.T) {
 	handler := &mockedQueryHandler{}
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(response, time.Duration(0), nil)
 
-	qh := query.NewDoTQueryHandler()
+	qh := query.NewDoTQueryHandler(nil)
 	qh.QueryHandler = handler
 
 	t.Run("valid SNI", func(t *testing.T) {

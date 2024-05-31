@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/stretchr/testify/assert"
@@ -26,12 +27,12 @@ func (m *mockedTLSConn) ConnectionState() tls.ConnectionState {
 	return args.Get(0).(tls.ConnectionState)
 }
 
-type mockedTLSDialer struct {
+type mockedCertQueryHandler struct {
 	mock.Mock
 }
 
-func (m *mockedTLSDialer) DialWithDialer(dialer *net.Dialer, network string, addr string, config *tls.Config) (query.Conn, error) {
-	args := m.Called(dialer, network, addr, config)
+func (m *mockedCertQueryHandler) Query(addr string, timeout time.Duration, config *tls.Config) (query.Conn, error) {
+	args := m.Called(addr, timeout, config)
 
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -52,7 +53,7 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		q.Host = "www.google.de"
 		q.Port = 443
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 
 		res, err := qh.Query(q)
 
@@ -68,7 +69,7 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		q.Host = "142.250.185.227" // www.google.de
 		q.Port = 443
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 
 		res, err := qh.Query(q)
 
@@ -77,18 +78,73 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
 	})
 
-	// exclude IPv6 test since it does not work on GitHub Actions
+	t.Run("multiple queries on same handler", func(t *testing.T) {
+		t.Parallel()
+
+		q := query.NewCertificateQuery()
+		q.Host = "142.250.185.227" // www.google.de
+		q.Port = 443
+
+		qh := query.NewCertificateQueryHandler(nil)
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "should not have returned an error")
+		assert.NotNil(t, res, "should have returned a response")
+		assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
+
+		q = query.NewCertificateQuery()
+		q.Host = "8.8.8.8" // www.google.de
+		q.Port = 443
+
+		res, err = qh.Query(q)
+
+		assert.Nil(t, err, "should not have returned an error")
+		assert.NotNil(t, res, "should have returned a response")
+		assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
+
+		// check for timeout
+		q = query.NewCertificateQuery()
+		q.Host = "8.8.8.8" // www.google.de
+		q.Timeout = 1 * time.Millisecond
+		q.Port = 443
+
+		res, err = qh.Query(q)
+
+		assert.Error(t, err, "should have returned an error because timeout is too tight")
+		assert.NotNil(t, res, "should have returned a response")
+		assert.Empty(t, res.Certificates, "should have returned at least one certificate")
+	})
+
+	t.Run("fail on invalid local addr", func(t *testing.T) {
+		t.Parallel()
+
+		config := &query.QueryConfig{
+			LocalAddr: net.IP{1, 1, 1, 1},
+		}
+
+		qh := query.NewCertificateQueryHandler(config)
+
+		q := query.NewCertificateQuery()
+		q.Host = "8.8.8.8" // www.google.de
+		q.Port = 443
+
+		res, err := qh.Query(q)
+
+		assert.Error(t, err, "should not have returned an error")
+		assert.NotNil(t, res, "should have returned a response")
+		assert.Empty(t, res.Certificates, "should have returned at least one certificate")
+	})
+
+	// // exclude IPv6 test since it does not work on GitHub Actions
 	// t.Run("IPv6", func(t *testing.T) {
 	// 	q := query.NewCertificateQuery()
 	// 	q.Port = 443
 	// 	q.Host = "2a00:1450:4001:813::2003" // www.google.de
-	// 	q.TLSConfig = &tls.Config{
-	// 		ServerName: "www.google.de", // required for IP addresses SNI
-	// 	}
-	//
-	// qh := query.NewCertificateQueryHandler()
-	// res, err := qh.Query(q)
-	//
+
+	// 	qh := query.NewCertificateQueryHandler(nil)
+	// 	res, err := qh.Query(q)
+
 	// 	assert.Nil(t, err, "should not have returned an error")
 	// 	assert.NotNil(t, res, "should have returned a response")
 	// 	assert.GreaterOrEqual(t, len(res.Certificates), 1, "should have returned at least one certificate")
@@ -101,13 +157,13 @@ func TestCertificateQuery_ShouldNotFailOnNoCertificates(t *testing.T) {
 	tlsConn := tls.ConnectionState{
 		PeerCertificates: []*x509.Certificate{},
 	}
-	mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+	mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 	q := query.NewCertificateQuery()
 	q.Host = localhost
 	q.Port = 8080
 
-	qh := query.NewCertificateQueryHandler()
+	qh := query.NewCertificateQueryHandler(nil)
 	qh.QueryHandler = mockedDial
 
 	res, err := qh.Query(q)
@@ -122,7 +178,7 @@ func TestCertificateQuery_Host(t *testing.T) {
 	tlsConn := tls.ConnectionState{
 		PeerCertificates: []*x509.Certificate{},
 	}
-	mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+	mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 	t.Run("valid host", func(t *testing.T) {
 		t.Parallel()
@@ -131,7 +187,7 @@ func TestCertificateQuery_Host(t *testing.T) {
 		q.Port = 443
 		q.Host = localhost
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -146,12 +202,12 @@ func TestCertificateQuery_Host(t *testing.T) {
 		tlsConn := tls.ConnectionState{
 			PeerCertificates: []*x509.Certificate{},
 		}
-		mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+		mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 		q := query.NewCertificateQuery()
 		q.Host = ""
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -168,7 +224,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 	tlsConn := tls.ConnectionState{
 		PeerCertificates: []*x509.Certificate{},
 	}
-	mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+	mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 	t.Run("valid port", func(t *testing.T) {
 		t.Parallel()
@@ -177,7 +233,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 443
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -194,7 +250,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = -1
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -211,7 +267,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 0
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -227,7 +283,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -245,7 +301,7 @@ func TestCertificateQuery_Port(t *testing.T) {
 		q.Host = localhost
 		q.Port = 70000
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -262,7 +318,7 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 	tlsConn := tls.ConnectionState{
 		PeerCertificates: []*x509.Certificate{},
 	}
-	mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+	mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 	t.Run("negative timeout", func(t *testing.T) {
 		t.Parallel()
@@ -272,7 +328,7 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 		q.Port = 8080
 		q.Timeout = -1
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -290,7 +346,7 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 		q.Port = 8080
 		q.Timeout = 0
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -306,7 +362,7 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 		q.Host = localhost
 		q.Port = 8080
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -317,7 +373,7 @@ func TestCertificateQuery_Timeout(t *testing.T) {
 	})
 }
 
-func TestCertificateQuery_DialHandler(t *testing.T) {
+func TestCertificateQuery_Query(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no query handler", func(t *testing.T) {
@@ -327,7 +383,7 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 		q.Host = localhost
 		q.Port = 8080
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = nil
 
 		res, err := qh.Query(q)
@@ -337,17 +393,17 @@ func TestCertificateQuery_DialHandler(t *testing.T) {
 		assert.Nil(t, res.Certificates, "should have returned certificates")
 	})
 
-	t.Run("dial failed", func(t *testing.T) {
+	t.Run("query failed", func(t *testing.T) {
 		t.Parallel()
 
-		mockedDial := new(mockedTLSDialer)
-		mockedDial.On("DialWithDialer", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("dial failed"))
+		mockedDial := new(mockedCertQueryHandler)
+		mockedDial.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(nil, fmt.Errorf("dial failed"))
 
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 		q.Port = 8080
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -366,21 +422,21 @@ func TestCertificateQuery_SNI(t *testing.T) {
 		tlsConn := tls.ConnectionState{
 			PeerCertificates: []*x509.Certificate{},
 		}
-		mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+		mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 		q.Port = 8080
 		q.SNI = "www.google.de"
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
-		assert.Equal(t, q.SNI, mockedDial.Calls[0].Arguments[3].(*tls.Config).ServerName, "SNI should be set in TLS config")
+		assert.Equal(t, q.SNI, mockedDial.Calls[0].Arguments[2].(*tls.Config).ServerName, "SNI should be set in TLS config")
 	})
 }
 
@@ -393,21 +449,21 @@ func TestCertificateQuery_ALPN(t *testing.T) {
 		tlsConn := tls.ConnectionState{
 			PeerCertificates: []*x509.Certificate{},
 		}
-		mockedDial := getMockedDialHandlerValidRespnse(&tlsConn)
+		mockedDial := getMockedDialHandlerValidResponse(&tlsConn)
 
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 		q.Port = 8080
 		q.ALPN = []string{"h2"}
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
 
 		assert.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
-		assert.Equal(t, q.ALPN, mockedDial.Calls[0].Arguments[3].(*tls.Config).NextProtos, "ALPN should be set in TLS config")
+		assert.Equal(t, q.ALPN, mockedDial.Calls[0].Arguments[2].(*tls.Config).NextProtos, "ALPN should be set in TLS config")
 	})
 }
 
@@ -417,20 +473,20 @@ func TestCertificateQuery_RetryWithSkipCertificateVerification(t *testing.T) {
 	t.Run("retry without certificate verification", func(t *testing.T) {
 		t.Parallel()
 
-		mockedDial := new(mockedTLSDialer)
+		mockedDial := new(mockedCertQueryHandler)
 
 		certError := x509.CertificateInvalidError{
 			Cert:   &x509.Certificate{},
 			Reason: x509.NameMismatch,
 		}
 
-		mockedDial.On("DialWithDialer", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, certError)
+		mockedDial.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(nil, certError)
 
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 		q.Port = 8080
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -438,23 +494,23 @@ func TestCertificateQuery_RetryWithSkipCertificateVerification(t *testing.T) {
 		assert.NotNil(t, err, "should have returned an error")
 		assert.NotNil(t, res, "should have returned a response")
 		assert.True(t, res.RetryWithoutCertificateVerification, "should have set retry without certificate verification")
-		assert.True(t, mockedDial.Calls[1].Arguments[3].(*tls.Config).InsecureSkipVerify, "should have set InsecureSkipVerify")
+		assert.True(t, mockedDial.Calls[1].Arguments[2].(*tls.Config).InsecureSkipVerify, "should have set InsecureSkipVerify")
 	})
 
 	t.Run("do not retry on other error", func(t *testing.T) {
 		t.Parallel()
 
-		mockedDial := new(mockedTLSDialer)
+		mockedDial := new(mockedCertQueryHandler)
 
 		otherError := fmt.Errorf("some other error")
 
-		mockedDial.On("DialWithDialer", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, otherError)
+		mockedDial.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(nil, otherError)
 
 		q := query.NewCertificateQuery()
 		q.Host = localhost
 		q.Port = 8080
 
-		qh := query.NewCertificateQueryHandler()
+		qh := query.NewCertificateQueryHandler(nil)
 		qh.QueryHandler = mockedDial
 
 		res, err := qh.Query(q)
@@ -465,14 +521,14 @@ func TestCertificateQuery_RetryWithSkipCertificateVerification(t *testing.T) {
 	})
 }
 
-func getMockedDialHandlerValidRespnse(connState *tls.ConnectionState) *mockedTLSDialer {
-	mockedDial := new(mockedTLSDialer)
+func getMockedDialHandlerValidResponse(connState *tls.ConnectionState) *mockedCertQueryHandler {
+	mockedCertQueryHandler := &mockedCertQueryHandler{}
 
-	mockedConn := new(mockedTLSConn)
+	mockedConn := &mockedTLSConn{}
 	mockedConn.On("Close").Return(nil)
 	mockedConn.On("ConnectionState").Return(*connState)
 
-	mockedDial.On("DialWithDialer", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(mockedConn, nil)
+	mockedCertQueryHandler.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(mockedConn, nil)
 
-	return mockedDial
+	return mockedCertQueryHandler
 }

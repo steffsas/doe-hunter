@@ -35,7 +35,7 @@ type EventProcessHandler interface {
 	Process(msg *kafka.Message, storage storage.StorageHandler) (err error)
 }
 
-type NewEventProcessHandlerFunc func() EventProcessHandler
+type NewEventProcessHandlerFunc func() (EventProcessHandler, error)
 
 type EventConsumer interface {
 	Consume(ctx context.Context) (err error)
@@ -108,6 +108,16 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	termChan := make(chan os.Signal, 1)
 	signal.Notify(termChan, os.Interrupt, syscall.SIGTERM) // Handle SIGTERM and Ctrl+C
 
+	// create first all handler before consuming messages
+	handler := []EventProcessHandler{}
+	for i := 0; i < keh.Config.Threads; i++ {
+		ph, err := keh.NewProcessHandler()
+		if err != nil {
+			return err
+		}
+		handler = append(handler, ph)
+	}
+
 	wg := sync.WaitGroup{}
 
 	// graceful shutdown handling
@@ -136,7 +146,7 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	for i := 0; i < keh.Config.Threads; i++ {
 		wg.Add(1)
 		logrus.Infof("starting process worker %d", i)
-		go keh.Process(i, msgChan, &wg)
+		go keh.Process(i, handler[i], msgChan, &wg)
 	}
 
 	wg.Wait()
@@ -144,20 +154,12 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	return fetchErr
 }
 
-func (keh *KafkaEventConsumer) Process(workerNum int, in chan *kafka.Message, wg *sync.WaitGroup) {
+func (keh *KafkaEventConsumer) Process(workerNum int, handler EventProcessHandler, in chan *kafka.Message, wg *sync.WaitGroup) {
 	defer wg.Done()
-
-	// let's create a process handler for thread
-	ph := keh.NewProcessHandler()
-	if ph == nil {
-		logrus.Errorf("failed to create process handler")
-		return
-	}
-
 	for msg := range in {
 		// we got a message, let's process it
 		logrus.Debugf("received for message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
-		err := ph.Process(msg, keh.StorageHandler)
+		err := handler.Process(msg, keh.StorageHandler)
 		if err != nil {
 			logrus.Errorf("failed to process message: %v", err)
 			continue
