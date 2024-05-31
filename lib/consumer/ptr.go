@@ -48,15 +48,15 @@ func (ph *PTRProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaPTREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_PTR_CONSUMER_GROUP
 	}
 
-	newPh := func() EventProcessHandler {
+	newPh := func() (EventProcessHandler, error) {
 		return &PTRProcessEventHandler{
-			QueryHandler: query.NewConventionalDNSQueryHandler(),
-		}
+			QueryHandler: query.NewConventionalDNSQueryHandler(queryConfig),
+		}, nil
 	}
 
 	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)

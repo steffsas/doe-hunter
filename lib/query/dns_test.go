@@ -43,7 +43,7 @@ func getDefaultQueryHandler() *query.ConventionalDNSQueryHandler {
 	sleeper := &mockedSleeper{}
 	sleeper.On("Sleep", mock.Anything).Return()
 
-	dnsQuery := query.NewConventionalDNSQueryHandler()
+	dnsQuery := query.NewConventionalDNSQueryHandler(nil)
 	dnsQuery.Sleeper = sleeper
 
 	return dnsQuery
@@ -90,6 +90,39 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 		require.NotNil(t, res.Response, "response should not be nil")
 		require.NotNil(t, res.Response.ResponseMsg, "response message should not be nil")
 		assert.NotNil(t, res.Response.ResponseMsg.Answer, "response should have an answer")
+	})
+
+	t.Run("multiple queries on same handler", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+
+		res1, err1 := dq.Query(getDefaultQuery())
+		res2, err2 := dq.Query(getDefaultQuery())
+
+		require.NotNil(t, res1, "response should not be nil")
+		assert.Nil(t, err1, "error should be nil")
+		require.NotNil(t, res1.Response, "response should not be nil")
+		require.NotNil(t, res1.Response.ResponseMsg, "response message should not be nil")
+		assert.NotNil(t, res1.Response.ResponseMsg.Answer, "response should have an answer")
+
+		require.NotNil(t, res2, "response should not be nil")
+		assert.Nil(t, err2, "error should be nil")
+		require.NotNil(t, res2.Response, "response should not be nil")
+		require.NotNil(t, res2.Response.ResponseMsg, "response message should not be nil")
+		assert.NotNil(t, res2.Response.ResponseMsg.Answer, "response should have an answer")
+
+		// check for timeout
+		q := getDefaultQuery()
+		q.Timeout = 1 * time.Nanosecond
+
+		res3, err3 := dq.Query(q)
+
+		require.NotNil(t, res3, "response should not be nil")
+		assert.Error(t, err3, "error should not be nil")
+		require.NotNil(t, res3.Response, "response should not be nil")
+		assert.Nil(t, res3.Response.ResponseMsg, "response should be nil")
+
 	})
 
 	// exclude IPv6 test since it does not work on GitHub Actions

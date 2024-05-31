@@ -75,9 +75,9 @@ func NewDoTQuery() (q *DoTQuery) {
 	return
 }
 
-func NewDoTQueryHandler() (h *DoTQueryHandler) {
+func NewDoTQueryHandler(config *QueryConfig) (h *DoTQueryHandler) {
 	h = &DoTQueryHandler{}
-	h.QueryHandler = NewDefaultQueryHandler()
+	h.QueryHandler = NewDefaultQueryHandler(config)
 
 	return
 }

@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"io"
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
 const DEFAULT_DOQ_TIMEOUT time.Duration = 5000 * time.Millisecond
@@ -26,14 +26,16 @@ type QuicConn interface {
 	OpenStream() (quic.Stream, error)
 }
 
-type QuicDialHandler interface {
-	DialAddr(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (QuicConn, error)
+type QuicQueryHandler interface {
+	Query(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *quic.Config) (QuicConn, error)
 }
 
-type DefaultQuicDialHandler struct{}
+type DefaultQuicQueryHandler struct {
+	Conn net.PacketConn
+}
 
-func (d *DefaultQuicDialHandler) DialAddr(ctx context.Context, addr string, tlsConf *tls.Config, conf *quic.Config) (QuicConn, error) {
-	return quic.DialAddr(ctx, addr, tlsConf, conf)
+func (d *DefaultQuicQueryHandler) Query(ctx context.Context, addr net.Addr, tlsConf *tls.Config, conf *quic.Config) (QuicConn, error) {
+	return quic.Dial(ctx, d.Conn, addr, tlsConf, conf)
 }
 
 type DoQResponse struct {
@@ -46,7 +48,7 @@ type DoQQuery struct {
 
 type DoQQueryHandler struct {
 	// QueryHandler is the QUIC dial handler (defaults to quic.DialAddr)
-	QueryHandler QuicDialHandler
+	QueryHandler QuicQueryHandler
 }
 
 // This DoQ implementation is inspired by the q library, see https://github.com/natesales/q/blob/main/transport/quic.go
@@ -71,6 +73,7 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	}
 
 	tlsConfig := &tls.Config{
+		ServerName:         query.Host,
 		NextProtos:         DOQ_TLS_PROTOCOLS,
 		InsecureSkipVerify: query.SkipCertificateVerify,
 	}
@@ -86,9 +89,24 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	// measure some RTT
 	start := time.Now()
 
-	session, err := qh.QueryHandler.DialAddr(
+	// resolve the target address if necessary
+	ipAddr := net.ParseIP(query.Host)
+	if ipAddr == nil {
+		resolvedAddress, err := net.ResolveUDPAddr("ip", query.Host)
+		if err != nil {
+			return res, custom_errors.NewQueryError(custom_errors.ErrResolveHostFailed, true).AddInfo(err)
+		}
+		ipAddr = resolvedAddress.IP
+	}
+
+	udpAddr := &net.UDPAddr{
+		IP:   ipAddr,
+		Port: query.Port,
+	}
+
+	session, err := qh.QueryHandler.Query(
 		context.Background(),
-		helper.GetFullHostFromHostPort(query.Host, query.Port),
+		udpAddr,
 		tlsConfig,
 		quicConfig,
 	)
@@ -203,9 +221,25 @@ func NewDoQQuery() (q *DoQQuery) {
 	return
 }
 
-func NewDoQQueryHandler() (qh *DoQQueryHandler) {
-	qh = &DoQQueryHandler{}
-	qh.QueryHandler = &DefaultQuicDialHandler{}
+func NewDoQQueryHandler(config *QueryConfig) (*DoQQueryHandler, error) {
+	qh := &DoQQueryHandler{}
 
-	return
+	addr := &net.UDPAddr{}
+	if config != nil {
+		addr = &net.UDPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
+	}
+
+	conn, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	qh.QueryHandler = &DefaultQuicQueryHandler{
+		Conn: conn,
+	}
+
+	return qh, nil
 }

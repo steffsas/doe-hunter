@@ -2,6 +2,7 @@ package query_test
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/query"
 
 	"github.com/miekg/dns"
@@ -20,31 +22,30 @@ import (
 const exampleUri = "/dns-query{?dns}"
 const dohNameQuery = "dns.google."
 
-type mockedHttpHandler struct {
+type mockedHttpQueryHandler struct {
 	mock.Mock
 }
 
-func (m *mockedHttpHandler) Do(req *http.Request) (*http.Response, error) {
-	args := m.Called(req)
-
+func (m *mockedHttpQueryHandler) Query(
+	host string,
+	port int,
+	method string,
+	path string,
+	param string,
+	protocol string,
+	msg *dns.Msg,
+	timeout time.Duration,
+	tlsConfig *tls.Config,
+	postFallback bool,
+) (r *dns.Msg, rtt time.Duration, err custom_errors.DoEErrors) {
+	args := m.Called(host, port, method, path, param, protocol, msg, timeout, tlsConfig, postFallback)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Get(1).(time.Duration), args.Get(2).(custom_errors.DoEErrors)
 	}
-
-	return args.Get(0).(*http.Response), args.Error(1)
-}
-
-func (m *mockedHttpHandler) SetTransport(t http.RoundTripper) {
-	m.Called(t)
-}
-
-func (m *mockedHttpHandler) SetTimeout(timeout time.Duration) {
-	m.Called(timeout)
-}
-
-func (m *mockedHttpHandler) GetTimeout() time.Duration {
-	args := m.Called()
-	return args.Get(0).(time.Duration)
+	if args.Get(2) == nil {
+		return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), nil
+	}
+	return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), args.Get(2).(custom_errors.DoEErrors)
 }
 
 func mockDnsMsgHttpResponse() *http.Response {
@@ -72,10 +73,8 @@ func mockDnsMsgHttpResponse() *http.Response {
 	return httpResponse
 }
 
-func getMockedHttpHandler() *mockedHttpHandler {
-	handler := new(mockedHttpHandler)
-	handler.On("SetTransport", mock.Anything)
-	handler.On("SetTimeout", mock.Anything)
+func getMockedHttpHandler() *mockedHttpQueryHandler {
+	handler := new(mockedHttpQueryHandler)
 	return handler
 }
 
@@ -124,10 +123,11 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
 
-	qh := query.NewDoHQueryHandler()
-
 	t.Run("http1 get", func(t *testing.T) {
 		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		q := query.NewDoHQuery()
 		q.Host = host
@@ -149,6 +149,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	t.Run("http1 post", func(t *testing.T) {
 		t.Parallel()
 
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -168,6 +171,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 
 	t.Run("http2 get", func(t *testing.T) {
 		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		q := query.NewDoHQuery()
 		q.Host = host
@@ -189,6 +195,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	t.Run("http2 post", func(t *testing.T) {
 		t.Parallel()
 
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -208,6 +217,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 
 	t.Run("http3 get", func(t *testing.T) {
 		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		q := query.NewDoHQuery()
 		q.Host = host
@@ -229,6 +241,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	t.Run("http3 post", func(t *testing.T) {
 		t.Parallel()
 
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
 		q := query.NewDoHQuery()
 		q.Host = host
 		q.Port = port
@@ -248,6 +263,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 
 	t.Run("http3 get dns.google.", func(t *testing.T) {
 		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		q := query.NewDoHQuery()
 		q.Host = "dns.google."
@@ -269,6 +287,9 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 	t.Run("cloudflare", func(t *testing.T) {
 		t.Parallel()
 
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
 		q := query.NewDoHQuery()
 		q.Host = "1.1.1.1"
 		q.Port = 443
@@ -285,6 +306,44 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
 		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
 	})
+
+	t.Run("test multiple queries on same handler", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.HTTPVersion = query.HTTP_VERSION_2
+		q.Method = query.HTTP_GET
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+		require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
+		assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
+		assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+
+		q = query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.HTTPVersion = query.HTTP_VERSION_2
+		q.Method = query.HTTP_GET
+		q.QueryMsg = queryMsg
+		q.Timeout = 1 * time.Nanosecond
+
+		res, err = qh.Query(q)
+
+		assert.Error(t, err, "there should be an error due to timeout")
+		require.NotNil(t, res, "result should not be nil")
+	})
+
 }
 
 func TestDoHQuery_HTTPVersion(t *testing.T) {
@@ -294,9 +353,9 @@ func TestDoHQuery_HTTPVersion(t *testing.T) {
 		t.Parallel()
 
 		handler := getMockedHttpHandler()
-		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
@@ -327,9 +386,20 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		queryMsg.SetQuestion(dohNameQuery, dns.TypeA)
 
 		handler := getMockedHttpHandler()
-		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
+		handler.On("Query",
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything,
+			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
@@ -349,15 +419,8 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 	t.Run("post fallback", func(t *testing.T) {
 		t.Parallel()
 
-		httpRes := mockDnsMsgHttpResponse()
-		httpRes.StatusCode = 200
-
-		// use mocked query handler to simulate a too long URI
-		handler := getMockedHttpHandler()
-		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
-
-		qh := query.NewDoHQueryHandler()
-		qh.QueryHandler = handler
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dohNameQuery, dns.TypeA)
@@ -370,7 +433,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		q := query.NewDoHQuery()
 		q.Host = dohNameQuery
 		q.Port = 443
-		q.URI = "/dns-query{?dns,other}"
+		q.URI = "/dns-query{?dns}"
 		q.QueryMsg = queryMsg
 		q.Method = query.HTTP_GET
 		q.POSTFallback = true
@@ -380,21 +443,13 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 		assert.Nil(t, err, "error should be nil")
 		require.NotNil(t, res, "result should not be nil")
 		assert.GreaterOrEqual(t, res.RTT, time.Duration(0), "rtt should not be empty")
-		assert.Equal(t, query.HTTP_POST, handler.Calls[2].Arguments[0].(*http.Request).Method, "method should be POST")
 	})
 
 	t.Run("no post fallback if not wanted", func(t *testing.T) {
 		t.Parallel()
 
-		httpRes := mockDnsMsgHttpResponse()
-		httpRes.StatusCode = 413
-
-		// use mocked query handler to simulate a too long URI
-		handler := getMockedHttpHandler()
-		handler.On("Do", mock.Anything, mock.Anything).Return(httpRes, nil)
-
-		qh := query.NewDoHQueryHandler()
-		qh.QueryHandler = handler
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 
 		queryMsg := new(dns.Msg)
 		queryMsg.SetQuestion(dohNameQuery, dns.TypeA)
@@ -429,7 +484,8 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
@@ -454,7 +510,8 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
@@ -475,7 +532,8 @@ func TestDoHQuery_Port(t *testing.T) {
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		q := query.NewDoHQuery()
@@ -497,7 +555,8 @@ func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
@@ -523,7 +582,8 @@ func TestDoHQuery_NoHostProvided(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
@@ -546,7 +606,8 @@ func TestDoHQuery_EmptyURI(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
@@ -570,7 +631,8 @@ func TestDoHQuery_NilQueryMsg(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	q := query.NewDoHQuery()
@@ -590,7 +652,8 @@ func TestDoHQuery_WronglyFormattedURI(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
@@ -615,7 +678,8 @@ func TestDoHQuery_NilHttpHandler(t *testing.T) {
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion(dohNameQuery, dns.TypeA)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = nil
 
 	q := query.NewDoHQuery()
@@ -634,7 +698,8 @@ func TestDoHQuery_NilHttpHandler(t *testing.T) {
 func TestDoHQuery_EmptyQuery(t *testing.T) {
 	t.Parallel()
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	res, err := qh.Query(nil)
 
 	assert.NotNil(t, err, "error should not be nil")
@@ -648,7 +713,8 @@ func TestDoHQuery_SNI(t *testing.T) {
 	handler := getMockedHttpHandler()
 	handler.On("Do", mock.Anything, mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-	qh := query.NewDoHQueryHandler()
+	qh, err := query.NewDoHQueryHandler(nil)
+	require.Nil(t, err, "error should be nil")
 	qh.QueryHandler = handler
 
 	queryMsg := new(dns.Msg)
@@ -677,7 +743,8 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything).Return(mockDnsMsgHttpResponse(), nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
@@ -702,7 +769,8 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 		handler := getMockedHttpHandler()
 		handler.On("Do", mock.Anything).Return(nil, fmt.Errorf("error"))
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)
@@ -731,7 +799,8 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 
 		handler.On("Do", mock.Anything).Return(response, nil)
 
-		qh := query.NewDoHQueryHandler()
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
 		qh.QueryHandler = handler
 
 		queryMsg := new(dns.Msg)

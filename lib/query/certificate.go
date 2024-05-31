@@ -20,14 +20,17 @@ type Conn interface {
 	ConnectionState() tls.ConnectionState
 }
 
-type DialHandler interface {
-	DialWithDialer(dialer *net.Dialer, network string, port string, tlsConf *tls.Config) (Conn, error)
+type CertQueryHandler interface {
+	Query(port string, timeout time.Duration, tlsConf *tls.Config) (Conn, error)
 }
 
-type defaultDialHandler struct{}
+type DefaultCertQueryHandler struct {
+	dialer *net.Dialer
+}
 
-func (d *defaultDialHandler) DialWithDialer(dialer *net.Dialer, network string, host string, tlsConf *tls.Config) (Conn, error) {
-	return tls.DialWithDialer(dialer, network, host, tlsConf)
+func (d *DefaultCertQueryHandler) Query(host string, timeout time.Duration, tlsConf *tls.Config) (Conn, error) {
+	d.dialer.Timeout = timeout
+	return tls.DialWithDialer(d.dialer, "tcp", host, tlsConf)
 }
 
 type CertificateQuery struct {
@@ -50,7 +53,7 @@ func (cq *CertificateQuery) Check() (err custom_errors.DoEErrors) {
 }
 
 type CertificateQueryHandler struct {
-	QueryHandler DialHandler
+	QueryHandler CertQueryHandler
 }
 
 type CertificateResponse struct {
@@ -72,10 +75,6 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 		return res, custom_errors.NewGenericError(custom_errors.ErrQueryHandlerNil, true)
 	}
 
-	dialer := &net.Dialer{
-		Timeout: q.Timeout,
-	}
-
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false,
 	}
@@ -89,13 +88,13 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 		tlsConfig.NextProtos = q.ALPN
 	}
 
-	conn, err := qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
+	conn, err := qh.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.Timeout, tlsConfig)
 
 	if err != nil {
 		if helper.IsCertificateError(err) {
 			// we will try to get the certificate without verification
 			res.RetryWithoutCertificateVerification, tlsConfig.InsecureSkipVerify = true, true
-			conn, err = qh.QueryHandler.DialWithDialer(dialer, "tcp", helper.GetFullHostFromHostPort(q.Host, q.Port), tlsConfig)
+			conn, err = qh.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.Timeout, tlsConfig)
 
 			if err != nil {
 				return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true).AddInfo(err)
@@ -119,10 +118,21 @@ func NewCertificateQuery() (q *CertificateQuery) {
 	}
 }
 
-func NewCertificateQueryHandler() (qh *CertificateQueryHandler) {
-	qh = &CertificateQueryHandler{
-		QueryHandler: &defaultDialHandler{},
+func NewCertificateQueryHandler(config *QueryConfig) *CertificateQueryHandler {
+	qh := &CertificateQueryHandler{}
+
+	cqh := &DefaultCertQueryHandler{
+		dialer: &net.Dialer{},
 	}
 
-	return
+	if config != nil {
+		cqh.dialer.LocalAddr = &net.TCPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
+	}
+
+	qh.QueryHandler = cqh
+
+	return qh
 }

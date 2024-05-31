@@ -15,6 +15,6 @@ func NewDDRQuery() *ConventionalDNSQuery {
 	return q
 }
 
-func NewDDRQueryHandler() *ConventionalDNSQueryHandler {
-	return NewConventionalDNSQueryHandler()
+func NewDDRQueryHandler(config *QueryConfig) *ConventionalDNSQueryHandler {
+	return NewConventionalDNSQueryHandler(config)
 }

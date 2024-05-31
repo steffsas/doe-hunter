@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"slices"
 	"strings"
@@ -40,6 +41,7 @@ var (
 	vantagePoint     = flag.String("vantagePoint", "default", "vantage point name, used for meta data of scan and kafka topics")
 	debugLevel       = flag.String("debugLevel", "info", "debug level (trace, debug, info, warn, error, fatal, panic)")
 	producerFilePath = flag.String("producerFilePath", "data/censys_100k.json", "file path to the producer file to produce ddr scans")
+	localAddr        = flag.String("localAddr", "", "local address (NIC) to bind DNS/DoE/Cert etc. queries to")
 )
 
 func main() {
@@ -274,6 +276,19 @@ func startConsumer(ctx context.Context, protocol string) {
 		Threads: *threads,
 	}
 
+	var queryConfig *query.QueryConfig
+	if localAddr != nil && *localAddr != "" {
+		localIpAddr := net.ParseIP(*localAddr)
+		if localIpAddr == nil {
+			logrus.Fatalf("invalid local address %s", *localAddr)
+			return
+		}
+
+		queryConfig = &query.QueryConfig{
+			LocalAddr: localIpAddr,
+		}
+	}
+
 	switch protocol {
 	case "ddr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, *mongoServer)
@@ -281,7 +296,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, sh)
+		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -295,7 +310,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, sh)
+		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -309,7 +324,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -323,7 +338,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -337,7 +352,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -351,7 +366,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh)
+		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return

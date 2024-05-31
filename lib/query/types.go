@@ -1,6 +1,7 @@
 package query
 
 import (
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
@@ -20,6 +21,10 @@ type DNSResponse struct {
 	ResponseMsg *dns.Msg `json:"response"`
 	// RTT is the round-trip time
 	RTT time.Duration `json:"rtt"`
+}
+
+type QueryConfig struct {
+	LocalAddr net.IP
 }
 
 type DNSQuery struct {

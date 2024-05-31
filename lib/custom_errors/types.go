@@ -37,6 +37,7 @@ var ErrEmptyURIPath = errors.New("URI path is empty")
 var ErrURITooLong = errors.New("URI too long for GET request, POST fallback disabled")
 var ErrUnexpectedURIPath = errors.New("URI does not match the expected format")
 var ErrDNSPackFailed = errors.New("failed to pack DNS message")
+var ErrDNSUnpackFailed = errors.New("failed to unpack DNS message")
 var ErrDoHRequestError = errors.New("DoH request failed")
 
 // specific DoQ query errors
@@ -46,6 +47,7 @@ var ErrWriteToStreamFailed = errors.New("failed to write to quic stream")
 var ErrStreamReadFailed = errors.New("failed to read from quic stream")
 var ErrEmptyStreamResponse = errors.New("received empty response from stream")
 var ErrUnpackFailed = errors.New("failed to unpack DNS message")
+var ErrResolveHostFailed = errors.New("failed to resolve IP address for target host")
 
 // specific PTR query errors
 var ErrFailedToReverseIP = errors.New("failed to reverse IP address")

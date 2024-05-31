@@ -15,7 +15,7 @@ func TestNewPTRQueryHandler_RealWorld(t *testing.T) {
 	t.Run("IPv4", func(t *testing.T) {
 		t.Parallel()
 
-		qh := query.NewPTRQueryHandler()
+		qh := query.NewPTRQueryHandler(nil)
 
 		// let's safely .use google here since not every device runs a local stub on 127.0.0.53
 		q := query.NewPTRQuery()
@@ -41,7 +41,7 @@ func TestNewPTRQueryHandler_RealWorld(t *testing.T) {
 	// t.Run("IPv6", func(t *testing.T) {
 	// 	t.Parallel()
 
-	// 	qh := query.NewPTRQueryHandler()
+	// 	qh := query.NewPTRQueryHandler(nil)
 
 	// 	// let's safely use google here since not every device runs a local stub on 127.0.0.53
 	// 	q, err := query.NewPTRQuery("2001:4860:4860::8888", "8.8.8.8")

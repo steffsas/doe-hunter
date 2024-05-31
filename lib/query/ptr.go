@@ -40,6 +40,6 @@ func NewPTRQuery() *PTRQuery {
 	return q
 }
 
-func NewPTRQueryHandler() (qh *ConventionalDNSQueryHandler) {
-	return NewConventionalDNSQueryHandler()
+func NewPTRQueryHandler(config *QueryConfig) (qh *ConventionalDNSQueryHandler) {
+	return NewConventionalDNSQueryHandler(config)
 }

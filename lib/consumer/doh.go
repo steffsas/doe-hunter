@@ -58,15 +58,15 @@ func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaDoHEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
+func NewKafkaDoHEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_DOH_CONSUMER_GROUP
 	}
 
-	newPh := func() EventProcessHandler {
+	newPh := func() (EventProcessHandler, error) {
 		return &DoHProcessEventHandler{
-			QueryHandler: query.NewDoHQueryHandler(),
-		}
+			QueryHandler: query.NewDoHQueryHandler(queryConfig),
+		}, nil
 	}
 
 	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)

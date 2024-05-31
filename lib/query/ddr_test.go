@@ -13,7 +13,7 @@ func TestNewDDRQuery(t *testing.T) {
 	t.Parallel()
 
 	// p := &DDRParser{}
-	qh := query.NewDDRQueryHandler()
+	qh := query.NewDDRQueryHandler(nil)
 
 	q := query.NewDDRQuery()
 	q.Host = "8.8.8.8"
