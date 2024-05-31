@@ -286,6 +286,8 @@ func NewDoHQuery() (q *DoHQuery) {
 	q.Timeout = DEFAULT_DOH_TIMEOUT
 	q.Port = DEFAULT_DOH_PORT
 
+	q.QueryMsg = GetDefaultQueryMsg()
+
 	return
 }
 

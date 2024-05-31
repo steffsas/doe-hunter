@@ -161,7 +161,7 @@ func produceScansFromAlpn(
 	}
 
 	// create query message for DoE
-	queryMsg := &dns.Msg{}
+	queryMsg := query.GetDefaultQueryMsg()
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
 
 	// create certificate query

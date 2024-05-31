@@ -195,6 +195,9 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 	q.Timeout = -1
 
 	q.Port = DEFAULT_DNS_PORT
+
+	q.QueryMsg = GetDefaultQueryMsg()
+
 	return q
 }
 

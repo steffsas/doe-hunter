@@ -198,6 +198,8 @@ func NewDoQQuery() (q *DoQQuery) {
 	q.Port = DEFAULT_DOQ_PORT
 	q.Timeout = DEFAULT_DOQ_TIMEOUT
 
+	q.QueryMsg = GetDefaultQueryMsg()
+
 	return
 }
 
