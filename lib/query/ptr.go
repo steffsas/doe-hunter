@@ -21,7 +21,7 @@ func (p *PTRQuery) SetQueryMsg(resolveIp string) custom_errors.DoEErrors {
 	}
 
 	if p.QueryMsg == nil {
-		p.QueryMsg = &dns.Msg{}
+		p.QueryMsg = GetDefaultQueryMsg()
 	}
 
 	p.QueryMsg.SetQuestion(arpa, dns.TypePTR)
@@ -33,7 +33,7 @@ func NewPTRQuery() *PTRQuery {
 	q := &PTRQuery{}
 
 	q.ConventionalDNSQuery = *NewConventionalQuery()
-	q.QueryMsg = &dns.Msg{}
+	q.QueryMsg = GetDefaultQueryMsg()
 	q.QueryMsg.SetQuestion("undefined", dns.TypePTR)
 	q.Port = DEFAULT_DNS_PORT
 	q.Host = DEFAULT_RECURSIVE_RESOLVER

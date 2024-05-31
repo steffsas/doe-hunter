@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
@@ -58,4 +59,20 @@ func checkForQueryParams(host string, port int, timeout time.Duration, checkForT
 	}
 
 	return nil
+}
+
+func GetDefaultQueryMsg() *dns.Msg {
+	msg := &dns.Msg{}
+	prepareDefaultQuery(msg)
+	return msg
+}
+
+func prepareDefaultQuery(msg *dns.Msg) {
+	// let's be cache friendly
+	msg.MsgHdr = dns.MsgHdr{
+		Id: 0,
+	}
+
+	// set DNSSEC by default
+	msg.SetEdns0(1232, true)
 }
