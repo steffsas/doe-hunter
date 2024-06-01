@@ -64,8 +64,12 @@ func NewKafkaDoHEventConsumer(config *KafkaConsumerConfig, storageHandler storag
 	}
 
 	newPh := func() (EventProcessHandler, error) {
+		qh, err := query.NewDoHQueryHandler(queryConfig)
+		if err != nil {
+			return nil, err
+		}
 		return &DoHProcessEventHandler{
-			QueryHandler: query.NewDoHQueryHandler(queryConfig),
+			QueryHandler: qh,
 		}, nil
 	}
 

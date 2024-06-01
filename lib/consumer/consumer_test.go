@@ -86,8 +86,8 @@ func (msh *MockedStorageHandler) Open() error {
 	return args.Error(0)
 }
 
-func NewEmptyProcessHandler() consumer.EventProcessHandler {
-	return &consumer.EmptyProcessHandler{}
+func NewEmptyProcessHandler() (consumer.EventProcessHandler, error) {
+	return &consumer.EmptyProcessHandler{}, nil
 }
 
 func TestKafkaEventConsumer_Consume(t *testing.T) {
@@ -197,10 +197,10 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
 
-		mph := func() consumer.EventProcessHandler {
+		mph := func() (consumer.EventProcessHandler, error) {
 			mph := &MockedProcessHandler{}
 			mph.On("Process", mock.Anything, mock.Anything).Return(errors.New("failed to process"))
-			return mph
+			return mph, nil
 		}
 
 		kc := &consumer.KafkaEventConsumer{

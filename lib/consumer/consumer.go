@@ -113,6 +113,7 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	for i := 0; i < keh.Config.Threads; i++ {
 		ph, err := keh.NewProcessHandler()
 		if err != nil {
+			cancel()
 			return err
 		}
 		handler = append(handler, ph)

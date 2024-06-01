@@ -122,7 +122,6 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 		assert.Error(t, err3, "error should not be nil")
 		require.NotNil(t, res3.Response, "response should not be nil")
 		assert.Nil(t, res3.Response.ResponseMsg, "response should be nil")
-
 	})
 
 	// exclude IPv6 test since it does not work on GitHub Actions
