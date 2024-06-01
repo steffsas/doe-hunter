@@ -11,6 +11,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
 const DEFAULT_DOQ_TIMEOUT time.Duration = 5000 * time.Millisecond
@@ -90,18 +91,20 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 	start := time.Now()
 
 	// resolve the target address if necessary
+	var udpAddr *net.UDPAddr
 	ipAddr := net.ParseIP(query.Host)
 	if ipAddr == nil {
-		resolvedAddress, err := net.ResolveUDPAddr("ip", query.Host)
+		resolvedAddress, err := net.ResolveUDPAddr("udp", helper.GetFullHostFromHostPort(query.Host, query.Port))
 		if err != nil {
 			return res, custom_errors.NewQueryError(custom_errors.ErrResolveHostFailed, true).AddInfo(err)
 		}
-		ipAddr = resolvedAddress.IP
-	}
 
-	udpAddr := &net.UDPAddr{
-		IP:   ipAddr,
-		Port: query.Port,
+		udpAddr = resolvedAddress
+	} else {
+		udpAddr = &net.UDPAddr{
+			IP:   ipAddr,
+			Port: query.Port,
+		}
 	}
 
 	session, err := qh.QueryHandler.Query(

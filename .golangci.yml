@@ -115,6 +115,9 @@ issues:
     - path: "(.+)_test\\.go$"
       linters:
         - nilnil
+    - path: "(.+)_test\\.go$"
+      linters:
+        - goconst
 
 run:
   go: '1.22.3'

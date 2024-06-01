@@ -37,18 +37,7 @@ const DEFAULT_DOH_TIMEOUT = 5000 * time.Millisecond
 const DEFAULT_DOH_PORT = 443
 
 type HttpQueryHandler interface {
-	Query(
-		host string,
-		port int,
-		method string,
-		path string,
-		param string,
-		protocol string,
-		msg *dns.Msg,
-		timeout time.Duration,
-		tlsConfig *tls.Config,
-		postFallback bool,
-	) (r *dns.Msg, rtt time.Duration, err custom_errors.DoEErrors)
+	Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error)
 }
 
 type defaultHttpQueryHandler struct {
@@ -56,7 +45,24 @@ type defaultHttpQueryHandler struct {
 	Conn   net.PacketConn
 }
 
-func (h *defaultHttpQueryHandler) DoHttpRequest(httpReq *http.Request, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, custom_errors.DoEErrors) {
+func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error) {
+	// set dialer for http1/http2/http3
+	switch httpVersion {
+	case HTTP_VERSION_1, HTTP_VERSION_2:
+		transport.(*http.Transport).DialContext = h.Dialer.DialContext
+	case HTTP_VERSION_3:
+		transport.(*http3.RoundTripper).Dial = func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+			// parse addr to UDPAddr
+			udpAddr, err := net.ResolveUDPAddr("udp", addr)
+			if err != nil {
+				return nil, err
+			}
+
+			// we use the default QUIC dialer with an axisting connection
+			return quic.DialEarly(ctx, h.Conn, udpAddr, tlsCfg, cfg)
+		}
+	}
+
 	begin := time.Now()
 
 	client := &http.Client{
@@ -71,139 +77,27 @@ func (h *defaultHttpQueryHandler) DoHttpRequest(httpReq *http.Request, timeout t
 	}
 
 	if err != nil {
-		return nil, 0, custom_errors.NewQueryError(custom_errors.ErrDoHRequestError, true).AddInfo(err)
+		return nil, 0, err
 	}
 
 	rtt := time.Since(begin)
 
 	content, err := io.ReadAll(httpRes.Body)
 	if err != nil {
-		return nil, 0, custom_errors.NewQueryError(custom_errors.ErrDoHRequestError, true).AddInfo(err)
+		return nil, 0, err
 	}
 
 	if httpRes.StatusCode != http.StatusOK {
-		return nil, 0, custom_errors.NewQueryError(custom_errors.ErrDoHRequestError, true).AddInfo(
-			fmt.Errorf("DoH query failed with status code %d: \n %s", httpRes.StatusCode, string(content)),
-		)
+		return nil, 0, fmt.Errorf("DoH query failed with status code %d: \n %s", httpRes.StatusCode, string(content))
 	}
 
 	r := &dns.Msg{}
 	err = r.Unpack(content)
 	if err != nil {
-		return nil, 0, custom_errors.NewQueryError(custom_errors.ErrDNSUnpackFailed, true).AddInfo(err)
+		return nil, 0, err
 	}
 
 	return r, rtt, nil
-}
-
-func (h *defaultHttpQueryHandler) Query(
-	host string,
-	port int,
-	method string,
-	path string,
-	param string,
-	protocol string,
-	msg *dns.Msg,
-	timeout time.Duration,
-	tlsConfig *tls.Config,
-	postFallback bool,
-) (r *dns.Msg, rtt time.Duration, err custom_errors.DoEErrors) {
-
-	// set the transport based on the HTTP version
-	var transport http.RoundTripper
-
-	switch protocol {
-	case HTTP_VERSION_1:
-		transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
-			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
-			MaxConnsPerHost:   1,
-			MaxIdleConns:      1,
-			DisableKeepAlives: true,
-			ForceAttemptHTTP2: false,
-			Dial:              h.Dialer.Dial,
-		}
-	case HTTP_VERSION_2:
-		transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
-			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
-			MaxConnsPerHost:   1,
-			MaxIdleConns:      1,
-			DisableKeepAlives: true,
-			ForceAttemptHTTP2: true,
-			Dial:              h.Dialer.Dial,
-		}
-	case HTTP_VERSION_3:
-		transport = &http3.RoundTripper{
-			TLSClientConfig: tlsConfig,
-			QUICConfig: &quic.Config{
-				Allow0RTT:       true,
-				KeepAlivePeriod: 0,
-			},
-			Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
-				// parse addr to UDPAddr
-				udpAddr, err := net.ResolveUDPAddr("udp", addr)
-				if err != nil {
-					return nil, err
-				}
-
-				// we use the default QUIC dialer with an axisting connection
-				return quic.DialEarly(context.Background(), h.Conn, udpAddr, tlsCfg, cfg)
-			},
-		}
-	}
-
-	// see RFC for DoH: https://datatracker.ietf.org/doc/html/rfc8484
-	// see https://gist.github.com/cherrot/384eb7d9d537ead18462b5c462a07690
-	var (
-		buf, b64 []byte
-	)
-
-	if strings.ToLower(param) != "dns" {
-		logrus.Warnf("DoH query param %s is not 'dns', this is not a standard DoH query", param)
-	}
-
-	// Set DNS ID as zero according to RFC8484 (cache friendly)
-	msg.Id = 0
-
-	var packErr error
-	buf, packErr = msg.Pack()
-	if packErr != nil {
-		return nil, 0, custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed, true).AddInfo(packErr)
-	}
-
-	b64 = make([]byte, base64.RawURLEncoding.EncodedLen(len(buf)))
-	base64.RawURLEncoding.Encode(b64, buf)
-
-	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(host, port))
-
-	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
-
-	fmt.Println(method == HTTP_GET, len(fullGetURI) <= MAX_URI_LENGTH)
-	fmt.Println(postFallback, method == HTTP_POST)
-
-	//nolint:gocritic
-	if method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
-		// ready to try GET request
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
-		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
-
-		return h.DoHttpRequest(httpReq, timeout, transport)
-	} else if postFallback || method == HTTP_POST {
-		// let's try POST instead
-		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
-		body := bytes.NewReader(buf)
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
-		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
-		// content-type is required on POST requests, see RFC8484
-		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
-
-		return h.DoHttpRequest(httpReq, timeout, transport)
-	} else {
-		return nil, 0, custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, true).AddInfo(fmt.Errorf("URI length is %d characters", len(fullGetURI)))
-	}
 }
 
 func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom_errors.DoEError) {
@@ -250,8 +144,6 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 	res.CertificateValid = false
 	res.CertificateVerified = false
 
-	var err custom_errors.DoEErrors
-
 	if query == nil {
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrQueryNil, true)
 	}
@@ -295,20 +187,90 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		logrus.Warnf("DoH query param %s is not 'dns', this is not a standard DoH query", param)
 	}
 
-	res.ResponseMsg, res.RTT, err = qh.QueryHandler.Query(
-		query.Host,
-		query.Port,
-		query.Method,
-		path,
-		param,
-		query.HTTPVersion,
-		query.QueryMsg,
-		query.Timeout,
-		tlsConfig,
-		query.POSTFallback)
+	// set the transport based on the HTTP version
+	var transport http.RoundTripper
+
+	switch query.HTTPVersion {
+	case HTTP_VERSION_1:
+		transport = &http.Transport{
+			TLSClientConfig: tlsConfig,
+			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
+			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+			MaxConnsPerHost:   1,
+			MaxIdleConns:      1,
+			DisableKeepAlives: true,
+			ForceAttemptHTTP2: false,
+		}
+	case HTTP_VERSION_2:
+		transport = &http.Transport{
+			TLSClientConfig: tlsConfig,
+			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
+			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
+			MaxConnsPerHost:   1,
+			MaxIdleConns:      1,
+			DisableKeepAlives: true,
+			ForceAttemptHTTP2: true,
+		}
+	case HTTP_VERSION_3:
+		transport = &http3.RoundTripper{
+			TLSClientConfig: tlsConfig,
+			QUICConfig: &quic.Config{
+				Allow0RTT:       true,
+				KeepAlivePeriod: 0,
+			},
+		}
+	}
+
+	// see RFC for DoH: https://datatracker.ietf.org/doc/html/rfc8484
+	// see https://gist.github.com/cherrot/384eb7d9d537ead18462b5c462a07690
+	var (
+		buf, b64 []byte
+	)
+
+	if strings.ToLower(param) != "dns" {
+		logrus.Warnf("DoH query param %s is not 'dns', this is not a standard DoH query", param)
+	}
+
+	// Set DNS ID as zero according to RFC8484 (cache friendly)
+	query.QueryMsg.Id = 0
+
+	var packErr error
+	buf, packErr = query.QueryMsg.Pack()
+	if packErr != nil {
+		return res, custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed, true).AddInfo(packErr)
+	}
+
+	b64 = make([]byte, base64.RawURLEncoding.EncodedLen(len(buf)))
+	base64.RawURLEncoding.Encode(b64, buf)
+
+	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(query.Host, query.Port))
+
+	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
+
+	var queryErr error
+	//nolint:gocritic
+	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
+		// ready to try GET request
+		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
+		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
+
+		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
+	} else if query.POSTFallback || query.Method == HTTP_POST {
+		// let's try POST instead
+		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
+		body := bytes.NewReader(buf)
+		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
+		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
+		// content-type is required on POST requests, see RFC8484
+		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
+
+		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
+	} else {
+		return res, custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, true).AddInfo(fmt.Errorf("URI length is %d characters", len(fullGetURI)))
+	}
 
 	return res, validateCertificateError(
-		err,
+		queryErr,
 		custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true),
 		&res.DoEResponse,
 		query.SkipCertificateVerify,
