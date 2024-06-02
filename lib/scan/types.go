@@ -13,16 +13,35 @@ type ScanIds struct {
 }
 
 type ScanMetaInformation struct {
-	ScanId       string `json:"scan_id"`
+	// RunId is a unique identifier for a set of scans
+	RunId string `json:"run_id"`
+
+	// ScanId is a unique identifier for a single scan
+	ScanId string `json:"scan_id"`
+
+	// ParentScanId is the scan id of the scan that triggered this scan
 	ParentScanId string `json:"parent_scan_id"`
-	RootScanId   string `json:"root_scan_id"`
+
+	// RootScanId is the scan id of the scan that started the scan chain
+	RootScanId string `json:"root_scan_id"`
+
+	// VantagePoint is the vantage point from which the scan was started
 	VantagePoint string `json:"vantage_point"`
 
+	// Scheduled is the time when the scan was scheduled, i.e., when the scan was created and scheduled to kafka
 	Scheduled time.Time `json:"scheduled"`
-	Started   time.Time `json:"started"`
-	Finished  time.Time `json:"finished"`
+
+	// Started is the time when the scan was started
+	Started time.Time `json:"started"`
+
+	// Finished is the time when the scan was finished
+	Finished time.Time `json:"finished"`
 
 	Errors []custom_errors.DoEErrors `json:"errors"`
+}
+
+func (smi *ScanMetaInformation) GenerateRunId() {
+	smi.RunId = uuid.New().String()
 }
 
 func (smi *ScanMetaInformation) GenerateScanId() {
@@ -62,8 +81,9 @@ type DoEScan interface {
 	GetDoEQuery() *query.DoEQuery
 }
 
-func NewScanMetaInformation(parentScanId, rootScanId string) *ScanMetaInformation {
+func NewScanMetaInformation(parentScanId, rootScanId string, runId string) *ScanMetaInformation {
 	meta := &ScanMetaInformation{
+		RunId:        runId,
 		ParentScanId: parentScanId,
 		RootScanId:   rootScanId,
 		Errors:       []custom_errors.DoEErrors{},

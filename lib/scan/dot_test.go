@@ -12,7 +12,7 @@ func TestDoTScan_Constructor(t *testing.T) {
 	t.Parallel()
 	t.Run("nil query", func(t *testing.T) {
 		t.Parallel()
-		scan := scan.NewDoTScan(nil, "parent", "root")
+		scan := scan.NewDoTScan(nil, "parent", "root", "run")
 
 		// test
 		assert.Equal(t, "DoT", scan.GetType(), "should have returned PTR")
@@ -21,12 +21,13 @@ func TestDoTScan_Constructor(t *testing.T) {
 		assert.Nil(t, scan.Result, "result should be nil")
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
+		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
 	})
 
 	t.Run("non-nil query", func(t *testing.T) {
 		t.Parallel()
 		q := query.NewDoTQuery()
-		scan := scan.NewDoTScan(q, "parent", "root")
+		scan := scan.NewDoTScan(q, "parent", "root", "run")
 
 		// test
 		assert.Equal(t, "DoT", scan.GetType(), "should have returned PTR")
@@ -36,12 +37,13 @@ func TestDoTScan_Constructor(t *testing.T) {
 		assert.Equal(t, q, scan.Query, "should have attached query")
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
+		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
 	})
 }
 
 func TestDoTScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewDoTScan(nil, "parent", "root")
+	scan := scan.NewDoTScan(nil, "parent", "root", "run")
 	bytes, err := scan.Marshall()
 
 	// test
@@ -53,7 +55,7 @@ func TestDoTScan_DoEFunctions(t *testing.T) {
 	t.Parallel()
 
 	q := query.NewDoTQuery()
-	scan := scan.NewDoTScan(q, "parent", "root")
+	scan := scan.NewDoTScan(q, "parent", "root", "run")
 
 	// test
 	assert.Equal(t, scan.GetScanId(), scan.GetMetaInformation().ScanId, "should have returned the same ID")
