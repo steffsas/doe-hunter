@@ -12,7 +12,7 @@ func TestCertificateScan_Constructor(t *testing.T) {
 	t.Parallel()
 	t.Run("nil query", func(t *testing.T) {
 		t.Parallel()
-		scan := scan.NewCertificateScan(nil, "parent", "root")
+		scan := scan.NewCertificateScan(nil, "parent", "root", "runid")
 
 		// test
 		assert.Equal(t, "certificate", scan.GetType(), "should have returned PTR")
@@ -27,7 +27,7 @@ func TestCertificateScan_Constructor(t *testing.T) {
 	t.Run("non-nil query", func(t *testing.T) {
 		t.Parallel()
 		q := query.NewCertificateQuery()
-		scan := scan.NewCertificateScan(q, "parent", "root")
+		scan := scan.NewCertificateScan(q, "parent", "root", "runid")
 
 		// test
 		assert.Equal(t, "certificate", scan.GetType(), "should have returned PTR")
@@ -43,7 +43,7 @@ func TestCertificateScan_Constructor(t *testing.T) {
 
 func TestCertificateScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewCertificateScan(nil, "parent", "root")
+	scan := scan.NewCertificateScan(nil, "parent", "root", "runid")
 	bytes, err := scan.Marshall()
 
 	// test

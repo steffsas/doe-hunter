@@ -169,7 +169,7 @@ func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 		q.QueryMsg.RecursionDesired = true
 		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
-		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId)
+		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId, ddrScan.Meta.RunId)
 
 		// produce PTR scan
 		if err := pss.Producer.Produce(ddrScan, ptrScan, GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {

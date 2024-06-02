@@ -46,7 +46,7 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	RedoDoEScanOnCertError(
 		qErr,
 		doqScan,
-		scan.NewDoQScan(doqScan.Query, doqScan.Meta.ScanId, doqScan.Meta.RootScanId),
+		scan.NewDoQScan(doqScan.Query, doqScan.Meta.ScanId, doqScan.Meta.RootScanId, doqScan.Meta.RunId),
 		k.DEFAULT_DOT_TOPIC,
 	)
 

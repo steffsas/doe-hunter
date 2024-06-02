@@ -40,7 +40,7 @@ func (scan *DoQScan) GetDoEQuery() *query.DoEQuery {
 	return &scan.Query.DoEQuery
 }
 
-func NewDoQScan(q *query.DoQQuery, parentScanId, rootScanId string) *DoQScan {
+func NewDoQScan(q *query.DoQQuery, parentScanId, rootScanId, runId string) *DoQScan {
 	if q == nil {
 		q = query.NewDoQQuery()
 	}
@@ -48,7 +48,7 @@ func NewDoQScan(q *query.DoQQuery, parentScanId, rootScanId string) *DoQScan {
 	scan := &DoQScan{
 		Meta: &DoQScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId)
 	scan.Query = q
 
 	return scan

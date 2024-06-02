@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/kafka"
@@ -167,6 +168,8 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 	ipv4Considered := []string{}
 	ipv6Considered := []string{}
 
+	runId := uuid.New().String()
+
 	for _, res := range censysData {
 		if res.Ipv4 != "" {
 			if !slices.Contains(ipv4Considered, res.Ipv4) {
@@ -180,7 +183,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				q.Port = 53
 
 				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint)
+				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint, runId)
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
@@ -202,7 +205,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				q.Port = 53
 
 				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint)
+				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint, runId)
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
