@@ -50,6 +50,8 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 		tlsConfig.ServerName = query.SNI
 	}
 
+	query.SetDNSSEC()
+
 	var queryErr error
 	res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
@@ -71,6 +73,11 @@ func NewDoTQuery() (q *DoTQuery) {
 
 	q.Port = DEFAULT_DOT_PORT
 	q.Timeout = DEFAULT_DOT_TIMEOUT
+
+	q.QueryMsg = GetDefaultQueryMsg()
+
+	// set DNSSEC flag by default
+	q.DNSSEC = true
 
 	return
 }

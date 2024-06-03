@@ -187,6 +187,8 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		logrus.Warnf("DoH query param %s is not 'dns', this is not a standard DoH query", param)
 	}
 
+	query.SetDNSSEC()
+
 	// set the transport based on the HTTP version
 	var transport http.RoundTripper
 

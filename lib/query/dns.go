@@ -103,6 +103,8 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrInvalidTimeout, true).AddInfoString(fmt.Sprintf("timeout (ms): %d", query.Timeout))
 	}
 
+	query.SetDNSSEC()
+
 	res.WasTruncated = false
 	if query.Protocol == DNS_UDP {
 		// create exponential timeout backoff
@@ -197,6 +199,9 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 	q.Port = DEFAULT_DNS_PORT
 
 	q.QueryMsg = GetDefaultQueryMsg()
+
+	// set DNSSEC flag by default
+	q.DNSSEC = true
 
 	return q
 }
