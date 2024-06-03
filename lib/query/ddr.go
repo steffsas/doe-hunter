@@ -10,8 +10,6 @@ func NewDDRQuery() *ConventionalDNSQuery {
 	q.QueryMsg.SetQuestion("_dns.resolver.arpa.", dns.TypeSVCB)
 	q.QueryMsg.RecursionDesired = false
 
-	prepareDefaultQuery(q.QueryMsg)
-
 	return q
 }
 

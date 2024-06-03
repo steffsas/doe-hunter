@@ -140,6 +140,46 @@ func TestDNSQuery_RealWorld(t *testing.T) {
 	// })
 }
 
+func TestDNSQuery_DNSSEC(t *testing.T) {
+	t.Parallel()
+
+	t.Run("DNSSEC enabled", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+
+		assert.True(t, q.DNSSEC, "DNSSEC should be enabled by default")
+
+		res, err := dq.Query(q)
+
+		require.NotNil(t, res, "response should not be nil")
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "response message should not be nil")
+		// see https://datatracker.ietf.org/doc/html/rfc3225
+		require.NotEmpty(t, res.Response.ResponseMsg.Extra, "response should have returned an extra section")
+		assert.NotNil(t, res.Response.ResponseMsg.Answer, "response should have an answer")
+	})
+
+	t.Run("DNSSEC disabled", func(t *testing.T) {
+		t.Parallel()
+
+		dq := getDefaultQueryHandler()
+		q := getDefaultQuery()
+		q.DNSSEC = false
+
+		res, err := dq.Query(q)
+
+		require.NotNil(t, res, "response should not be nil")
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res.Response, "response should not be nil")
+		require.NotNil(t, res.Response.ResponseMsg, "response message should not be nil")
+		assert.Empty(t, res.Response.ResponseMsg.Extra, "response should not have returned an extra section")
+		assert.NotNil(t, res.Response.ResponseMsg.Answer, "response should have an answer")
+	})
+}
+
 // TestDNSQuery_InvalidProtocol tests the DNS query with an invalid protocol
 func TestDNSQuery_InvalidProtocol(t *testing.T) {
 	t.Parallel()

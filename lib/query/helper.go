@@ -63,16 +63,11 @@ func checkForQueryParams(host string, port int, timeout time.Duration, checkForT
 
 func GetDefaultQueryMsg() *dns.Msg {
 	msg := &dns.Msg{}
-	prepareDefaultQuery(msg)
-	return msg
-}
 
-func prepareDefaultQuery(msg *dns.Msg) {
 	// let's be cache friendly
 	msg.MsgHdr = dns.MsgHdr{
 		Id: 0,
 	}
 
-	// set DNSSEC by default
-	msg.SetEdns0(1232, true)
+	return msg
 }

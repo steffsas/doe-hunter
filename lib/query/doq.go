@@ -87,6 +87,8 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 		HandshakeIdleTimeout: query.Timeout,
 	}
 
+	query.SetDNSSEC()
+
 	// measure some RTT
 	start := time.Now()
 
@@ -220,6 +222,9 @@ func NewDoQQuery() (q *DoQQuery) {
 	q.Timeout = DEFAULT_DOQ_TIMEOUT
 
 	q.QueryMsg = GetDefaultQueryMsg()
+
+	// set DNSSEC flag by default
+	q.DNSSEC = true
 
 	return
 }

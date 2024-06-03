@@ -36,6 +36,19 @@ type DNSQuery struct {
 	Port int `json:"port"`
 	// Timeout is the timeout in ms (default: 5000)
 	Timeout time.Duration `json:"timeout"`
+	// DNSSEC
+	DNSSEC bool `json:"dnssec"`
+}
+
+// SetDNSSEC sets the DNSSEC flag in the query message
+// Do not use this function before marshaling the query but before sending it as a DNS query
+func (q *DNSQuery) SetDNSSEC() {
+	if q.DNSSEC {
+		if q.QueryMsg == nil {
+			q.QueryMsg = new(dns.Msg)
+		}
+		q.QueryMsg.SetEdns0(2048, true)
+	}
 }
 
 func (q *DNSQuery) Check(checkForTimeout bool) (err custom_errors.DoEErrors) {
