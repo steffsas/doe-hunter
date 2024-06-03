@@ -139,6 +139,8 @@ func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic
 		}
 
 		p.producer[topic] = prod
+	} else {
+		prod = p.producer[topic]
 	}
 
 	start := time.Now()
