@@ -183,7 +183,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				q.Port = 53
 
 				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint, runId)
+				scan := scan.NewDDRScan(q, scheduleDoEScans, runId, *vantagePoint)
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
