@@ -65,7 +65,6 @@ func NewKafkaDDREventConsumer(
 	producerConfig *producer.KafkaProducerConfig,
 	storageHandler storage.StorageHandler,
 	queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
-
 	if consumerConfig != nil && consumerConfig.ConsumerGroup == "" {
 		consumerConfig.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
 	}
