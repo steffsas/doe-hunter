@@ -100,6 +100,8 @@ type ProduceFactory struct {
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
 	// TODO: this will create a socket on every call, should be optimized
 
+	return nil
+
 	start := time.Now()
 	pr, err := producer.NewScanProducer(topic, p.Config)
 	if err != nil {
