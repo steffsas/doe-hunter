@@ -298,8 +298,12 @@ func startConsumer(ctx context.Context, protocol string) {
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
+
+		producerConfig := producer.GetDefaultKafkaProducerConfig()
+		producerConfig.Server = *kakfaServer
+
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, producerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return

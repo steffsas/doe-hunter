@@ -216,7 +216,7 @@ func TestDoECertScanScheduler(t *testing.T) {
 		mpf := &MockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-		scheduler := consumer.DoECertScanScheduler{
+		scheduler := consumer.DoEAndCertScanScheduler{
 			Producer: mpf,
 		}
 
@@ -264,7 +264,7 @@ func TestDoECertScanScheduler(t *testing.T) {
 		mpf := &MockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-		scheduler := consumer.DoECertScanScheduler{
+		scheduler := consumer.DoEAndCertScanScheduler{
 			Producer: mpf,
 		}
 
