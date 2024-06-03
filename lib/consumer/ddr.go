@@ -122,8 +122,12 @@ func (p *ProduceFactory) Flush() {
 }
 
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
-	// TODO: this will create a socket on every call, should be optimized
 	var prod *producer.ScanProducer
+
+	if p.producer == nil {
+		p.producer = make(map[string]*producer.ScanProducer)
+	}
+
 	if p.producer[topic] == nil {
 		prod, err := producer.NewScanProducer(topic, p.Config)
 		if err != nil {
