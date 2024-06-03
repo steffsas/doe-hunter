@@ -40,7 +40,7 @@ var (
 	kakfaServer      = flag.String("kafkaServer", kafka.DEFAULT_KAFKA_SERVER, "kafka server address")
 	mongoServer      = flag.String("mongoServer", storage.DEFAULT_MONGO_URL, "mongo server address")
 	vantagePoint     = flag.String("vantagePoint", "default", "vantage point name, used for meta data of scan and kafka topics")
-	debugLevel       = flag.String("debugLevel", "info", "debug level (trace, debug, info, warn, error, fatal, panic)")
+	logLevel         = flag.String("logLevel", "info", "log level (trace, debug, info, warn, error, fatal, panic)")
 	producerFilePath = flag.String("producerFilePath", "data/censys_100k.json", "file path to the producer file to produce ddr scans")
 	localAddr        = flag.String("localAddr", "", "local address (NIC) to bind DNS/DoE/Cert etc. queries to")
 )
@@ -71,7 +71,7 @@ func main() {
 }
 
 func setLogger() {
-	switch *debugLevel {
+	switch *logLevel {
 	case "trace":
 		logrus.SetLevel(logrus.TraceLevel)
 	case "debug":
