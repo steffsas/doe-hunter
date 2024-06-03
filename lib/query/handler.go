@@ -23,6 +23,10 @@ func (df *DefaultQueryHandlerDNS) Query(host string, query *dns.Msg, protocol st
 		Net:       protocol,
 		Dialer:    df.dialer,
 	}
+
+	// because Dialer may override dns.Client's timeout
+	c.Dialer.Timeout = timeout
+
 	answer, rtt, err = c.Exchange(query, host)
 
 	return
