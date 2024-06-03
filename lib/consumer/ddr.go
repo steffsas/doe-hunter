@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -90,30 +91,55 @@ func NewKafkaDDREventConsumer(
 }
 
 type ProduceFactoryI interface {
+	Flush()
+	CloseAll()
 	Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error
 }
 
 type ProduceFactory struct {
-	Config *producer.KafkaProducerConfig
+	producer map[string]*producer.ScanProducer
+	Config   *producer.KafkaProducerConfig
+}
+
+func (p *ProduceFactory) CloseAll() {
+	for _, prod := range p.producer {
+		prod.Close()
+	}
+}
+
+func (p *ProduceFactory) Flush() {
+	wg := sync.WaitGroup{}
+	for _, prod := range p.producer {
+		wg.Add(1)
+		go func(prod *producer.ScanProducer) {
+			defer wg.Done()
+			for prod.Flush(1000) > 0 {
+				logrus.Debugf("waiting for successfull flush of kafka producer messages...")
+			}
+		}(prod)
+	}
+	wg.Wait()
 }
 
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
 	// TODO: this will create a socket on every call, should be optimized
+	var prod *producer.ScanProducer
+	if p.producer[topic] == nil {
+		prod, err := producer.NewScanProducer(topic, p.Config)
+		if err != nil {
+			logrus.Errorf("failed to create scan producer: %v", err)
+			ddrScan.Meta.AddError(custom_errors.NewGenericError(
+				custom_errors.ErrProducerCreationFailed, true),
+			)
+			return err
+		}
 
-	return nil
+		p.producer[topic] = prod
+	}
 
 	start := time.Now()
-	pr, err := producer.NewScanProducer(topic, p.Config)
-	if err != nil {
-		logrus.Errorf("failed to create scan producer: %v", err)
-		ddrScan.Meta.AddError(custom_errors.NewGenericError(
-			custom_errors.ErrProducerCreationFailed, true),
-		)
-		return err
-	}
-	defer pr.Close()
 
-	err = pr.Produce(newScan)
+	err := prod.Produce(newScan)
 	if err != nil {
 		logrus.Errorf("failed to produce scan: %v", err)
 		ddrScan.Meta.AddError(
@@ -157,6 +183,8 @@ func (dss *DoEAndCertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 					_ = dss.Producer.Produce(ddrScan, s, GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, ddrScan.Meta.VantagePoint))
 				}
 			}
+
+			dss.Producer.Flush()
 		} else {
 			logrus.Infof("no DoE scans to schedule since there was no SVCB answers %s", ddrScan.Meta.ScanId)
 		}
@@ -196,5 +224,7 @@ func (pss *PTRScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
 			)
 		}
+
+		pss.Producer.Flush()
 	}
 }
