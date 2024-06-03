@@ -20,7 +20,7 @@ const DEFAULT_DDR_CONSUMER_GROUP = "ddr-scan-group"
 type DDRProcessEventHandler struct {
 	EventProcessHandler
 
-	DoeProducer  DoECertScanScheduler
+	DoeProducer  DoEAndCertScanScheduler
 	PTRProducer  PTRScanScheduler
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
@@ -60,20 +60,25 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 	return err
 }
 
-func NewKafkaDDREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
-	if config != nil && config.ConsumerGroup == "" {
-		config.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
+func NewKafkaDDREventConsumer(
+	consumerConfig *KafkaConsumerConfig,
+	producerConfig *producer.KafkaProducerConfig,
+	storageHandler storage.StorageHandler,
+	queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
+
+	if consumerConfig != nil && consumerConfig.ConsumerGroup == "" {
+		consumerConfig.ConsumerGroup = DEFAULT_DDR_CONSUMER_GROUP
 	}
 
 	newPh := func() (EventProcessHandler, error) {
 		return &DDRProcessEventHandler{
 			QueryHandler: query.NewDDRQueryHandler(queryConfig),
-			DoeProducer:  DoECertScanScheduler{Producer: &ProduceFactory{}},
+			DoeProducer:  DoEAndCertScanScheduler{Producer: &ProduceFactory{}},
 			PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
 		}, nil
 	}
 
-	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
+	kec, err = NewKafkaEventConsumer(consumerConfig, newPh, storageHandler)
 
 	return
 }
@@ -83,11 +88,11 @@ type ProduceFactoryI interface {
 }
 
 type ProduceFactory struct {
-	Topic string
+	Config *producer.KafkaProducerConfig
 }
 
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
-	pr, err := producer.NewScanProducer(topic, nil)
+	pr, err := producer.NewScanProducer(topic, p.Config)
 	if err != nil {
 		logrus.Errorf("failed to create scan producer: %v", err)
 		ddrScan.Meta.AddError(custom_errors.NewGenericError(
@@ -108,11 +113,11 @@ func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic
 	return err
 }
 
-type DoECertScanScheduler struct {
+type DoEAndCertScanScheduler struct {
 	Producer ProduceFactoryI
 }
 
-func (dss *DoECertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
+func (dss *DoEAndCertScanScheduler) ScheduleScans(ddrScan *scan.DDRScan) {
 	// schedule DoE scans
 	if ddrScan.Meta.ScheduleDoEScans {
 		logrus.Infof("schedule DoE and certificate scans for DDR scan %s", ddrScan.Meta.ScanId)
