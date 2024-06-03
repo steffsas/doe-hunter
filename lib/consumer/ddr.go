@@ -125,6 +125,8 @@ func (p *ProduceFactory) Flush() {
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
 	var prod *producer.ScanProducer
 
+	return nil
+
 	if p.producer == nil {
 		p.producer = make(map[string]*producer.ScanProducer)
 	}
