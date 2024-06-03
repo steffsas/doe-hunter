@@ -115,8 +115,6 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 			var queryErr error
 			res.UDPAttempts = i
 
-			start := time.Now()
-
 			res.Response.ResponseMsg, res.Response.RTT, queryErr = dq.QueryHandler.Query(
 				helper.GetFullHostFromHostPort(query.Host, query.Port),
 				query.QueryMsg,
@@ -124,9 +122,6 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 				query.TimeoutUDP,
 				nil,
 			)
-
-			logrus.Debugf("UDP DNS query took %s", time.Since(start))
-
 			if queryErr != nil {
 				res.AttemptErrors = append(res.AttemptErrors, queryErr.Error())
 			}
@@ -144,9 +139,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 			if i+1 < query.MaxUDPRetries {
 				// sleep for backoff duration since we are going to retry
-				sleepTime := b.NextBackOff()
-				logrus.Debugf("sleeping for %s before next retry", sleepTime)
-				dq.Sleeper.Sleep(sleepTime)
+				dq.Sleeper.Sleep(b.NextBackOff())
 			}
 		}
 	}
@@ -159,7 +152,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 		for i := 1; i <= query.MaxTCPRetries; i++ {
 			var queryErr error
 			res.TCPAttempts = i
-			start := time.Now()
+
 			res.Response.ResponseMsg, res.Response.RTT, queryErr = dq.QueryHandler.Query(
 				helper.GetFullHostFromHostPort(query.Host, query.Port),
 				query.QueryMsg,
@@ -167,7 +160,6 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 				query.TimeoutTCP,
 				nil,
 			)
-			logrus.Debugf("TCP DNS query took %s", time.Since(start))
 
 			if queryErr != nil {
 				res.AttemptErrors = append(res.AttemptErrors, queryErr.Error())
@@ -180,10 +172,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 			if i+1 < query.MaxTCPRetries {
 				// sleep for backoff duration since we are going to retry
-				// sleep for backoff duration since we are going to retry
-				sleepTime := b.NextBackOff()
-				logrus.Debugf("sleeping for %s before next retry", sleepTime)
-				dq.Sleeper.Sleep(sleepTime)
+				dq.Sleeper.Sleep(b.NextBackOff())
 			}
 		}
 	}

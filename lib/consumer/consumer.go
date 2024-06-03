@@ -160,19 +160,16 @@ func (keh *KafkaEventConsumer) Process(workerNum int, handler EventProcessHandle
 	for msg := range in {
 		// we got a message, let's process it
 		logrus.Debugf("received message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
-		// measure time to process message
-		start := time.Now()
 		err := handler.Process(msg, keh.StorageHandler)
 		if err != nil {
 			logrus.Errorf("worker %d failed to process message: %v", workerNum, err)
-		} else {
-			logrus.Debugf("worker %d processed message in %v", workerNum, time.Since(start))
 		}
 	}
 }
 
 func (keh *KafkaEventConsumer) Fetch(ctx context.Context, out chan *kafka.Message, wg *sync.WaitGroup) (err error) {
 	defer wg.Done()
+	counter := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -199,6 +196,10 @@ func (keh *KafkaEventConsumer) Fetch(ctx context.Context, out chan *kafka.Messag
 					return err
 				}
 			} else {
+				counter++
+				if counter%1000 == 0 {
+					logrus.Debugf("consumed %d messages from %s", counter, keh.Config.Topic)
+				}
 				out <- msg
 			}
 		}
