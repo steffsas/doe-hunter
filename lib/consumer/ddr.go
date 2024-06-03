@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -129,7 +130,8 @@ func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic
 	}
 
 	if p.producer[topic] == nil {
-		prod, err := producer.NewScanProducer(topic, p.Config)
+		var err error
+		prod, err = producer.NewScanProducer(topic, p.Config)
 		if err != nil {
 			logrus.Errorf("failed to create scan producer: %v", err)
 			ddrScan.Meta.AddError(custom_errors.NewGenericError(
@@ -141,6 +143,11 @@ func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic
 		p.producer[topic] = prod
 	} else {
 		prod = p.producer[topic]
+		fmt.Println("let's take the existing producer", p.producer[topic])
+	}
+
+	if prod == nil {
+		panic("producer is nil")
 	}
 
 	start := time.Now()
