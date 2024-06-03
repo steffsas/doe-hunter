@@ -73,8 +73,14 @@ func NewKafkaDDREventConsumer(
 	newPh := func() (EventProcessHandler, error) {
 		return &DDRProcessEventHandler{
 			QueryHandler: query.NewDDRQueryHandler(queryConfig),
-			DoeProducer:  DoEAndCertScanScheduler{Producer: &ProduceFactory{}},
-			PTRProducer:  PTRScanScheduler{Producer: &ProduceFactory{}},
+			DoeProducer: DoEAndCertScanScheduler{
+				Producer: &ProduceFactory{
+					Config: producerConfig,
+				}},
+			PTRProducer: PTRScanScheduler{
+				Producer: &ProduceFactory{
+					Config: producerConfig,
+				}},
 		}, nil
 	}
 
@@ -92,6 +98,7 @@ type ProduceFactory struct {
 }
 
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
+	// TODO: this will create a socket on every call, should be optimized
 	pr, err := producer.NewScanProducer(topic, p.Config)
 	if err != nil {
 		logrus.Errorf("failed to create scan producer: %v", err)
