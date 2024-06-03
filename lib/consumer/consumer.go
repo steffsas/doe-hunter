@@ -160,10 +160,13 @@ func (keh *KafkaEventConsumer) Process(workerNum int, handler EventProcessHandle
 	for msg := range in {
 		// we got a message, let's process it
 		logrus.Debugf("received for message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
+		// measure time to process message
+		start := time.Now()
 		err := handler.Process(msg, keh.StorageHandler)
 		if err != nil {
-			logrus.Errorf("failed to process message: %v", err)
-			continue
+			logrus.Errorf("worker %d failed to process message: %v", workerNum, err)
+		} else {
+			logrus.Debugf("worker %d processed message in %v", workerNum, time.Since(start))
 		}
 	}
 }
