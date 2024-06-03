@@ -159,7 +159,7 @@ func (keh *KafkaEventConsumer) Process(workerNum int, handler EventProcessHandle
 	defer wg.Done()
 	for msg := range in {
 		// we got a message, let's process it
-		logrus.Debugf("received for message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
+		logrus.Debugf("received message on topic %s and group %s", keh.Config.Topic, keh.Config.ConsumerGroup)
 		// measure time to process message
 		start := time.Now()
 		err := handler.Process(msg, keh.StorageHandler)

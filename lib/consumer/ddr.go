@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -98,6 +99,8 @@ type ProduceFactory struct {
 
 func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
 	// TODO: this will create a socket on every call, should be optimized
+
+	start := time.Now()
 	pr, err := producer.NewScanProducer(topic, p.Config)
 	if err != nil {
 		logrus.Errorf("failed to create scan producer: %v", err)
@@ -115,6 +118,8 @@ func (p *ProduceFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic
 			custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
 		)
 	}
+
+	logrus.Debugf("produced scan on topic %s in %v", topic, time.Since(start))
 
 	return err
 }
