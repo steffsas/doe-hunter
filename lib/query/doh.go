@@ -300,17 +300,20 @@ func NewDoHQueryHandler(config *QueryConfig) (*DoHQueryHandler, error) {
 	var conn net.PacketConn
 
 	if config != nil {
-		localAddr := &net.UDPAddr{
+		// HTTP1 / HTTP2 based on TCP
+		localTCPAddr := &net.TCPAddr{
 			IP:   config.LocalAddr,
 			Port: 0,
 		}
+		dialer.LocalAddr = localTCPAddr
 
-		// set dialer for http1/http2
-		dialer.LocalAddr = localAddr
-
-		// create udp connection
+		// HTTP3 based on UDP
+		localUDPAddr := &net.UDPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
 		var err error
-		conn, err = net.ListenUDP("udp", localAddr)
+		conn, err = net.ListenUDP("udp", localUDPAddr)
 		if err != nil {
 			logrus.Errorf("Failed to create UDP connection: %s", err)
 		}

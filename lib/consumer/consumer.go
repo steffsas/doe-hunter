@@ -149,7 +149,7 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 		go keh.Process(i, handler[i], msgChan, &wg)
 	}
 
-	logrus.Infof("all %d worker started", keh.Config.Threads)
+	logrus.Infof("all %d worker for topic %s started", keh.Config.Threads, keh.Config.Topic)
 
 	wg.Wait()
 
