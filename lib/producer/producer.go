@@ -15,8 +15,10 @@ const DEFAULT_FLUSH_TIMEOUT_MS = 5000
 const DEFAULT_MAX_PARTITIONS int32 = 100
 
 type EventProducer interface {
-	Produce(msg []byte) (err error)
+	Produce(msg []byte, topic string) (err error)
 	Close()
+	Events() chan kafka.Event
+	Flush(timeout int) int
 }
 
 type KafkaProducerConfig struct {
@@ -28,13 +30,6 @@ type KafkaProducerConfig struct {
 	ReplicationFactor int
 }
 
-type KafkaEventProducerI interface {
-	EventProducer
-
-	Events() chan kafka.Event
-	Flush(timeout int) int
-}
-
 type KafkaProducer interface {
 	Produce(msg *kafka.Message, deliveryChan chan kafka.Event) (err error)
 	Flush(timeout int) int
@@ -43,7 +38,7 @@ type KafkaProducer interface {
 }
 
 type KafkaEventProducer struct {
-	KafkaEventProducerI
+	EventProducer
 
 	Config   *KafkaProducerConfig
 	Topic    string
@@ -51,7 +46,7 @@ type KafkaEventProducer struct {
 }
 
 // blocking call to produce a message
-func (kep *KafkaEventProducer) Produce(msg []byte) (err error) {
+func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 	if kep.Producer == nil {
 		return errors.New("producer not initialized")
 	}
@@ -60,12 +55,16 @@ func (kep *KafkaEventProducer) Produce(msg []byte) (err error) {
 		return errors.New("message should not be empty")
 	}
 
+	if topic == "" {
+		return errors.New("topic should not be empty")
+	}
+
 	partition := rand.Int31() % kep.Config.MaxPartitions
 
 	kafkaEvent := make(chan kafka.Event)
 
 	err = kep.Producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &kep.Topic, Partition: partition},
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: partition},
 		Value:          msg,
 	}, kafkaEvent)
 
@@ -95,7 +94,7 @@ func (kep *KafkaEventProducer) Close() {
 	}
 }
 
-func NewKafkaProducer(topic string, config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
+func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
 	if config == nil {
 		config = GetDefaultKafkaProducerConfig()
 	}
@@ -106,10 +105,6 @@ func NewKafkaProducer(topic string, config *KafkaProducerConfig) (kp *KafkaEvent
 
 	if config.Timeout <= 0 {
 		return nil, errors.New("invalid timeout")
-	}
-
-	if topic == "" {
-		return nil, errors.New("invalid topic")
 	}
 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
@@ -124,7 +119,6 @@ func NewKafkaProducer(topic string, config *KafkaProducerConfig) (kp *KafkaEvent
 	return &KafkaEventProducer{
 		Config:   config,
 		Producer: p,
-		Topic:    topic,
 	}, nil
 }
 
