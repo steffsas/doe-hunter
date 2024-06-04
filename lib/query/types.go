@@ -18,7 +18,7 @@ type QueryHandler interface {
 
 type DNSResponse struct {
 	// Response is the DNS response
-	ResponseMsg *dns.Msg `json:"response"`
+	ResponseMsg *dns.Msg `json:"responsemsg"`
 	// RTT is the round-trip time
 	RTT time.Duration `json:"rtt"`
 }
