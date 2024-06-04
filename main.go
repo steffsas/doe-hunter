@@ -258,6 +258,9 @@ func startAllConsumer(ctx context.Context) {
 	wg := sync.WaitGroup{}
 
 	for _, protocol := range SUPPORTED_PROTOCOL_TYPES {
+		if protocol == "all" {
+			continue
+		}
 		wg.Add(1)
 		go func(p string) {
 			defer wg.Done()
@@ -310,7 +313,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: *threads,
+			Threads: 2500,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
