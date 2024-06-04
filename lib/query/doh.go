@@ -41,8 +41,8 @@ type HttpQueryHandler interface {
 }
 
 type defaultHttpQueryHandler struct {
-	Dialer *net.Dialer
-	Conn   net.PacketConn
+	Dialer        *net.Dialer
+	QuicTransport *quic.Transport
 }
 
 func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error) {
@@ -51,15 +51,13 @@ func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion strin
 	case HTTP_VERSION_1, HTTP_VERSION_2:
 		transport.(*http.Transport).DialContext = h.Dialer.DialContext
 	case HTTP_VERSION_3:
-		transport.(*http3.RoundTripper).Dial = func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
-			// parse addr to UDPAddr
-			udpAddr, err := net.ResolveUDPAddr("udp", addr)
+		// see https://quic-go.net/docs/http3/client/#using-a-quictransport
+		transport.(*http3.RoundTripper).Dial = func(ctx context.Context, addr string, tlsConf *tls.Config, quicConf *quic.Config) (quic.EarlyConnection, error) {
+			a, err := net.ResolveUDPAddr("udp", addr)
 			if err != nil {
 				return nil, err
 			}
-
-			// we use the default QUIC dialer with an axisting connection
-			return quic.DialEarly(ctx, h.Conn, udpAddr, tlsCfg, cfg)
+			return h.QuicTransport.DialEarly(ctx, a, tlsConf, quicConf)
 		}
 	}
 
@@ -297,7 +295,7 @@ func NewDoHQuery() (q *DoHQuery) {
 
 func NewDoHQueryHandler(config *QueryConfig) (*DoHQueryHandler, error) {
 	dialer := &net.Dialer{}
-	var conn net.PacketConn
+	quicTransport := &quic.Transport{}
 
 	if config != nil {
 		// HTTP1 / HTTP2 based on TCP
@@ -312,26 +310,29 @@ func NewDoHQueryHandler(config *QueryConfig) (*DoHQueryHandler, error) {
 			IP:   config.LocalAddr,
 			Port: 0,
 		}
-		var err error
-		conn, err = net.ListenUDP("udp", localUDPAddr)
+		conn, err := net.ListenUDP("udp", localUDPAddr)
 		if err != nil {
 			logrus.Errorf("Failed to create UDP connection: %s", err)
+			return nil, err
 		}
+		quicTransport.Conn = conn
 	} else {
 		var err error
 		// create udp connection on any local address
-		conn, err = net.ListenUDP("udp", nil)
+		conn, err := net.ListenUDP("udp", nil)
 		if err != nil {
 			logrus.Errorf("Failed to create UDP connection: %s", err)
+			return nil, err
 		}
+		quicTransport.Conn = conn
 	}
 
 	qh := &DoHQueryHandler{
 		QueryHandler: &defaultHttpQueryHandler{
 			// http1/http2
 			Dialer: dialer,
-			// http3
-			Conn: conn,
+			// http3/quic
+			QuicTransport: quicTransport,
 		},
 	}
 
