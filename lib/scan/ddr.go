@@ -94,14 +94,14 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 
 		// create DoE scans for each ALPN and ip hint
 		for _, alpn := range svcb.Alpn.Alpn {
-			s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, svcb.Target, svcb.Target, alpn, svcb)
+			s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint, svcb.Target, svcb.Target, alpn, svcb)
 			scans = append(scans, s...)
 			errorColl = append(errorColl, e...)
 
 			if svcb.IPv4Hint != nil {
 				for _, ipv4 := range svcb.IPv4Hint.Hint {
 					// create DoE scans for IPv4 hints
-					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, svcb.Target, ipv4.String(), alpn, svcb)
+					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint, svcb.Target, ipv4.String(), alpn, svcb)
 					scans = append(scans, s...)
 					errorColl = append(errorColl, e...)
 				}
@@ -109,7 +109,7 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 
 			if svcb.IPv6Hint != nil {
 				for _, ipv6 := range svcb.IPv6Hint.Hint {
-					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, svcb.Target, ipv6.String(), alpn, svcb)
+					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint, svcb.Target, ipv6.String(), alpn, svcb)
 					scans = append(scans, s...)
 					errorColl = append(errorColl, e...)
 				}
@@ -128,7 +128,7 @@ func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool, runId stri
 	scan := &DDRScan{
 		Meta: &DDRScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation("", "", runId)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation("", "", runId, vantagePoint)
 	scan.Meta.ScheduleDoEScans = scheduleDoEScans
 	scan.Meta.VantagePoint = vantagePoint
 	scan.Query = q
@@ -139,6 +139,7 @@ func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool, runId stri
 func produceScansFromAlpn(
 	parentScanId string,
 	runId string,
+	vantagePoint string,
 	targetName string,
 	host string,
 	alpn string,
@@ -173,7 +174,6 @@ func produceScansFromAlpn(
 	}
 
 	var doeScan DoEScan
-	var sErr custom_errors.DoEErrors
 
 	switch alpn {
 	case "doq":
@@ -184,7 +184,7 @@ func produceScansFromAlpn(
 		if port != nil {
 			q.Port = *port
 		}
-		doeScan = NewDoQScan(q, parentScanId, parentScanId, runId)
+		doeScan = NewDoQScan(q, parentScanId, parentScanId, runId, vantagePoint)
 
 		certQuery.ALPN = query.DOQ_TLS_PROTOCOLS
 		certQuery.Port = doeScan.GetDoEQuery().Port
@@ -198,7 +198,7 @@ func produceScansFromAlpn(
 		if port != nil {
 			q.Port = *port
 		}
-		doeScan = NewDoTScan(q, parentScanId, parentScanId, runId)
+		doeScan = NewDoTScan(q, parentScanId, parentScanId, runId, vantagePoint)
 
 		// empty ALPN for DoT
 		certQuery.Port = doeScan.GetDoEQuery().Port
@@ -206,7 +206,7 @@ func produceScansFromAlpn(
 		logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, q.Port, targetName)
 	case "h1", "http/1.0", "http/1.1":
 		var dohScan *DoHScan
-		dohScan, sErr := createDoHScan(parentScanId, runId, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
+		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
@@ -215,14 +215,14 @@ func produceScansFromAlpn(
 			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
-			err = append(err, sErr)
 		}
+
 		if sErr != nil {
 			err = append(err, sErr)
 		}
 	case "h2", "http/2", "doh":
 		var dohScan *DoHScan
-		dohScan, sErr := createDoHScan(parentScanId, runId, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
+		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
@@ -232,12 +232,13 @@ func produceScansFromAlpn(
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
 		}
+
 		if sErr != nil {
 			err = append(err, sErr)
 		}
 	case "h3", "http/3":
 		var dohScan *DoHScan
-		dohScan, sErr := createDoHScan(parentScanId, runId, queryMsg, host, targetName, query.HTTP_VERSION_3, port, dohpath)
+		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_3, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
 			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
@@ -246,8 +247,8 @@ func produceScansFromAlpn(
 			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
-			err = append(err, sErr)
 		}
+
 		if sErr != nil {
 			err = append(err, sErr)
 		}
@@ -256,11 +257,11 @@ func produceScansFromAlpn(
 		err = append(err, custom_errors.NewQueryError(custom_errors.ErrUnknownALPN, false).AddInfoString(fmt.Sprintf("ALPN %s for %s", alpn, host)))
 	}
 
-	if doeScan != nil && sErr == nil {
+	if doeScan != nil {
 		scans = append(scans, doeScan)
 
 		// create certificate scan
-		certScan := NewCertificateScan(certQuery, parentScanId, doeScan.GetMetaInformation().ScanId, runId)
+		certScan := NewCertificateScan(certQuery, parentScanId, doeScan.GetMetaInformation().ScanId, runId, vantagePoint)
 		scans = append(scans, certScan)
 		logrus.Debugf("produced certificate scan for ALPN %s", alpn)
 	}
@@ -271,6 +272,7 @@ func produceScansFromAlpn(
 func createDoHScan(
 	parentScanId string,
 	runId string,
+	vantagePoint string,
 	queryMsg *dns.Msg,
 	host string,
 	targetName string,
@@ -288,7 +290,7 @@ func createDoHScan(
 		q.Port = *port
 	}
 
-	scan := NewDoHScan(q, parentScanId, parentScanId, runId)
+	scan := NewDoHScan(q, parentScanId, parentScanId, runId, vantagePoint)
 
 	if dohpath != nil {
 		q.URI = *dohpath

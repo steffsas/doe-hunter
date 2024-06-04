@@ -81,11 +81,12 @@ type DoEScan interface {
 	GetDoEQuery() *query.DoEQuery
 }
 
-func NewScanMetaInformation(parentScanId, rootScanId string, runId string) *ScanMetaInformation {
+func NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint string) *ScanMetaInformation {
 	meta := &ScanMetaInformation{
 		RunId:        runId,
 		ParentScanId: parentScanId,
 		RootScanId:   rootScanId,
+		VantagePoint: vantagePoint,
 		Errors:       []custom_errors.DoEErrors{},
 	}
 

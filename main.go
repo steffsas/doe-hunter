@@ -248,8 +248,8 @@ func fillCensysMetaInformation(scan *scan.DDRScan, c CensysData) {
 
 func scheduleDDRScan(s scan.Scan, p producer.ScanProducer, wg *sync.WaitGroup) {
 	defer wg.Done()
-	// produce the scan
-	if err := p.Produce(s, kafka.DEFAULT_DDR_TOPIC); err != nil {
+	// produce scan
+	if err := p.Produce(s, consumer.GetKafkaVPTopic(kafka.DEFAULT_DDR_TOPIC, *vantagePoint)); err != nil {
 		logrus.Errorf("failed to produce DDR scan: %v", err)
 	}
 }

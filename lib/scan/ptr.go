@@ -32,7 +32,8 @@ func (scan *PTRScan) GetType() string {
 	return PTR_SCAN_TYPE
 }
 
-func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId, runId string) *PTRScan {
+// TODO: Just pass meta information as a struct
+func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId, runId, vantagePoint string) *PTRScan {
 	var ptrQ *query.PTRQuery
 	if q == nil {
 		ptrQ = query.NewPTRQuery()
@@ -44,7 +45,7 @@ func NewPTRScan(q *query.ConventionalDNSQuery, parentScanId, rootScanId, runId s
 	scan := &PTRScan{
 		Meta: &PTRScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 	scan.Query = &ptrQ.ConventionalDNSQuery
 
 	return scan

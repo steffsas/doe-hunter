@@ -6,7 +6,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
-	k "github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
@@ -48,9 +47,8 @@ func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	RedoDoEScanOnCertError(
 		qErr,
 		dohScan,
-		scan.NewDoHScan(dohScan.Query, dohScan.Meta.ScanId, dohScan.Meta.RootScanId, dohScan.Meta.RunId),
+		scan.NewDoHScan(dohScan.Query, dohScan.Meta.ScanId, dohScan.Meta.RootScanId, dohScan.Meta.RunId, dohScan.Meta.VantagePoint),
 		ph.Producer,
-		k.DEFAULT_DOT_TOPIC,
 	)
 
 	// store
