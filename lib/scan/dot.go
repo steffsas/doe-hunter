@@ -40,7 +40,7 @@ func (scan *DoTScan) GetDoEQuery() *query.DoEQuery {
 	return &scan.Query.DoEQuery
 }
 
-func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId, runId string) *DoTScan {
+func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId, runId, vantagePoint string) *DoTScan {
 	if q == nil {
 		q = query.NewDoTQuery()
 	}
@@ -48,7 +48,7 @@ func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId, runId string) *DoTS
 	scan := &DoTScan{
 		Meta: &DoTScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 	scan.Query = q
 
 	return scan

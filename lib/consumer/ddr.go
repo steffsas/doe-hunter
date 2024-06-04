@@ -73,7 +73,7 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 		q.QueryMsg.RecursionDesired = true
 		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
-		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId, ddrScan.Meta.RunId)
+		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId, ddrScan.Meta.RunId, ddrScan.Meta.VantagePoint)
 
 		// produce PTR scan
 		if err := ddr.Producer.Produce(ptrScan, GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {

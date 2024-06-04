@@ -8,12 +8,12 @@ import (
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
-func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, newScan scan.DoEScan, producer producer.ScanProducer, topic string) {
+func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, newScan scan.DoEScan, producer producer.ScanProducer) {
 	if err != nil {
 		if err.IsCertificateError() {
 			newScan.GetDoEQuery().SkipCertificateVerify = true
 
-			err := producer.Produce(newScan, topic)
+			err := producer.Produce(newScan, GetKafkaTopicFromScan(newScan))
 			if err != nil {
 				logrus.Errorf("error rescheduling DoE scan %s: %s", newScan.GetMetaInformation().ScanId, err)
 				genericErr := custom_errors.NewGenericError(err, true)
@@ -26,6 +26,7 @@ func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, n
 }
 
 func GetKafkaVPTopic(topic string, vantagePoint string) string {
+
 	return topic + "-" + vantagePoint
 }
 

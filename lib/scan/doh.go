@@ -40,7 +40,7 @@ func (scan *DoHScan) GetDoEQuery() *query.DoEQuery {
 	return &scan.Query.DoEQuery
 }
 
-func NewDoHScan(q *query.DoHQuery, parentScanId, rootScanId, runId string) *DoHScan {
+func NewDoHScan(q *query.DoHQuery, parentScanId, rootScanId, runId, vantagePoint string) *DoHScan {
 	if q == nil {
 		q = query.NewDoHQuery()
 	}
@@ -48,7 +48,7 @@ func NewDoHScan(q *query.DoHQuery, parentScanId, rootScanId, runId string) *DoHS
 	scan := &DoHScan{
 		Meta: &DoHScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 
 	scan.Query = q
 
