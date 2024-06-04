@@ -274,10 +274,10 @@ func startConsumer(ctx context.Context, protocol string) {
 		return
 	}
 
-	consumerConfig := &consumer.KafkaConsumerConfig{
-		Server:  *kakfaServer,
-		Threads: *threads,
-	}
+	// consumerConfig := &consumer.KafkaConsumerConfig{
+	// 	Server:  *kakfaServer,
+	// 	Threads: *threads,
+	// }
 
 	var queryConfig *query.QueryConfig
 	if localAddr != nil && *localAddr != "" {
@@ -307,6 +307,12 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "ddr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, *mongoServer)
 
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 2500,
+		}
+
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 
@@ -322,6 +328,12 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, *mongoServer)
 
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 500,
+		}
+
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
@@ -335,6 +347,12 @@ func startConsumer(ctx context.Context, protocol string) {
 		_ = pc.Consume(ctx)
 	case "doq":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, *mongoServer)
+
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 10,
+		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
@@ -350,6 +368,12 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "dot":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, *mongoServer)
 
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 200,
+		}
+
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 		//nolint:contextcheck
@@ -364,6 +388,12 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "ptr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, *mongoServer)
 
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 500,
+		}
+
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 		//nolint:contextcheck
@@ -377,6 +407,12 @@ func startConsumer(ctx context.Context, protocol string) {
 		_ = pc.Consume(ctx)
 	case "certificate":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, *mongoServer)
+
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: 500,
+		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
