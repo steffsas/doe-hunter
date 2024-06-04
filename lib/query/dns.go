@@ -64,8 +64,8 @@ type ConventionalDNSQueryHandler struct {
 	QueryHandler QueryHandlerDNS
 }
 
-func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *ConventionalDNSResponse, err custom_errors.DoEErrors) {
-	res = &ConventionalDNSResponse{}
+func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (*ConventionalDNSResponse, custom_errors.DoEErrors) {
+	res := &ConventionalDNSResponse{}
 	res.Response = &DNSResponse{}
 	res.UDPAttempts = 0
 	res.TCPAttempts = 0
@@ -128,7 +128,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 			if queryErr == nil && res.Response.ResponseMsg != nil && !res.Response.ResponseMsg.Truncated {
 				// we got some valid response, so we can return
-				return
+				return res, nil
 			}
 
 			// if response is truncated, we need to retry with TCP [RFC7766]
@@ -167,7 +167,7 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 
 			if queryErr == nil && res.Response != nil {
 				// we got some valid response, so we can return
-				return
+				return res, nil
 			}
 
 			if i+1 < query.MaxTCPRetries {
@@ -178,10 +178,10 @@ func (dq *ConventionalDNSQueryHandler) Query(query *ConventionalDNSQuery) (res *
 	}
 
 	if res.Response.ResponseMsg == nil {
-		err = custom_errors.NewQueryError(custom_errors.ErrNoResponse, true)
+		return res, custom_errors.NewQueryError(custom_errors.ErrNoResponse, true)
 	}
 
-	return
+	return res, nil
 }
 
 func NewConventionalQuery() *ConventionalDNSQuery {

@@ -17,7 +17,7 @@ type DefaultQueryHandlerDNS struct {
 	dialerTCP *net.Dialer
 }
 
-func (df *DefaultQueryHandlerDNS) Query(host string, query *dns.Msg, protocol string, timeout time.Duration, tlsConfig *tls.Config) (answer *dns.Msg, rtt time.Duration, err error) {
+func (df *DefaultQueryHandlerDNS) Query(host string, query *dns.Msg, protocol string, timeout time.Duration, tlsConfig *tls.Config) (*dns.Msg, time.Duration, error) {
 	c := &dns.Client{
 		Timeout:   timeout,
 		TLSConfig: tlsConfig,
@@ -33,29 +33,25 @@ func (df *DefaultQueryHandlerDNS) Query(host string, query *dns.Msg, protocol st
 	// because Dialer may override dns.Client's timeout
 	c.Dialer.Timeout = timeout
 
-	answer, rtt, err = c.Exchange(query, host)
-
-	return
+	return c.Exchange(query, host)
 }
 
 func NewDefaultQueryHandler(config *QueryConfig) *DefaultQueryHandlerDNS {
-	qh := &DefaultQueryHandlerDNS{}
+	qh := &DefaultQueryHandlerDNS{
+		dialerUDP: &net.Dialer{},
+		dialerTCP: &net.Dialer{},
+	}
 
 	if config != nil {
-		dialerUDP := &net.Dialer{}
-		dialerUDP.LocalAddr = &net.UDPAddr{
+		qh.dialerUDP.LocalAddr = &net.UDPAddr{
 			IP:   config.LocalAddr,
 			Port: 0,
 		}
 
-		dialerTCP := &net.Dialer{}
-		dialerTCP.LocalAddr = &net.TCPAddr{
+		qh.dialerTCP.LocalAddr = &net.TCPAddr{
 			IP:   config.LocalAddr,
 			Port: 0,
 		}
-
-		qh.dialerUDP = dialerUDP
-		qh.dialerTCP = dialerTCP
 	}
 
 	return qh
