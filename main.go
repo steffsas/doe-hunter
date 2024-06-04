@@ -310,7 +310,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 2500,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
