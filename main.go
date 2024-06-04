@@ -155,8 +155,10 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 
 	// create a new producer
 	config := producer.GetDefaultKafkaProducerConfig()
-	p, err := producer.NewScanProducer(consumer.GetKafkaVPTopic(kafka.DEFAULT_DDR_TOPIC, *vantagePoint), config)
-
+	if kakfaServer != nil {
+		config.Server = *kakfaServer
+	}
+	p, err := producer.NewKafkaScanProducer(config)
 	if err != nil {
 		logrus.Errorf("failed to create DDR producer: %v", err)
 		return err
@@ -187,7 +189,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
-				go scheduleScan(scan, p, &wg)
+				go scheduleDDRScan(scan, p, &wg)
 			} else {
 				logrus.Infof("skipping ipv4 %s as it was already considered", res.Ipv4)
 			}
@@ -209,7 +211,7 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 				fillCensysMetaInformation(scan, res)
 
 				wg.Add(1)
-				go scheduleScan(scan, p, &wg)
+				go scheduleDDRScan(scan, p, &wg)
 			} else {
 				logrus.Infof("skipping ipv6 %s as it was already considered", res.Ipv6)
 			}
@@ -222,8 +224,6 @@ func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
 	for p.Flush(10000) > 0 {
 		logrus.Info("still waiting for events to be flushed")
 	}
-
-	p.Close()
 
 	return nil
 }
@@ -246,10 +246,10 @@ func fillCensysMetaInformation(scan *scan.DDRScan, c CensysData) {
 	scan.Meta.OSVersion = c.Os_version
 }
 
-func scheduleScan(scan *scan.DDRScan, p *producer.ScanProducer, wg *sync.WaitGroup) {
+func scheduleDDRScan(s scan.Scan, p producer.ScanProducer, wg *sync.WaitGroup) {
 	defer wg.Done()
 	// produce the scan
-	if err := p.Produce(scan); err != nil {
+	if err := p.Produce(s, kafka.DEFAULT_DDR_TOPIC); err != nil {
 		logrus.Errorf("failed to produce DDR scan: %v", err)
 	}
 }
@@ -292,6 +292,17 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 	}
 
+	config := producer.GetDefaultKafkaProducerConfig()
+	if kakfaServer != nil {
+		config.Server = *kakfaServer
+	}
+	prod, err := producer.NewKafkaScanProducer(config)
+	if err != nil {
+		logrus.Fatalf("failed to create producer: %v", err)
+		return
+	}
+	defer prod.Close()
+
 	switch protocol {
 	case "ddr":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, *mongoServer)
@@ -299,11 +310,8 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 
-		producerConfig := producer.GetDefaultKafkaProducerConfig()
-		producerConfig.Server = *kakfaServer
-
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, producerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -317,7 +325,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -331,7 +339,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoQEventConsumer(nil, sh, queryConfig)
+		pc, err := consumer.NewKafkaDoQEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -345,7 +353,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDoTEventConsumer(nil, sh, queryConfig)
+		pc, err := consumer.NewKafkaDoTEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -359,7 +367,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaPTREventConsumer(nil, sh, queryConfig)
+		pc, err := consumer.NewKafkaPTREventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -373,7 +381,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaCertificateEventConsumer(nil, sh, queryConfig)
+		pc, err := consumer.NewKafkaCertificateEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return

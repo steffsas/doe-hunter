@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	k "github.com/steffsas/doe-hunter/lib/kafka"
+	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
@@ -21,6 +22,7 @@ type DoQQueryHandler interface {
 type DoQProcessEventHandler struct {
 	EventProcessHandler
 
+	Producer     producer.ScanProducer
 	QueryHandler DoQQueryHandler
 }
 
@@ -47,6 +49,7 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 		qErr,
 		doqScan,
 		scan.NewDoQScan(doqScan.Query, doqScan.Meta.ScanId, doqScan.Meta.RootScanId, doqScan.Meta.RunId),
+		ph.Producer,
 		k.DEFAULT_DOT_TOPIC,
 	)
 
@@ -58,7 +61,11 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 	return err
 }
 
-func NewKafkaDoQEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
+func NewKafkaDoQEventConsumer(
+	config *KafkaConsumerConfig,
+	prod producer.ScanProducer,
+	storageHandler storage.StorageHandler,
+	queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
 		config.ConsumerGroup = DEFAULT_DOQ_CONSUMER_GROUP
 	}
@@ -70,6 +77,7 @@ func NewKafkaDoQEventConsumer(config *KafkaConsumerConfig, storageHandler storag
 			return nil, err
 		}
 		return &DoQProcessEventHandler{
+			Producer:     prod,
 			QueryHandler: qh,
 		}, nil
 	}
