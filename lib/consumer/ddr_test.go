@@ -14,6 +14,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type mockedDDRQueryHandler struct {
@@ -47,14 +48,19 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		mqh := mockedDDRQueryHandler{}
+		mqh := &mockedDDRQueryHandler{}
 		mqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
 
-		msh := mockedStorageHandler{}
+		msh := &mockedStorageHandler{}
 		msh.On("Store", mock.Anything).Return(nil)
 
-		ph := &consumer.DDRProcessEventHandler{
-			QueryHandler: &mqh,
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ddrph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
+			QueryHandler: mqh,
 		}
 
 		// marshall to bytes
@@ -64,7 +70,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Value: scanBytes,
 		}
 
-		err := ph.Process(&msg, &msh)
+		err := ddrph.Process(&msg, msh)
 
 		assert.NoError(t, err)
 		msh.AssertCalled(t, "Store", mock.Anything)
@@ -81,7 +87,12 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		msh := mockedStorageHandler{}
 		msh.On("Store", mock.Anything).Return(nil)
 
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
 		ph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
 			QueryHandler: &mqh,
 		}
 
@@ -104,7 +115,12 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		msh := mockedStorageHandler{}
 		msh.On("Store", mock.Anything).Return(nil)
 
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
 		ph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
 			QueryHandler: &mqh,
 		}
 
@@ -137,7 +153,12 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		msh := mockedStorageHandler{}
 		msh.On("Store", mock.Anything).Return(nil)
 
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
 		ph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
 			QueryHandler: &mqh,
 		}
 
@@ -170,7 +191,12 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		msh := mockedStorageHandler{}
 		msh.On("Store", mock.Anything).Return(errors.New("storage error"))
 
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
 		ph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
 			QueryHandler: &mqh,
 		}
 
@@ -195,14 +221,22 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 }
 
-type MockedProducerFactory struct {
+type mockedProducerFactory struct {
 	mock.Mock
 }
 
-func (mpf *MockedProducerFactory) Produce(ddrScan *scan.DDRScan, newScan scan.Scan, topic string) error {
-	args := mpf.Called(ddrScan, newScan, topic)
-
+func (mpf *mockedProducerFactory) Produce(s scan.Scan, topic string) error {
+	args := mpf.Called(s, topic)
 	return args.Error(0)
+}
+
+func (mpf *mockedProducerFactory) Close() {
+	mpf.Called()
+}
+
+func (mpf *mockedProducerFactory) Flush(timeout int) int {
+	args := mpf.Called(timeout)
+	return args.Int(0)
 }
 
 func TestDoECertScanScheduler(t *testing.T) {
@@ -213,10 +247,11 @@ func TestDoECertScanScheduler(t *testing.T) {
 	t.Run("schedule scans", func(t *testing.T) {
 		t.Parallel()
 
-		mpf := &MockedProducerFactory{}
-		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
 
-		scheduler := consumer.DoEAndCertScanScheduler{
+		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
 		}
 
@@ -250,21 +285,22 @@ func TestDoECertScanScheduler(t *testing.T) {
 			},
 		}
 
-		scheduler.ScheduleScans(scan)
+		ph.ScheduleScans(scan)
 
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint))
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOQ_TOPIC, vantagePoint))
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, vantagePoint))
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOQ_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
 	})
 
 	t.Run("schedule scans no response", func(t *testing.T) {
 		t.Parallel()
 
-		mpf := &MockedProducerFactory{}
-		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
 
-		scheduler := consumer.DoEAndCertScanScheduler{
+		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
 		}
 
@@ -277,68 +313,61 @@ func TestDoECertScanScheduler(t *testing.T) {
 			Result: &query.ConventionalDNSResponse{},
 		}
 
-		scheduler.ScheduleScans(scan)
+		ph.ScheduleScans(scan)
 
 		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, mock.Anything)
 	})
-}
 
-func TestPTRScanScheduler(t *testing.T) {
-	t.Parallel()
-
-	t.Run("schedule valid PTR scan", func(t *testing.T) {
+	t.Run("schedule scans add error to meta information", func(t *testing.T) {
 		t.Parallel()
 
-		mpf := &MockedProducerFactory{}
-		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		produceError := errors.New("some error")
 
-		scheduler := consumer.PTRScanScheduler{
+		mpf := &mockedProducerFactory{}
+		// failure on DoH produce
+		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint)).Return(produceError)
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
 		}
 
 		scan := &scan.DDRScan{
 			Meta: &scan.DDRScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
 			},
-			Query: &query.ConventionalDNSQuery{
-				DNSQuery: query.DNSQuery{
-					Host: "8.8.8.8",
-					Port: 53,
+			Query: &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		}
 
-		scheduler.ScheduleScans(scan)
+		ph.ScheduleScans(scan)
 
-		assert.True(t, scan.Meta.PTRScheduled)
-		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, scan.Meta.VantagePoint))
-	})
-
-	t.Run("schedule no PTR scan on hostname", func(t *testing.T) {
-		t.Parallel()
-
-		mpf := &MockedProducerFactory{}
-		mpf.On("Produce", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-		scheduler := consumer.PTRScanScheduler{
-			Producer: mpf,
-		}
-
-		scan := &scan.DDRScan{
-			Meta: &scan.DDRScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-			},
-			Query: &query.ConventionalDNSQuery{
-				DNSQuery: query.DNSQuery{
-					Host: "google.de",
-					Port: 53,
-				},
-			},
-		}
-
-		scheduler.ScheduleScans(scan)
-
-		assert.False(t, scan.Meta.PTRScheduled)
-		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, scan.Meta.VantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, mock.Anything)
+		require.NotEmpty(t, scan.Meta.Errors)
+		assert.Equal(t, 1, len(scan.Meta.Errors))
+		assert.Contains(t, scan.Meta.Errors[0].Error(), produceError.Error())
 	})
 }
