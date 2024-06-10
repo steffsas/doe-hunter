@@ -44,7 +44,7 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 				if err := ddr.Producer.Produce(s, GetKafkaTopicFromScan(s)); err != nil {
 					logrus.Errorf("failed to produce scan of type %s: %v", s.GetType(), err)
 					ddrScan.Meta.AddError(
-						custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
+						custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true).AddInfo(err),
 					)
 				}
 			}
@@ -79,7 +79,7 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 		if err := ddr.Producer.Produce(ptrScan, GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {
 			logrus.Errorf("failed to produce PTR scan: %v", err)
 			ddrScan.Meta.AddError(
-				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true),
+				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true).AddInfo(err),
 			)
 		}
 	}

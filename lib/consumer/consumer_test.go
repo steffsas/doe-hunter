@@ -58,11 +58,11 @@ func (mkc *MockedKafkaConsumer) ReadMessage(timeout time.Duration) (*kafka.Messa
 	return args.Get(0).(*kafka.Message), args.Error(1)
 }
 
-type MockedProcessHandler struct {
+type mockedProcessHandler struct {
 	mock.Mock
 }
 
-func (mph *MockedProcessHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
+func (mph *mockedProcessHandler) Process(msg *kafka.Message, storage storage.StorageHandler) error {
 	args := mph.Called(msg, storage)
 	return args.Error(0)
 }
@@ -198,7 +198,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
 
 		mph := func() (consumer.EventProcessHandler, error) {
-			mph := &MockedProcessHandler{}
+			mph := &mockedProcessHandler{}
 			mph.On("Process", mock.Anything, mock.Anything).Return(errors.New("failed to process"))
 			return mph, nil
 		}
