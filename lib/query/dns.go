@@ -202,6 +202,7 @@ func NewConventionalQuery() *ConventionalDNSQuery {
 	q.QueryMsg = GetDefaultQueryMsg()
 
 	// set DNSSEC flag by default
+	// TODO check later on whether this has negative impact, see https://kb.isc.org/docs/aa-00510
 	q.DNSSEC = true
 
 	return q
