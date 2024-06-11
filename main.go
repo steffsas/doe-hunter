@@ -277,11 +277,6 @@ func startConsumer(ctx context.Context, protocol string) {
 		return
 	}
 
-	// consumerConfig := &consumer.KafkaConsumerConfig{
-	// 	Server:  *kakfaServer,
-	// 	Threads: *threads,
-	// }
-
 	var queryConfig *query.QueryConfig
 	if localAddr != nil && *localAddr != "" {
 		localIpAddr := net.ParseIP(*localAddr)
@@ -313,7 +308,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 2500,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
@@ -331,10 +326,9 @@ func startConsumer(ctx context.Context, protocol string) {
 	case "doh":
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, *mongoServer)
 
-		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 500,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
@@ -354,7 +348,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 10,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
@@ -374,7 +368,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 200,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
@@ -394,7 +388,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 500,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
@@ -414,7 +408,7 @@ func startConsumer(ctx context.Context, protocol string) {
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
 			Server:  *kakfaServer,
-			Threads: 500,
+			Threads: *threads,
 		}
 
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
