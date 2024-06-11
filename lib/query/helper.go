@@ -2,12 +2,32 @@ package query
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
+
+func ParseIPAddresses(res *ConventionalDNSResponse) []*net.IP {
+	ips := []*net.IP{}
+
+	if res != nil && res.Response != nil && res.Response.ResponseMsg != nil {
+		for _, rr := range res.Response.ResponseMsg.Answer {
+			// parse ipv4
+			if ipv4, ok := rr.(*dns.A); ok {
+				ips = append(ips, &ipv4.A)
+			}
+			// parse ipv6
+			if ipv6, ok := rr.(*dns.AAAA); ok {
+				ips = append(ips, &ipv6.AAAA)
+			}
+		}
+	}
+
+	return ips
+}
 
 func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoEErrors, res *DoEResponse, skipCertificateVerification bool) custom_errors.DoEErrors {
 	setCertificateValidationToResponse(queryErr, res, skipCertificateVerification)

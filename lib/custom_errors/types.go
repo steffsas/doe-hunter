@@ -52,6 +52,14 @@ var ErrResolveHostFailed = errors.New("failed to resolve IP address for target h
 // specific PTR query errors
 var ErrFailedToReverseIP = errors.New("failed to reverse IP address")
 
+// specific EDSR query errors
+var ErrInvalidEDSRHopQuery = errors.New("invalid EDSR hop query")
+var ErrFoundMultipleHops = errors.New("found multiple hops in EDSR response")
+var ErrResolverDoesNotAdvertiseProtocol = errors.New("resolver does not advertise protocol")
+var ErrHopParsingFailed = errors.New("failed to parse EDSR hop")
+var ErrResolvingIPsOfTargetName = errors.New("failed to resolve IPv4 and/or IPv6 addresses for targetName of SVCB record")
+var ErrNoGlueRecords = errors.New("no glue records found for targetName of SVCB record")
+
 // parsing SVCB
 var ErrUnknownSvcbKey = errors.New("unknown SVCB key")
 var ErrParsingSvcbKey = errors.New("failed to parse SVCB key")
