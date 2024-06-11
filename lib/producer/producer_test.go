@@ -48,7 +48,7 @@ func (mkp *mockedKafkaProducer) Events() chan kafka.Event {
 func TestKafkaEventProducer_Produce(t *testing.T) {
 	t.Parallel()
 
-	t.Run("valid", func(t *testing.T) {
+	t.Run("valid produce", func(t *testing.T) {
 		t.Parallel()
 
 		mp := &mockedKafkaProducer{}
@@ -64,11 +64,10 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 				Acks:              "1",
 				ReplicationFactor: 1,
 			},
-			Topic: "test-topic",
 		}
 
 		// test
-		err := kep.Produce([]byte("test"))
+		err := kep.Produce([]byte("test"), "test-topic")
 
 		assert.Nil(t, err, "expected no error")
 	})
@@ -81,11 +80,10 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 			Config: &producer.KafkaProducerConfig{
 				Server: "localhost:9092",
 			},
-			Topic: "test-topic",
 		}
 
 		// test
-		err := kep.Produce([]byte("test"))
+		err := kep.Produce([]byte("test"), "test-topic")
 
 		assert.NotNil(t, err, "expected error on nil producer")
 	})
@@ -102,13 +100,32 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 			Config: &producer.KafkaProducerConfig{
 				Server: "localhost:9092",
 			},
-			Topic: "test-topic",
 		}
 
 		// test
-		err := kep.Produce([]byte(""))
+		err := kep.Produce([]byte(""), "test-topic")
 
 		assert.NotNil(t, err, "expected error on empty message")
+	})
+
+	t.Run("empty topic", func(t *testing.T) {
+		t.Parallel()
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mp.On("Close").Return()
+
+		kep := &producer.KafkaEventProducer{
+			Producer: mp,
+			Config: &producer.KafkaProducerConfig{
+				Server: "localhost:9092",
+			},
+		}
+
+		// test
+		err := kep.Produce([]byte("test"), "")
+
+		assert.Error(t, err, "expected error on empty topic")
 	})
 
 	t.Run("error on produce", func(t *testing.T) {
@@ -121,11 +138,10 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		kep := &producer.KafkaEventProducer{
 			Producer: mp,
 			Config:   producer.GetDefaultKafkaProducerConfig(),
-			Topic:    "test-topic",
 		}
 
 		// test
-		err := kep.Produce([]byte("test"))
+		err := kep.Produce([]byte("test"), "test-topic")
 
 		assert.NotNil(t, err, "expected error on produce")
 	})
@@ -142,7 +158,6 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		kep := &producer.KafkaEventProducer{
 			Producer: mp,
 			Config:   producer.GetDefaultKafkaProducerConfig(),
-			Topic:    "test-topic",
 		}
 
 		eventMsg = &kafka.Message{
@@ -150,7 +165,7 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		}
 
 		// test
-		err := kep.Produce([]byte("test"))
+		err := kep.Produce([]byte("test"), "test-topic")
 
 		eventMsg = &kafka.Message{}
 
@@ -242,41 +257,28 @@ func TestNewKafkaProducer(t *testing.T) {
 	t.Run("invalid server", func(t *testing.T) {
 		t.Parallel()
 
-		p, err := producer.NewKafkaProducer("test-topic", &producer.KafkaProducerConfig{
-			Server: "",
-		})
+		config := &producer.KafkaProducerConfig{
+			Server:  "",
+			Timeout: 1000,
+		}
 
-		assert.NotNil(t, err, "expected error on invalid producer")
+		p, err := producer.NewKafkaProducer(config)
+
+		assert.NotNil(t, err, "expected error on invalid server")
 		assert.Nil(t, p, "expected no producer")
 	})
 
 	t.Run("invalid timeout", func(t *testing.T) {
 		t.Parallel()
 
-		p, err := producer.NewKafkaProducer("test-topic", &producer.KafkaProducerConfig{
-			Server:  "localhost:9092",
-			Timeout: -1,
-		})
+		config := &producer.KafkaProducerConfig{
+			Server:  "test",
+			Timeout: 0,
+		}
 
-		assert.NotNil(t, err, "expected error on invalid producer")
-		assert.Nil(t, p, "expected no producer")
-	})
+		p, err := producer.NewKafkaProducer(config)
 
-	t.Run("default config", func(t *testing.T) {
-		t.Parallel()
-
-		p, err := producer.NewKafkaProducer("test-topic", nil)
-
-		assert.Nil(t, err, "expected no error on default config")
-		assert.NotNil(t, p, "expected new producer")
-	})
-
-	t.Run("invalid topic", func(t *testing.T) {
-		t.Parallel()
-
-		p, err := producer.NewKafkaProducer("", nil)
-
-		assert.NotNil(t, err, "expected error on invalid topic")
+		assert.NotNil(t, err, "expected error on invalid timeout")
 		assert.Nil(t, p, "expected no producer")
 	})
 }
