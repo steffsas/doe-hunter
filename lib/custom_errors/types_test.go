@@ -191,7 +191,7 @@ func TestCustomErrors_DoEError(t *testing.T) {
 		assert.NotNil(t, infoAddErr)
 	})
 
-	t.Run("error output with additional info", func(t *testing.T) {
+	t.Run("error output without additional info", func(t *testing.T) {
 		t.Parallel()
 		// setup
 		err := errors.New("test")
@@ -200,6 +200,18 @@ func TestCustomErrors_DoEError(t *testing.T) {
 
 		// test
 		assert.Equal(t, "scan_error in testing.tRunner: test", ce.Error())
+		assert.NotNil(t, infoAddErr)
+	})
+
+	t.Run("error output with additional info", func(t *testing.T) {
+		t.Parallel()
+		// setup
+		err := errors.New("test")
+		ce := custom_errors.NewGenericError(err, true)
+		infoAddErr := ce.AddInfo(errors.New("error info"))
+
+		// test
+		assert.Equal(t, "scan_error in testing.tRunner: test - additional info: error info", ce.Error())
 		assert.NotNil(t, infoAddErr)
 	})
 }
