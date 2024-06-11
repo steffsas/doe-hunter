@@ -12,7 +12,7 @@ func TestDoTScan_Constructor(t *testing.T) {
 	t.Parallel()
 	t.Run("nil query", func(t *testing.T) {
 		t.Parallel()
-		scan := scan.NewDoTScan(nil, "parent", "root", "run")
+		scan := scan.NewDoTScan(nil, "parent", "root", "run", "vantagepoint")
 
 		// test
 		assert.Equal(t, "DoT", scan.GetType(), "should have returned PTR")
@@ -22,12 +22,13 @@ func TestDoTScan_Constructor(t *testing.T) {
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
 		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
+		assert.Equal(t, "vantagepoint", scan.GetMetaInformation().VantagePoint, "should have returned vantagepoint")
 	})
 
 	t.Run("non-nil query", func(t *testing.T) {
 		t.Parallel()
 		q := query.NewDoTQuery()
-		scan := scan.NewDoTScan(q, "parent", "root", "run")
+		scan := scan.NewDoTScan(q, "parent", "root", "run", "vantagepoint")
 
 		// test
 		assert.Equal(t, "DoT", scan.GetType(), "should have returned PTR")
@@ -38,12 +39,13 @@ func TestDoTScan_Constructor(t *testing.T) {
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
 		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
+		assert.Equal(t, "vantagepoint", scan.GetMetaInformation().VantagePoint, "should have returned vantagepoint")
 	})
 }
 
 func TestDoTScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewDoTScan(nil, "parent", "root", "run")
+	scan := scan.NewDoTScan(nil, "parent", "root", "run", "vantagepoint")
 	bytes, err := scan.Marshall()
 
 	// test
@@ -55,7 +57,7 @@ func TestDoTScan_DoEFunctions(t *testing.T) {
 	t.Parallel()
 
 	q := query.NewDoTQuery()
-	scan := scan.NewDoTScan(q, "parent", "root", "run")
+	scan := scan.NewDoTScan(q, "parent", "root", "run", "vantagepoint")
 
 	// test
 	assert.Equal(t, scan.GetScanId(), scan.GetMetaInformation().ScanId, "should have returned the same ID")
