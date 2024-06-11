@@ -15,7 +15,7 @@ type ScanProducer interface {
 }
 
 type KafkaScanProducer struct {
-	EventProducer
+	ScanProducer
 
 	Producer EventProducer
 }

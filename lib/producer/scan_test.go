@@ -33,8 +33,8 @@ type mockedKafkaEventProducer struct {
 	mock.Mock
 }
 
-func (mkp *mockedKafkaEventProducer) Produce(b []byte) error {
-	args := mkp.Called(b)
+func (mkp *mockedKafkaEventProducer) Produce(b []byte, topic string) error {
+	args := mkp.Called(b, topic)
 	return args.Error(0)
 }
 
@@ -55,15 +55,32 @@ func (mkp *mockedKafkaEventProducer) Events() chan kafka.Event {
 func TestScanProducer_Produce(t *testing.T) {
 	t.Parallel()
 
+	t.Run("valid producer", func(t *testing.T) {
+		t.Parallel()
+
+		p := &mockedKafkaEventProducer{}
+		p.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		p.On("Close").Return(nil)
+
+		sp := &producer.KafkaScanProducer{
+			Producer: p,
+		}
+
+		scan := &scan.DDRScan{}
+		err := sp.Produce(scan, "test-topic")
+
+		assert.NoError(t, err)
+	})
+
 	t.Run("nil producer", func(t *testing.T) {
 		t.Parallel()
 
-		sp := &producer.ScanProducer{}
+		sp := &producer.KafkaScanProducer{}
 
 		scan := &scan.DDRScan{}
-		err := sp.Produce(scan)
+		err := sp.Produce(scan, "test-topic")
 
-		assert.NotNil(t, err, "error should not be nil")
+		assert.Error(t, err, "error should not be nil")
 	})
 
 	t.Run("error on marhsall", func(t *testing.T) {
@@ -73,56 +90,40 @@ func TestScanProducer_Produce(t *testing.T) {
 		ms.On("Marshall").Return([]byte{}, assert.AnError)
 
 		mp := &mockedKafkaEventProducer{}
-		mp.On("Produce", mock.Anything).Return(nil)
+		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 
-		sp := &producer.ScanProducer{
+		sp := &producer.KafkaScanProducer{
 			Producer: mp,
 		}
 
-		err := sp.Produce(ms)
+		err := sp.Produce(ms, "test-topic")
 
 		assert.NotNil(t, err, "error should not be nil")
-	})
-
-	t.Run("valid produce", func(t *testing.T) {
-		t.Parallel()
-
-		ms := &mockedScan{}
-		ms.On("Marshall").Return([]byte("test"), nil)
-
-		mp := &mockedKafkaEventProducer{}
-		mp.On("Produce", mock.Anything).Return(nil)
-
-		sp := &producer.ScanProducer{
-			Producer: mp,
-		}
-
-		err := sp.Produce(ms)
-
-		assert.Nil(t, err, "error should be nil")
 	})
 }
 
 func TestScanProducer_Close(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil producer", func(t *testing.T) {
-		t.Parallel()
-
-		sp := &producer.ScanProducer{}
-
-		sp.Close()
-	})
-
-	t.Run("valid close", func(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
 		t.Parallel()
 
 		mp := &mockedKafkaEventProducer{}
 		mp.On("Close").Return()
 
-		sp := &producer.ScanProducer{
+		sp := &producer.KafkaScanProducer{
 			Producer: mp,
 		}
+
+		sp.Close()
+
+		mp.AssertCalled(t, "Close")
+	})
+
+	t.Run("nil producer", func(t *testing.T) {
+		t.Parallel()
+
+		sp := &producer.KafkaScanProducer{}
 
 		sp.Close()
 	})
@@ -134,7 +135,7 @@ func TestScanProducer_Flush(t *testing.T) {
 	t.Run("nil producer", func(t *testing.T) {
 		t.Parallel()
 
-		sp := &producer.ScanProducer{}
+		sp := &producer.KafkaScanProducer{}
 
 		res := sp.Flush(0)
 
@@ -147,7 +148,7 @@ func TestScanProducer_Flush(t *testing.T) {
 		mp := &mockedKafkaEventProducer{}
 		mp.On("Flush", mock.Anything).Return(1)
 
-		sp := &producer.ScanProducer{
+		sp := &producer.KafkaScanProducer{
 			Producer: mp,
 		}
 
@@ -157,68 +158,28 @@ func TestScanProducer_Flush(t *testing.T) {
 	})
 }
 
-func TestScanProducer_Events(t *testing.T) {
+func TestNewScanProducer(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil producer", func(t *testing.T) {
 		t.Parallel()
 
-		sp := &producer.ScanProducer{}
+		sp, err := producer.NewScanProducer(nil)
 
-		res := sp.Events()
-
-		assert.Nil(t, res, "expected nil")
-	})
-
-	t.Run("valid events", func(t *testing.T) {
-		t.Parallel()
-
-		mp := &mockedKafkaEventProducer{}
-		mp.On("Events").Return(make(chan kafka.Event))
-
-		sp := &producer.ScanProducer{
-			Producer: mp,
-		}
-
-		res := sp.Events()
-
-		assert.NotNil(t, res, "expected not nil")
+		assert.NoError(t, err, "error should be nil")
+		assert.NotNil(t, sp, "producer should not be nil")
 	})
 }
 
-func TestNewScanProducer(t *testing.T) {
+func TestNewKafkaScanProducer(t *testing.T) {
 	t.Parallel()
-
-	t.Run("invalid topic", func(t *testing.T) {
-		t.Parallel()
-
-		sp, err := producer.NewScanProducer("", &producer.KafkaProducerConfig{})
-
-		assert.NotNil(t, err, "error should not be nil")
-		assert.Nil(t, sp, "producer should be nil")
-	})
 
 	t.Run("nil config", func(t *testing.T) {
 		t.Parallel()
 
-		mp := &mockedKafkaEventProducer{}
-		mp.On("Close").Return()
+		sp, err := producer.NewKafkaScanProducer(nil)
 
-		sp, err := producer.NewScanProducer("test", &producer.KafkaProducerConfig{})
-
-		assert.NotNil(t, err, "error should not be nil")
+		assert.Error(t, err, "error should not be nil")
 		assert.Nil(t, sp, "producer should be nil")
-	})
-
-	t.Run("valid producer", func(t *testing.T) {
-		t.Parallel()
-
-		mp := &mockedKafkaEventProducer{}
-		mp.On("Close").Return()
-
-		sp, err := producer.NewScanProducer("test", producer.GetDefaultKafkaProducerConfig())
-
-		assert.Nil(t, err, "error should be nil")
-		assert.NotNil(t, sp, "producer should not be nil")
 	})
 }

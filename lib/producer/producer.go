@@ -41,7 +41,6 @@ type KafkaEventProducer struct {
 	EventProducer
 
 	Config   *KafkaProducerConfig
-	Topic    string
 	Producer KafkaProducer
 }
 
