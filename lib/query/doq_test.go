@@ -422,6 +422,32 @@ func getMockedQuicConnection(response *dns.Msg, err error) (conn query.QuicConn)
 	return qConn
 }
 
+func TestNewDoQQueryHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil config", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoQQueryHandler(nil)
+
+		assert.NoError(t, err, "error should be nil")
+		assert.NotNil(t, qh, "handler should not be nil")
+	})
+
+	t.Run("non nil config", func(t *testing.T) {
+		t.Parallel()
+
+		config := &query.QueryConfig{
+			LocalAddr: net.IPv4(127, 0, 0, 1),
+		}
+
+		qh, err := query.NewDoQQueryHandler(config)
+
+		assert.NoError(t, err, "error should be nil")
+		assert.NotNil(t, qh, "handler should not be nil")
+	})
+}
+
 func getMockedDialHandlerWithConnection(conn query.QuicConn) *mockedDialHandler {
 	handler := new(mockedDialHandler)
 	handler.On("Query", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(conn, nil)
