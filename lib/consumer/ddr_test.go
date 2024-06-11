@@ -239,12 +239,12 @@ func (mpf *mockedProducerFactory) Flush(timeout int) int {
 	return args.Int(0)
 }
 
-func TestDoECertScanScheduler(t *testing.T) {
+func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	t.Parallel()
 
 	const vantagePoint = "test"
 
-	t.Run("schedule scans", func(t *testing.T) {
+	t.Run("schedule scans on response", func(t *testing.T) {
 		t.Parallel()
 
 		mpf := &mockedProducerFactory{}
@@ -293,7 +293,7 @@ func TestDoECertScanScheduler(t *testing.T) {
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
 	})
 
-	t.Run("schedule scans no response", func(t *testing.T) {
+	t.Run("do not schedule scans if there is no response", func(t *testing.T) {
 		t.Parallel()
 
 		mpf := &mockedProducerFactory{}
@@ -318,7 +318,7 @@ func TestDoECertScanScheduler(t *testing.T) {
 		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything, mock.Anything)
 	})
 
-	t.Run("schedule scans add error to meta information", func(t *testing.T) {
+	t.Run("add error to meta information", func(t *testing.T) {
 		t.Parallel()
 
 		produceError := errors.New("some error")
@@ -369,5 +369,190 @@ func TestDoECertScanScheduler(t *testing.T) {
 		require.NotEmpty(t, scan.Meta.Errors)
 		assert.Equal(t, 1, len(scan.Meta.Errors))
 		assert.Contains(t, scan.Meta.Errors[0].Error(), produceError.Error())
+	})
+
+	t.Run("schedule PTR scan on query host IP address", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "127.0.0.1",
+				},
+			},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint))
+		require.Empty(t, scan.Meta.Errors)
+		assert.True(t, scan.Meta.PTRScheduled)
+	})
+
+	t.Run("do not schedule PTR scan on query host domain name", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "example.com",
+				},
+			},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		mpf.AssertNotCalled(t, "Produce", mock.Anything,
+			consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint))
+		require.Empty(t, scan.Meta.Errors)
+		assert.False(t, scan.Meta.PTRScheduled)
+	})
+
+	t.Run("do not schedule DoE scans if not wanted", func(t *testing.T) {
+		t.Parallel()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: false,
+			},
+			Query: &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		mpf.AssertNotCalled(t, "Produce", mock.Anything, mock.Anything)
+	})
+
+	t.Run("add PTR produce error to meta data", func(t *testing.T) {
+		t.Parallel()
+
+		produceError := errors.New("some error")
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint)).Return(produceError)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "127.0.0.1",
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		require.NotEmpty(t, scan.Meta.Errors)
+		assert.Equal(t, 1, len(scan.Meta.Errors))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint))
 	})
 }

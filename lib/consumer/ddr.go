@@ -33,7 +33,7 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 			ddrScan.Result.Response != nil &&
 			ddrScan.Result.Response.ResponseMsg != nil &&
 			len(ddrScan.Result.Response.ResponseMsg.Answer) > 0 {
-			// let's produce the scans
+			// let's parse the SVCB answers
 			logrus.Debugf("got %d SVCB answers, schedule DoE scans", len(ddrScan.Result.Response.ResponseMsg.Answer))
 			// parse DDR response
 			scans, errColl := ddrScan.CreateScansFromResponse()

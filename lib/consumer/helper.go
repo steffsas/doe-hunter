@@ -26,7 +26,6 @@ func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, n
 }
 
 func GetKafkaVPTopic(topic string, vantagePoint string) string {
-
 	return topic + "-" + vantagePoint
 }
 

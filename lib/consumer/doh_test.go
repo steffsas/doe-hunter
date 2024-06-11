@@ -125,4 +125,37 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 		assert.NoError(t, err, "although there is a query error, the process handler does only care about handling errors")
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
+
+	t.Run("process storage error", func(t *testing.T) {
+		t.Parallel()
+
+		msh := mockedStorageHandler{}
+		msh.On("Store", mock.Anything).Return(errors.New("some error"))
+
+		dqh := mockedDoHQueryHandler{}
+		dqh.On("Query", mock.Anything).Return(&query.DoHResponse{}, nil)
+
+		dph := &consumer.DoHProcessEventHandler{
+			QueryHandler: &dqh,
+		}
+
+		dohScan := &scan.DoHScan{
+			Meta: &scan.DoHScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			Query: &query.DoHQuery{},
+		}
+
+		// marshall to bytes
+		dohScanBytes, _ := json.Marshal(dohScan)
+		msg := &kafka.Message{
+			Value: dohScanBytes,
+		}
+
+		// test
+		err := dph.Process(msg, &msh)
+
+		assert.Error(t, err)
+		msh.AssertCalled(t, "Store", mock.Anything)
+	})
 }

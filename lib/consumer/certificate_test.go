@@ -178,3 +178,64 @@ func TestCertificate_Process(t *testing.T) {
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
 }
+
+func TestCertificateEventConsumer_New(t *testing.T) {
+	t.Parallel()
+
+	t.Run("consumer group", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		mqh := &query.QueryConfig{}
+
+		config := &consumer.KafkaConsumerConfig{}
+
+		kec, err := consumer.NewKafkaCertificateEventConsumer(config, msh, mqh)
+
+		assert.Error(t, err, "should return an error on missing kafka server information")
+		assert.NotEmpty(t, config.ConsumerGroup, "should have added the default consumer group")
+		assert.Nil(t, kec, "should return a valid KafkaEventConsumer")
+	})
+
+	t.Run("empty config", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		mqh := &query.QueryConfig{}
+
+		kec, err := consumer.NewKafkaCertificateEventConsumer(nil, msh, mqh)
+
+		assert.Error(t, err, "should return an error on empty config since kafka connection details are missing")
+		assert.Nil(t, kec, "should return nil")
+	})
+
+	t.Run("empty storage handler", func(t *testing.T) {
+		t.Parallel()
+
+		mqh := &query.QueryConfig{}
+
+		config := &consumer.KafkaConsumerConfig{
+			ConsumerGroup: "test-group",
+		}
+
+		kec, err := consumer.NewKafkaCertificateEventConsumer(config, nil, mqh)
+
+		assert.Error(t, err, "should return an error on empty storage handler")
+		assert.Nil(t, kec, "should not return a valid KafkaEventConsumer")
+	})
+
+	t.Run("empty process handler", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+
+		config := &consumer.KafkaConsumerConfig{
+			ConsumerGroup: "test-group",
+		}
+
+		kec, err := consumer.NewKafkaCertificateEventConsumer(config, msh, nil)
+
+		assert.Error(t, err, "should return an error on empty process handler")
+		assert.Nil(t, kec, "should not return a valid KafkaEventConsumer")
+	})
+}
