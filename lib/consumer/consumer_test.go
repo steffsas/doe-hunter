@@ -15,40 +15,40 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockedKafkaError struct {
+type mockedKafkaError struct {
 	mock.Mock
 }
 
-func (mke *MockedKafkaError) IsTimeout() bool {
+func (mke *mockedKafkaError) IsTimeout() bool {
 	args := mke.Called()
 	return args.Bool(0)
 }
 
-func (mke *MockedKafkaError) Error() string {
+func (mke *mockedKafkaError) Error() string {
 	args := mke.Called()
 	return args.String(0)
 }
 
-func (mke *MockedKafkaError) Code() kafka.ErrorCode {
+func (mke *mockedKafkaError) Code() kafka.ErrorCode {
 	args := mke.Called()
 	return args.Get(0).(kafka.ErrorCode)
 }
 
-type MockedKafkaConsumer struct {
+type mockedKafkaConsumer struct {
 	mock.Mock
 }
 
-func (mkc *MockedKafkaConsumer) Close() error {
+func (mkc *mockedKafkaConsumer) Close() error {
 	args := mkc.Called()
 	return args.Error(0)
 }
 
-func (mkc *MockedKafkaConsumer) SubscribeTopics(topics []string, rebalanceCb kafka.RebalanceCb) error {
+func (mkc *mockedKafkaConsumer) SubscribeTopics(topics []string, rebalanceCb kafka.RebalanceCb) error {
 	args := mkc.Called(topics, rebalanceCb)
 	return args.Error(0)
 }
 
-func (mkc *MockedKafkaConsumer) ReadMessage(timeout time.Duration) (*kafka.Message, error) {
+func (mkc *mockedKafkaConsumer) ReadMessage(timeout time.Duration) (*kafka.Message, error) {
 	args := mkc.Called(timeout)
 
 	if args.Get(0) == nil {
@@ -67,25 +67,6 @@ func (mph *mockedProcessHandler) Process(msg *kafka.Message, storage storage.Sto
 	return args.Error(0)
 }
 
-type MockedStorageHandler struct {
-	mock.Mock
-}
-
-func (msh *MockedStorageHandler) Store(msg interface{}) error {
-	args := msh.Called(msg)
-	return args.Error(0)
-}
-
-func (msh *MockedStorageHandler) Close() error {
-	args := msh.Called()
-	return args.Error(0)
-}
-
-func (msh *MockedStorageHandler) Open() error {
-	args := msh.Called()
-	return args.Error(0)
-}
-
 func NewEmptyProcessHandler() (consumer.EventProcessHandler, error) {
 	return &consumer.EmptyProcessHandler{}, nil
 }
@@ -96,7 +77,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("valid consume", func(t *testing.T) {
 		t.Parallel()
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
@@ -117,8 +98,6 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 
 		err := wrapConsume(kc.Consume)
 		assert.Nil(t, err, "expected no error")
-
-		kc.Close()
 	})
 
 	t.Run("nil consumer", func(t *testing.T) {
@@ -146,7 +125,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:          &MockedKafkaConsumer{},
+			Consumer:          &mockedKafkaConsumer{},
 			StorageHandler:    nil,
 			NewProcessHandler: NewEmptyProcessHandler,
 
@@ -166,9 +145,9 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("failed open storage", func(t *testing.T) {
 		t.Parallel()
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 
-		msh := &MockedStorageHandler{}
+		msh := &mockedStorageHandler{}
 		msh.On("Open").Return(errors.New("failed to open storage"))
 		msh.On("Close").Return(nil)
 
@@ -192,7 +171,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("continue on process error", func(t *testing.T) {
 		t.Parallel()
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
@@ -220,30 +199,10 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		assert.Nil(t, err, "expect to continue on process error")
 	})
 
-	t.Run("ignore consumer nil on close", func(t *testing.T) {
-		t.Parallel()
-
-		kc := &consumer.KafkaEventConsumer{
-			Consumer:          nil,
-			StorageHandler:    &storage.EmptyStorageHandler{},
-			NewProcessHandler: NewEmptyProcessHandler,
-			Config: &consumer.KafkaConsumerConfig{
-				Server:        "localhost:9092",
-				ConsumerGroup: "test",
-				Topic:         "test-topic",
-				Timeout:       100 * time.Millisecond,
-				Threads:       100,
-			},
-		}
-
-		err := kc.Close()
-		assert.Nil(t, err, "expected no error on nil consumer")
-	})
-
 	t.Run("failed subscribe", func(t *testing.T) {
 		t.Parallel()
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(io.EOF)
 
 		kc := &consumer.KafkaEventConsumer{
@@ -266,12 +225,12 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("timeout readmessage", func(t *testing.T) {
 		t.Parallel()
 
-		mke := &MockedKafkaError{}
+		mke := &mockedKafkaError{}
 		mke.On("IsTimeout").Return(false)
 		mke.On("Error").Return("timeout")
 		mke.On("Code").Return(kafka.ErrTimedOut)
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, mke)
@@ -296,12 +255,12 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("continue on timeout", func(t *testing.T) {
 		t.Parallel()
 
-		mke := &MockedKafkaError{}
+		mke := &mockedKafkaError{}
 		mke.On("IsTimeout").Return(true)
 		mke.On("Error").Return("timeout")
 		mke.On("Code").Return(kafka.ErrTimedOut)
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, mke)
@@ -327,7 +286,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 	t.Run("failed read", func(t *testing.T) {
 		t.Parallel()
 
-		mkc := &MockedKafkaConsumer{}
+		mkc := &mockedKafkaConsumer{}
 		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
 		mkc.On("Close").Return(nil)
 		mkc.On("ReadMessage", mock.Anything).Return(nil, io.EOF)
@@ -353,7 +312,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:          &MockedKafkaConsumer{},
+			Consumer:          &mockedKafkaConsumer{},
 			StorageHandler:    &storage.EmptyStorageHandler{},
 			NewProcessHandler: NewEmptyProcessHandler,
 			Config:            nil,
@@ -367,7 +326,7 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		t.Parallel()
 
 		kc := &consumer.KafkaEventConsumer{
-			Consumer:          &MockedKafkaConsumer{},
+			Consumer:          &mockedKafkaConsumer{},
 			StorageHandler:    &storage.EmptyStorageHandler{},
 			NewProcessHandler: NewEmptyProcessHandler,
 			Config: &consumer.KafkaConsumerConfig{
@@ -382,6 +341,35 @@ func TestKafkaEventConsumer_Consume(t *testing.T) {
 		err := wrapConsume(kc.Consume)
 		assert.NotNil(t, err, "expected error on zero threads")
 	})
+
+	t.Run("cancel context and threads on process handler creation", func(t *testing.T) {
+		t.Parallel()
+
+		mkc := &mockedKafkaConsumer{}
+		mkc.On("SubscribeTopics", mock.Anything, mock.Anything).Return(nil)
+		mkc.On("Close").Return(nil)
+		mkc.On("ReadMessage", mock.Anything).Return(&kafka.Message{}, nil)
+
+		mph := func() (consumer.EventProcessHandler, error) {
+			return nil, errors.New("failed to create process handler")
+		}
+
+		kc := &consumer.KafkaEventConsumer{
+			Consumer:          mkc,
+			StorageHandler:    &storage.EmptyStorageHandler{},
+			NewProcessHandler: mph,
+			Config: &consumer.KafkaConsumerConfig{
+				Server:        "localhost:9092",
+				ConsumerGroup: "test",
+				Topic:         "test-topic",
+				Timeout:       100 * time.Millisecond,
+				Threads:       10,
+			},
+		}
+
+		err := wrapConsume(kc.Consume)
+		assert.NotNil(t, err, "expected error on process handler creation")
+	})
 }
 
 func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
@@ -389,7 +377,10 @@ func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
 
 	t.Run("no process handler", func(t *testing.T) {
 		t.Parallel()
-		kc, err := consumer.NewKafkaEventConsumer(nil, nil, &storage.EmptyStorageHandler{})
+
+		config := &consumer.KafkaConsumerConfig{}
+
+		kc, err := consumer.NewKafkaEventConsumer(config, nil, &storage.EmptyStorageHandler{})
 		assert.NotNil(t, err, "expected error on nil process handler")
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})
@@ -401,24 +392,112 @@ func TestKafkaEventConsumer_NewConsumer(t *testing.T) {
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})
 
-	t.Run("nil consumer group config", func(t *testing.T) {
+	t.Run("consumer group required", func(t *testing.T) {
 		t.Parallel()
 		kc, err := consumer.NewKafkaEventConsumer(&consumer.KafkaConsumerConfig{
-			Server: "localhost:9092",
-			Topic:  "test-topic",
+			Server:  "localhost:9092",
+			Topic:   "test-topic",
+			Threads: 10,
+			Timeout: 100 * time.Millisecond,
 		}, NewEmptyProcessHandler, &storage.EmptyStorageHandler{})
 		assert.NotNil(t, err, "expected error on nil consumer group config")
 		assert.Nil(t, kc, "expected nil consumer on error")
 	})
 
-	t.Run("nil server config", func(t *testing.T) {
+	t.Run("server required", func(t *testing.T) {
 		t.Parallel()
 		kc, err := consumer.NewKafkaEventConsumer(&consumer.KafkaConsumerConfig{
 			Topic:         "test-topic",
 			ConsumerGroup: "test",
+			Threads:       10,
+			Timeout:       100 * time.Millisecond,
 		}, NewEmptyProcessHandler, &storage.EmptyStorageHandler{})
 		assert.NotNil(t, err, "expected error on nil consumer group config")
 		assert.Nil(t, kc, "expected nil consumer on error")
+	})
+
+	t.Run("number of threads required", func(t *testing.T) {
+		t.Parallel()
+
+		kc, err := consumer.NewKafkaEventConsumer(&consumer.KafkaConsumerConfig{
+			Topic:         "test-topic",
+			ConsumerGroup: "test",
+			Server:        "localhost:9092",
+			Timeout:       100 * time.Millisecond,
+		}, NewEmptyProcessHandler, &storage.EmptyStorageHandler{})
+
+		assert.NotNil(t, err, "expected error on nil consumer group config")
+		assert.Nil(t, kc, "expected nil consumer on error")
+	})
+}
+
+func TestKafkaEventConsumer_Close(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid close", func(t *testing.T) {
+		t.Parallel()
+
+		mkc := &mockedKafkaConsumer{}
+		mkc.On("Close").Return(nil)
+
+		msh := &mockedStorageHandler{}
+		msh.On("Close").Return(nil)
+
+		kc := &consumer.KafkaEventConsumer{
+			Consumer:          mkc,
+			StorageHandler:    msh,
+			NewProcessHandler: NewEmptyProcessHandler,
+			Config:            &consumer.KafkaConsumerConfig{},
+		}
+
+		err := kc.Close()
+		mkc.AssertCalled(t, "Close")
+		msh.AssertCalled(t, "Close")
+		assert.Nil(t, err, "expected no error")
+	})
+
+	t.Run("close storage error", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		msh.On("Close").Return(errors.New("failed to close storage"))
+
+		mkc := &mockedKafkaConsumer{}
+		mkc.On("Close").Return(nil)
+
+		kc := &consumer.KafkaEventConsumer{
+			Consumer:          mkc,
+			StorageHandler:    msh,
+			NewProcessHandler: NewEmptyProcessHandler,
+			Config:            &consumer.KafkaConsumerConfig{},
+		}
+
+		err := kc.Close()
+		msh.AssertCalled(t, "Close")
+		mkc.AssertCalled(t, "Close")
+		assert.NotNil(t, err, "expected error on close storage")
+	})
+
+	t.Run("close consumer error", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		msh.On("Close").Return(nil)
+
+		mkc := &mockedKafkaConsumer{}
+		mkc.On("Close").Return(errors.New("failed to close consumer"))
+
+		kc := &consumer.KafkaEventConsumer{
+			Consumer:          mkc,
+			StorageHandler:    msh,
+			NewProcessHandler: NewEmptyProcessHandler,
+			Config:            &consumer.KafkaConsumerConfig{},
+		}
+
+		err := kc.Close()
+		msh.AssertCalled(t, "Close")
+		mkc.AssertCalled(t, "Close")
+		assert.NotNil(t, err, "expected error on close storage")
 	})
 }
 

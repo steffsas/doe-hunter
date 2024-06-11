@@ -208,23 +208,23 @@ func (keh *KafkaEventConsumer) Fetch(ctx context.Context, out chan *kafka.Messag
 }
 
 func (keh *KafkaEventConsumer) Close() (err error) {
-	if keh.Consumer == nil {
-		return nil
-	}
-
-	err = keh.Consumer.Close()
-	if err != nil {
-		return err
-	}
-
-	if keh.StorageHandler != nil {
-		err = keh.StorageHandler.Close()
-		if err != nil {
-			return err
+	if keh.Consumer != nil {
+		errCons := keh.Consumer.Close()
+		if errCons != nil {
+			err = errCons
+			logrus.Warn("failed to close kafka consumer")
 		}
 	}
 
-	return
+	if keh.StorageHandler != nil {
+		errStor := keh.StorageHandler.Close()
+		if errStor != nil {
+			err = errStor
+			logrus.Warn("failed to close storage handler")
+		}
+	}
+
+	return err
 }
 
 func NewKafkaEventConsumer(config *KafkaConsumerConfig, newProcessHandler NewEventProcessHandlerFunc, storageHandler storage.StorageHandler) (kec *KafkaEventConsumer, err error) {
