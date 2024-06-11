@@ -12,7 +12,7 @@ func TestPTRScan_Constructor(t *testing.T) {
 	t.Parallel()
 	t.Run("nil query", func(t *testing.T) {
 		t.Parallel()
-		scan := scan.NewPTRScan(nil, "parent", "root", "run")
+		scan := scan.NewPTRScan(nil, "parent", "root", "run", "vantagepoint")
 
 		// test
 		assert.Equal(t, "PTR", scan.GetType(), "should have returned PTR")
@@ -22,12 +22,13 @@ func TestPTRScan_Constructor(t *testing.T) {
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
 		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
+		assert.Equal(t, "vantagepoint", scan.GetMetaInformation().VantagePoint, "should have returned vantagepoint")
 	})
 
 	t.Run("non-nil query", func(t *testing.T) {
 		t.Parallel()
 		q := query.NewConventionalQuery()
-		scan := scan.NewPTRScan(q, "parent", "root", "run")
+		scan := scan.NewPTRScan(q, "parent", "root", "run", "vantagepoint")
 
 		// test
 		assert.Equal(t, "PTR", scan.GetType(), "should have returned PTR")
@@ -38,12 +39,13 @@ func TestPTRScan_Constructor(t *testing.T) {
 		assert.Equal(t, "parent", scan.GetMetaInformation().ParentScanId, "should have returned parent")
 		assert.Equal(t, "root", scan.GetMetaInformation().RootScanId, "should have returned root")
 		assert.Equal(t, "run", scan.GetMetaInformation().RunId, "should have returned run")
+		assert.Equal(t, "vantagepoint", scan.GetMetaInformation().VantagePoint, "should have returned vantagepoint")
 	})
 }
 
 func TestPTRScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewPTRScan(nil, "parent", "root", "run")
+	scan := scan.NewPTRScan(nil, "parent", "root", "run", "vantagepoint")
 	bytes, err := scan.Marshall()
 
 	// test
