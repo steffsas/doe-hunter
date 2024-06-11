@@ -1,6 +1,7 @@
 package query_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -9,18 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDDRQuery(t *testing.T) {
+func TestNewEDSRQuery(t *testing.T) {
 	t.Parallel()
 
 	// p := &DDRParser{}
-	qh := query.NewDDRQueryHandler(nil)
+	qh := query.NewEDSRQueryHandler(nil)
 
-	q := query.NewDDRQuery()
+	q := query.NewEDSRQuery("dns.google.")
 	q.Host = "8.8.8.8"
 	q.Port = 53
 	q.Protocol = query.DNS_UDP
 
 	res, err := qh.Query(q)
+
+	fmt.Println(res.Response.ResponseMsg)
 
 	assert.Nil(t, err, "should not have returned an error")
 	require.NotNil(t, res, "should have returned a result")
