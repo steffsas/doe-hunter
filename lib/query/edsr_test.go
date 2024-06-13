@@ -11,7 +11,6 @@ import (
 func TestNewEDSRQuery(t *testing.T) {
 	t.Parallel()
 
-	// p := &DDRParser{}
 	qh := query.NewEDSRQueryHandler(nil)
 
 	q := query.NewEDSRQuery("dns.google.")
