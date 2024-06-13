@@ -18,8 +18,6 @@ func TestNewEDSRQuery(t *testing.T) {
 
 	q := query.NewEDSRQuery("dns.google.")
 	q.Host = "8.8.8.8"
-	q.Port = 53
-	q.Protocol = query.DNS_UDP
 
 	res, err := qh.Query(q)
 
