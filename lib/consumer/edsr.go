@@ -16,6 +16,7 @@ import (
 )
 
 // TODO change this?
+// nolint: gochecknoglobals
 var RESOLVER = net.IP{8, 8, 8, 8}
 
 type EDSRProcessConsumer struct {
@@ -155,7 +156,6 @@ func (edsr *EDSRProcessConsumer) QueryHop(
 			resGlueRR.IP = aRecord.A
 
 			if glueRecord.Header().Name == targetName {
-				fmt.Println(**consideredIPs, aRecord.A.String())
 				if !isConsideredAlready(**consideredIPs, aRecord.A) {
 					differenceIPs = append(differenceIPs, &aRecord.A)
 				} else {

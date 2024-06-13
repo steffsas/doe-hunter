@@ -1,7 +1,6 @@
 package query_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/miekg/dns"
@@ -20,8 +19,6 @@ func TestNewEDSRQuery(t *testing.T) {
 	q.Host = "8.8.8.8"
 
 	res, err := qh.Query(q)
-
-	fmt.Println(res.Response.ResponseMsg)
 
 	assert.Nil(t, err, "should not have returned an error")
 	require.NotNil(t, res, "should have returned a result")

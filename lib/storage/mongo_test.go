@@ -86,7 +86,6 @@ func GetMockedMongoClient() *MockedMongoClient {
 // 	require.Nil(t, err)
 
 // 	res, err := c.InsertOne(context.Background(), msg)
-// 	fmt.Println(res, err)
 // }
 
 func TestMongoStorageHandler_Open(t *testing.T) {
