@@ -13,6 +13,7 @@ const DEFAULT_DDR_TOPIC = "ddr-scan"
 const DEFAULT_PTR_TOPIC = "ptr-scan"
 const DEFAULT_DOH_TOPIC = "doh-scan"
 const DEFAULT_CERTIFICATE_TOPIC = "certificate-scan"
+const DEFAULT_EDSR_TOPIC = "edsr-scan"
 
 const DEFAULT_CONCURRENT_CONSUMER = 10
 const DEFAULT_PARTITIONS = 100

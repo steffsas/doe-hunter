@@ -170,8 +170,13 @@ func produceScansFromAlpn(
 	certQuery := query.NewCertificateQuery()
 	certQuery.Host = host
 	if host != targetName {
+		// TODO add ALPN?
 		certQuery.SNI = targetName
 	}
+
+	// create EDSR query
+	edsrQuery := query.NewEDSRQuery(targetName)
+	edsrQuery.Host = host
 
 	var doeScan DoEScan
 
@@ -259,6 +264,10 @@ func produceScansFromAlpn(
 
 	if doeScan != nil {
 		scans = append(scans, doeScan)
+
+		// let's create an EDSR scan for the discovered protocol
+		edsrScan := NewEDSRScan(targetName, host, alpn, doeScan.GetMetaInformation().ScanId, parentScanId, runId, vantagePoint)
+		scans = append(scans, edsrScan)
 
 		// create certificate scan
 		certScan := NewCertificateScan(certQuery, parentScanId, doeScan.GetMetaInformation().ScanId, runId, vantagePoint)

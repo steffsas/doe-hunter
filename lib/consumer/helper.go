@@ -39,6 +39,8 @@ func GetKafkaTopicFromScan(s scan.Scan) string {
 		return GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, s.GetMetaInformation().VantagePoint)
 	case scan.CERTIFICATE_SCAN_TYPE:
 		return GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, s.GetMetaInformation().VantagePoint)
+	case scan.EDSR_SCAN_TYPE:
+		return GetKafkaVPTopic(k.DEFAULT_EDSR_TOPIC, s.GetMetaInformation().VantagePoint)
 	default:
 		return ""
 	}

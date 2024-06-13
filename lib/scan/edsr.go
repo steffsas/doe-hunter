@@ -13,6 +13,8 @@ import (
 	"github.com/steffsas/doe-hunter/lib/svcb"
 )
 
+const EDSR_SCAN_TYPE = "EDSR"
+
 type EDSRScanMetaInformation struct {
 	ScanMetaInformation
 }
@@ -81,7 +83,7 @@ func (scan *EDSRScan) GetMetaInformation() *ScanMetaInformation {
 }
 
 func (scan *EDSRScan) GetType() string {
-	return DDR_SCAN_TYPE
+	return EDSR_SCAN_TYPE
 }
 
 func NewEDSRScan(targetName, host, protocol, parentScanId, rootScanId, runId, vantagePoint string) *EDSRScan {
