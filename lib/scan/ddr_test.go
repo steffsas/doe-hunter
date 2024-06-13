@@ -139,7 +139,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 6, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 9, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN) and three EDSR scans (for each ALPN)")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -147,9 +147,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -157,7 +158,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned SAMPLE_TARGET")
 				assert.Equal(t, query.DEFAULT_TLS_PORT, certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
@@ -165,6 +166,13 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned SAMPLE_TARGET")
 				assert.Equal(t, query.DEFAULT_DOH_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, query.DEFAULT_DOH_PORT, dohScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to DoH scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
 			}
 		}
 	})
@@ -202,7 +210,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
 
-		assert.Equal(t, 6, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 9, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN) and three EDSR scans (for each ALPN)")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -210,9 +218,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -220,7 +229,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 				assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
@@ -228,6 +237,13 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
 				assert.Equal(t, query.DEFAULT_DOH_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to DoH scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
 			}
 		}
 	})
@@ -268,16 +284,17 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
 
-		assert.Equal(t, 6, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 9, len(scans), "should have returned three DoH scans and three certificate scans (for each requested HTTP ALPN) and three EDSR scans (for each ALPN)")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -285,7 +302,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, "example.com", certScan.Query.Host, "should have returned target")
 				assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
@@ -293,6 +310,13 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
 				assert.Equal(t, VALID_QUERY_PATH, dohScan.Query.URI, "should have returned default template URI")
 				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to DoH scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
 			}
 		}
 	})
@@ -339,7 +363,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
 
-		assert.Equal(t, 12, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 18, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN) and three EDSR scans for each ALPN")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -352,9 +376,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		certTargetConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -367,7 +392,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 				require.True(t, ok, "should have returned a DoH scan")
@@ -379,6 +404,21 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
+			case scan.EDSR_SCAN_TYPE:
+				// cast to DoH scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				edsrConsidered := false
+				if edsrScan.Host == ipv4HintHost {
+					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+					edsrConsidered = true
+				} else if edsrScan.Host == SAMPLE_TARGET {
+					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+					edsrConsidered = true
+				}
+
+				assert.True(t, edsrConsidered, "should have considered target for edsr")
 			}
 		}
 
@@ -430,7 +470,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 18, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 27, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN) and nine EDSR scans (for each ALPN, ipv hint and original target)")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -443,9 +483,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		certTargetConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -458,7 +499,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 
@@ -472,6 +513,21 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				edsrConsidered := false
+				if slices.Contains(ipHints, edsrScan.Host) {
+					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+					edsrConsidered = true
+				} else if edsrScan.Host == SAMPLE_TARGET {
+					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+					edsrConsidered = true
+				}
+
+				assert.True(t, edsrConsidered, "should have considered target for edsr")
 			}
 		}
 
@@ -521,7 +577,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 12, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 18, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN) and six EDSR scans (for each ALPN and hint)")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -534,9 +590,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		certTargetConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -549,7 +606,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 
@@ -563,6 +620,19 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				edsrConsidered := false
+				if edsrScan.Host == ipv6hint.String() {
+					edsrConsidered = true
+				} else if edsrScan.Host == SAMPLE_TARGET {
+					edsrConsidered = true
+				}
+
+				assert.True(t, edsrConsidered, "should have considered target for edsr")
 			}
 		}
 
@@ -614,7 +684,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 18, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 27, len(scans), "should have returned six DoH scans and six certificate scans (for each requested HTTP ALPN) and nine EDSR scans (for each ALPN and hint)")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -627,9 +697,10 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		certTargetConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -642,7 +713,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
 					certTargetConsidered = true
 				}
-			} else {
+			case scan.DOH_SCAN_TYPE:
 				// cast to DoH scan
 				dohScan, ok := ss.(*scan.DoHScan)
 
@@ -656,6 +727,19 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				} else if dohScan.Query.Host == SAMPLE_TARGET {
 					doeTargetConsidered = true
 				}
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				edsrConsidered := false
+				if slices.Contains(ipHints, edsrScan.Host) {
+					edsrConsidered = true
+				} else if edsrScan.Host == SAMPLE_TARGET {
+					edsrConsidered = true
+				}
+
+				assert.True(t, edsrConsidered, "should have considered target for edsr")
 			}
 		}
 
@@ -696,7 +780,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 3, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN) and 1 for EDSR")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -704,9 +788,10 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -714,13 +799,19 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 				assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOT_SCAN_TYPE:
 				// cast to DoT scan
-				dohScan, ok := ss.(*scan.DoTScan)
+				dotScan, ok := ss.(*scan.DoTScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
-				assert.Equal(t, query.DEFAULT_DOT_PORT, dohScan.Query.Port, "should have returned default port")
+				assert.Equal(t, SAMPLE_TARGET, dotScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOT_PORT, dotScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			}
 		}
 	})
@@ -757,7 +848,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 2, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 3, len(scans), "should have returned 1 DoH scans and 1 certificate scans (for each requested HTTP ALPN) and 1 for EDSR")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -765,9 +856,10 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -775,13 +867,19 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 				assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOT_SCAN_TYPE:
 				// cast to DoT scan
-				dohScan, ok := ss.(*scan.DoTScan)
+				dotScan, ok := ss.(*scan.DoTScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
-				assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
+				assert.Equal(t, SAMPLE_TARGET, dotScan.Query.Host, "should have returned target")
+				assert.Equal(t, int(port), dotScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			}
 		}
 	})
@@ -817,7 +915,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned errors")
-		assert.Equal(t, 2, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN)")
+		assert.Equal(t, 3, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN) and 1 for EDSR")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -825,9 +923,10 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-			if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+			switch ss.GetType() {
+			case scan.CERTIFICATE_SCAN_TYPE:
 				// cast to certificate scan
 				certScan, ok := ss.(*scan.CertificateScan)
 				require.True(t, ok, "should have returned a certificate scan")
@@ -835,13 +934,19 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 				assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 				assert.Equal(t, query.DEFAULT_DOT_PORT, certScan.Query.Port, "should have returned default port")
 				assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-			} else {
+			case scan.DOQ_SCAN_TYPE:
 				// cast to DoT scan
-				dohScan, ok := ss.(*scan.DoQScan)
+				doqScan, ok := ss.(*scan.DoQScan)
 				require.True(t, ok, "should have returned a DoH scan")
 
-				assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
-				assert.Equal(t, query.DEFAULT_DOQ_PORT, dohScan.Query.Port, "should have returned default port")
+				assert.Equal(t, SAMPLE_TARGET, doqScan.Query.Host, "should have returned target")
+				assert.Equal(t, query.DEFAULT_DOQ_PORT, doqScan.Query.Port, "should have returned default port")
+			case scan.EDSR_SCAN_TYPE:
+				// cast to EDSR scan
+				edsrScan, ok := ss.(*scan.EDSRScan)
+				require.True(t, ok, "should have returned an EDSR scan")
+
+				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			}
 		}
 	})
@@ -879,7 +984,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 
 			require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 			require.NotNil(t, errors, "should have returned errors")
-			assert.Equal(t, 2, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN)")
+			assert.Equal(t, 3, len(scans), "should have returned 1 DoQ scans and 1 certificate scans (for each requested HTTP ALPN)")
 
 			for _, err := range errors {
 				assert.NotNil(t, err, "should have returned an error")
@@ -887,9 +992,10 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			}
 
 			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
-				if ss.GetType() == scan.CERTIFICATE_SCAN_TYPE {
+				switch ss.GetType() {
+				case scan.CERTIFICATE_SCAN_TYPE:
 					// cast to certificate scan
 					certScan, ok := ss.(*scan.CertificateScan)
 					require.True(t, ok, "should have returned a certificate scan")
@@ -897,13 +1003,19 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					assert.Equal(t, SAMPLE_TARGET, certScan.Query.Host, "should have returned target")
 					assert.Equal(t, int(port), certScan.Query.Port, "should have returned default port")
 					assert.Empty(t, certScan.Query.SNI, "should have returned empty SNI")
-				} else {
+				case scan.DOQ_SCAN_TYPE:
 					// cast to DoT scan
-					dohScan, ok := ss.(*scan.DoQScan)
+					doqScan, ok := ss.(*scan.DoQScan)
 					require.True(t, ok, "should have returned a DoH scan")
 
-					assert.Equal(t, SAMPLE_TARGET, dohScan.Query.Host, "should have returned target")
-					assert.Equal(t, int(port), dohScan.Query.Port, "should have returned default port")
+					assert.Equal(t, SAMPLE_TARGET, doqScan.Query.Host, "should have returned target")
+					assert.Equal(t, int(port), doqScan.Query.Port, "should have returned default port")
+				case scan.EDSR_SCAN_TYPE:
+					// cast to EDSR scan
+					edsrScan, ok := ss.(*scan.EDSRScan)
+					require.True(t, ok, "should have returned an EDSR scan")
+
+					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				}
 			}
 		})
