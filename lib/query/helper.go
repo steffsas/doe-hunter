@@ -10,25 +10,6 @@ import (
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
-func ParseIPAddresses(res *ConventionalDNSResponse) []*net.IP {
-	ips := []*net.IP{}
-
-	if res != nil && res.Response != nil && res.Response.ResponseMsg != nil {
-		for _, rr := range res.Response.ResponseMsg.Answer {
-			// parse ipv4
-			if ipv4, ok := rr.(*dns.A); ok {
-				ips = append(ips, &ipv4.A)
-			}
-			// parse ipv6
-			if ipv6, ok := rr.(*dns.AAAA); ok {
-				ips = append(ips, &ipv6.AAAA)
-			}
-		}
-	}
-
-	return ips
-}
-
 func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoEErrors, res *DoEResponse, skipCertificateVerification bool) custom_errors.DoEErrors {
 	setCertificateValidationToResponse(queryErr, res, skipCertificateVerification)
 	if queryErr != nil {
@@ -90,4 +71,55 @@ func GetDefaultQueryMsg() *dns.Msg {
 	}
 
 	return msg
+}
+
+func ResolveHost(hostname string, resolver net.IP, qh ConventionalDNSQueryHandlerI) ([]*net.IP, error) {
+	ip := net.ParseIP(hostname)
+
+	resolvedIPs := []*net.IP{}
+
+	// ip == nil means we have a hostname to resolve
+	if ip == nil {
+		// resolve A
+		q := NewConventionalQuery()
+		q.DNSSEC = false
+		q.QueryMsg.SetQuestion(hostname, dns.TypeA)
+		q.Host = resolver.String()
+
+		res, err := qh.Query(q)
+		if err != nil {
+			return nil, err
+		}
+
+		if res.Response != nil && res.Response.ResponseMsg != nil {
+			for _, rr := range res.Response.ResponseMsg.Answer {
+				if a, ok := rr.(*dns.A); ok {
+					resolvedIPs = append(resolvedIPs, &a.A)
+				}
+			}
+		}
+
+		// resolve AAAA
+		q = NewConventionalQuery()
+		q.DNSSEC = false
+		q.QueryMsg.SetQuestion(hostname, dns.TypeAAAA)
+		q.Host = resolver.String()
+
+		res, err = qh.Query(q)
+		if err != nil {
+			return nil, err
+		}
+
+		if res.Response != nil && res.Response.ResponseMsg != nil {
+			for _, rr := range res.Response.ResponseMsg.Answer {
+				if aaaa, ok := rr.(*dns.AAAA); ok {
+					resolvedIPs = append(resolvedIPs, &aaaa.AAAA)
+				}
+			}
+		}
+	} else {
+		resolvedIPs = append(resolvedIPs, &ip)
+	}
+
+	return resolvedIPs, nil
 }

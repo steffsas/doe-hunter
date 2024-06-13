@@ -59,6 +59,7 @@ var ErrResolverDoesNotAdvertiseProtocol = errors.New("resolver does not advertis
 var ErrHopParsingFailed = errors.New("failed to parse EDSR hop")
 var ErrResolvingIPsOfTargetName = errors.New("failed to resolve IPv4 and/or IPv6 addresses for targetName of SVCB record")
 var ErrNoGlueRecords = errors.New("no glue records found for targetName of SVCB record")
+var ErrResolvingHost = errors.New("failed to resolve host")
 
 // parsing SVCB
 var ErrUnknownSvcbKey = errors.New("unknown SVCB key")

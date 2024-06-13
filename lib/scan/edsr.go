@@ -2,9 +2,12 @@ package scan
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"github.com/google/uuid"
+	"github.com/miekg/dns"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/svcb"
@@ -17,30 +20,33 @@ type EDSRScanMetaInformation struct {
 type EDSRResult struct {
 	// true if there is at least one valid EDSR redirection (including to the host itself)
 	EDSRDetected bool `json:"edsr_detected"`
-	// true if there is a loop of redirections
-	Loop bool `json:"loop"`
 
 	Redirections []*EDSRHop `json:"hops"`
 }
 
+type GlueRecord struct {
+	IP   net.IP `json:"ip"`
+	Host string `json:"host"`
+}
+
 type EDSRHop struct {
 	Id             string                         `json:"id"`
-	ParentId       string                         `json:"parent_id"`
+	ChildNodes     []string                       `json:"child_nodes"`
 	Hop            int                            `json:"hop"`
 	Errors         []custom_errors.DoEErrors      `json:"errors"`
 	Query          *query.ConventionalDNSQuery    `json:"query"`
 	Result         *query.ConventionalDNSResponse `json:"result"`
 	ConsideredSVCB *svcb.SVCBRR                   `json:"considered_svcb"`
-	GlueRecords    []*net.IP                      `json:"glue_records"`
+	GlueRecords    []*GlueRecord                  `json:"glue_records"`
 }
 
-func NewEDSRHop(parentId string, parentHop int, query *query.ConventionalDNSQuery) *EDSRHop {
+func NewEDSRHop(parentHop int, query *query.ConventionalDNSQuery) *EDSRHop {
 	return &EDSRHop{
 		Id:          uuid.New().String(),
-		ParentId:    parentId,
+		ChildNodes:  []string{},
 		Hop:         parentHop + 1,
 		Query:       query,
-		GlueRecords: make([]*net.IP, 0),
+		GlueRecords: []*GlueRecord{},
 	}
 }
 
@@ -56,9 +62,10 @@ type EDSRScan struct {
 	// the targetName to scan for in SVCB records (see strict origin redirection in the draft)
 	TargetName string `json:"target_name"`
 
-	// the initial query to start from
-	Query  *query.ConventionalDNSQuery `json:"query"`
-	Result *EDSRResult                 `json:"result"`
+	// the host to start the EDSR scan from
+	Host string `json:"host"`
+
+	Result *EDSRResult `json:"result"`
 }
 
 func (scan *EDSRScan) Marshall() (bytes []byte, err error) {
@@ -77,12 +84,52 @@ func (scan *EDSRScan) GetType() string {
 	return DDR_SCAN_TYPE
 }
 
-func NewEDSRScan(initialQuery *query.ConventionalDNSQuery, protocol, parentScanId, rootScanId, runId, vantagePoint string) *EDSRScan {
+func NewEDSRScan(targetName, host, protocol, parentScanId, rootScanId, runId, vantagePoint string) *EDSRScan {
 	scan := &EDSRScan{
 		Meta: &EDSRScanMetaInformation{},
 	}
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 	scan.Protocol = protocol
-	scan.Query = initialQuery
+	scan.Host = host
+	scan.TargetName = targetName
 	return scan
+}
+
+func CheckForDoEProtocol(scanId string, targetName string, protocol string, res *query.ConventionalDNSResponse) (svcbRR *svcb.SVCBRR, errColl []custom_errors.DoEErrors) {
+	if (res == nil) || (res.Response == nil) || (res.Response.ResponseMsg == nil) {
+		return nil, append(errColl, custom_errors.NewQueryError(custom_errors.ErrNoResponse, true).AddInfoString("response is empty"))
+	}
+
+	for _, answer := range res.Response.ResponseMsg.Answer {
+		svcbRecord, ok := answer.(*dns.SVCB)
+		if !ok {
+			errColl = append(errColl, custom_errors.NewQueryError(custom_errors.ErrInvalidSVCBRR, false).AddInfoString("could not cast DNS answer to SVCB"))
+			continue
+		}
+
+		// see https://www.ietf.org/id/draft-jt-add-dns-server-redirection-04.html, strict origin redirection
+		if svcbRecord.Target != targetName {
+			continue
+		}
+
+		// parse SVCB record
+		svcbEntry, err := svcb.ParseDDRSVCB(scanId, svcbRecord)
+		errColl = append(errColl, err...)
+		if custom_errors.ContainsCriticalErr(err) {
+			logrus.Errorf("parsing EDSR scan %s: critical error while parsing SVCB record, ignore DNS RR", scanId)
+			continue
+		}
+
+		for _, alpn := range svcbEntry.Alpn.Alpn {
+			if alpn == protocol {
+				// we found an SVCB record to the same protocol with a lower priority than the current one
+				return svcbEntry, errColl
+			}
+		}
+	}
+
+	// return critical error since we did not find a record with the requested protocol
+	return nil, append(errColl,
+		custom_errors.NewQueryError(custom_errors.ErrResolverDoesNotAdvertiseProtocol, true).
+			AddInfoString(fmt.Sprintf("resolver does not advertise protocol %s", protocol)))
 }
