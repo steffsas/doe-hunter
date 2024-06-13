@@ -15,6 +15,8 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
+const DEFAULT_EDSR_CONSUMER_GROUP = "edsr-scan-group"
+
 // TODO change this?
 // nolint: gochecknoglobals
 var RESOLVER = net.IP{8, 8, 8, 8}
@@ -237,4 +239,20 @@ func isConsideredAlready(consideredIPs []*net.IP, ip net.IP) bool {
 	}
 
 	return false
+}
+
+func NewKafkaEDSREventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
+	if config != nil && config.ConsumerGroup == "" {
+		config.ConsumerGroup = DEFAULT_EDSR_CONSUMER_GROUP
+	}
+
+	newPh := func() (EventProcessHandler, error) {
+		return &EDSRProcessConsumer{
+			QueryHandler: query.NewConventionalDNSQueryHandler(queryConfig),
+		}, nil
+	}
+
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
+
+	return
 }
