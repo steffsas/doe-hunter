@@ -862,10 +862,6 @@ func TestEDSR_StartEDSR(t *testing.T) {
 
 		pc.StartEDSR(scan)
 
-		for _, hop := range scan.Result.Redirections {
-			fmt.Println(hop.Id, hop.Query.Host, hop.ChildNodes)
-		}
-
 		assert.Empty(t, scan.Meta.Errors, "should not have returned any errors")
 		assert.Len(t, scan.Result.Redirections, 4, "should have returned 3 hops")
 		assert.True(t, scan.Result.EDSRDetected, "should have detected EDSR")

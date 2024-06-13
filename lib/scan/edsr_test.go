@@ -209,5 +209,4 @@ func TestEDSR_NewEDSRHop(t *testing.T) {
 		assert.Equal(t, parentHop+1, edsrHop.Hop)
 		assert.Equal(t, q, edsrHop.Query)
 	})
-
 }
