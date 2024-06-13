@@ -23,7 +23,7 @@ func TestNewEDSRQuery(t *testing.T) {
 	require.NotNil(t, res.Response, "should have returned a DNS response")
 	require.NotNil(t, res.Response.ResponseMsg, "should have returned at least one DNS answer")
 	// TODO: for some reason we do not get any response in the pipeline although locally everything works
-	//require.NotNil(t, res.Response.ResponseMsg.Answer, "should have returned at least one DNS answer")
+	// require.NotNil(t, res.Response.ResponseMsg.Answer, "should have returned at least one DNS answer")
 	// for _, answer := range res.Response.ResponseMsg.Answer {
 	// 	_, ok := answer.(*dns.SVCB)
 	// 	assert.True(t, ok, "should only have returned an SVCB record")
