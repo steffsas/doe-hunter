@@ -20,6 +20,7 @@ const DEFAULT_DDR_COLLECTION = "ddr-scans"
 const DEFAULT_DOQ_COLLECTION = "doq-scans"
 const DEFAULT_DOH_COLLECTION = "doh-scans"
 const DEFAULT_PTR_COLLECTION = "ptr-scans"
+const DEFAULT_EDSR_COLLECTION = "edsr-scans"
 const DEFAULT_CERTIFICATE_COLLECTION = "certificate-scans"
 
 type MongoCollection interface {

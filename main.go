@@ -24,7 +24,7 @@ import (
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "all",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "all",
 }
 
 // nolint: gochecknoglobals
@@ -395,6 +395,26 @@ func startConsumer(ctx context.Context, protocol string) {
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaPTREventConsumer(consumerConfig, sh, queryConfig)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
+		}
+		_ = pc.Consume(ctx)
+	case "edsr":
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, *mongoServer)
+
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  *kakfaServer,
+			Threads: *threads,
+		}
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, *vantagePoint)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_EDSR_CONSUMER_GROUP
+		//nolint:contextcheck
+		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
