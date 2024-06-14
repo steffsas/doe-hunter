@@ -39,6 +39,30 @@ func (mqh *mockedConventionalDNSQueryHandler) Query(q *query.ConventionalDNSQuer
 func TestEDSR_RealWorld(t *testing.T) {
 	t.Parallel()
 
+	t.Run("valid EDSR scan one.one.one.one", func(t *testing.T) {
+		t.Parallel()
+
+		scan := &scan.EDSRScan{
+			Meta: &scan.EDSRScanMetaInformation{
+				ScanMetaInformation: *scan.NewScanMetaInformation("", "", "", ""),
+			},
+			Protocol:   "h2",
+			TargetName: "one.one.one.one.",
+			Host:       "1.1.1.1",
+			Result:     &scan.EDSRResult{},
+		}
+
+		qh := query.NewEDSRQueryHandler(nil)
+
+		pc := &consumer.EDSRProcessConsumer{
+			QueryHandler: qh,
+		}
+
+		pc.StartEDSR(scan)
+
+		assert.Empty(t, scan.Meta.Errors, "should not have returned any errors")
+	})
+
 	t.Run("valid EDSR scan dns.google", func(t *testing.T) {
 		t.Parallel()
 
