@@ -341,6 +341,32 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 			assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
 		}
 	})
+
+	// t.Run("ipv6 h2", func(t *testing.T) {
+	// 	t.Parallel()
+
+	// 	qh, err := query.NewDoHQueryHandler(nil)
+	// 	require.Nil(t, err, "error should be nil")
+
+	// 	q := query.NewDoHQuery()
+	// 	// see dig @94.140.14.14 SVCB _dns.resolver.arpa
+	// 	q.Host = "2a10:50c0::ad1:ff"
+	// 	q.Port = 443
+	// 	q.URI = "/dns-query{?dns}"
+	// 	q.HTTPVersion = query.HTTP_VERSION_2
+	// 	q.Method = query.HTTP_GET
+	// 	q.QueryMsg = queryMsg
+
+	// 	q.SNI = "dns.adguard-dns.com."
+
+	// 	res, err := qh.Query(q)
+
+	// 	assert.Nil(t, err, "error should be nil")
+	// 	require.NotNil(t, res, "result should not be nil")
+	// 	require.NotNil(t, res.ResponseMsg, "dns response should not be nil")
+	// 	assert.Greater(t, len(res.ResponseMsg.Answer), 0, "answer should have at least one answer")
+	// 	assert.NotEmpty(t, res.RTT.String(), "rtt should not be empty")
+	// })
 }
 
 func TestDoHQuery_HTTPVersion(t *testing.T) {
