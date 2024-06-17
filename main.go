@@ -7,46 +7,58 @@ import (
 	"os"
 	"sync"
 
-	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
+	"github.com/steffsas/doe-hunter/lib/helper"
 	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
-	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
 func main() {
 	ctx := context.Background()
 
-	err := godotenv.Load()
+	// load environment variables and settings
+	err := helper.LoadEnv(".env")
 	if err != nil {
-		logrus.Fatalf("failed to load .env file: %v", err)
+		return
 	}
 
+	// prepare logger
 	setLogger()
 
-	if *exec == "consumer" {
-		switch getEnvVar() {
+	// get run type
+	toRun, err := helper.GetEnvVar(helper.RUN_ENV, true)
+	if err != nil {
+		return
+	}
+
+	protocolToRun, err := helper.GetEnvVar(helper.PROTOCOL_ENV, true)
+	if err != nil {
+		return
+	}
+
+	if toRun == "consumer" {
+		switch toRun {
 		case "all":
 			startAllConsumer(ctx)
 		default:
-			startConsumer(ctx, *protocol)
+			startConsumer(ctx, toRun)
 		}
 	} else {
-		if *protocol == "ddr" {
-			if err := produceDDRScansFromCensys(*producerFilePath, true); err != nil {
-				logrus.Fatalf("failed to produce DDR scans: %v", err)
-			}
+		if protocolToRun == "ddr" {
+			// do smth nice
 		} else {
-			logrus.Fatalf("unsupported protocol type %s", *protocol)
+			logrus.Fatalf("unsupported protocol type %s", protocolToRun)
 		}
 	}
 }
 
 func setLogger() {
-	switch *logLevel {
+	logLevel, _ := helper.GetEnvVar(helper.LOG_LEVEL_ENV, false)
+
+	switch logLevel {
 	case "trace":
 		logrus.SetLevel(logrus.TraceLevel)
 	case "debug":
@@ -77,18 +89,10 @@ func setLogger() {
 	logrus.SetOutput(os.Stdout)
 }
 
-func scheduleDDRScan(s scan.Scan, p producer.ScanProducer, wg *sync.WaitGroup) {
-	defer wg.Done()
-	// produce scan
-	if err := p.Produce(s, consumer.GetKafkaVPTopic(kafka.DEFAULT_DDR_TOPIC, *vantagePoint)); err != nil {
-		logrus.Errorf("failed to produce DDR scan: %v", err)
-	}
-}
-
 func startAllConsumer(ctx context.Context) {
 	wg := sync.WaitGroup{}
 
-	for _, protocol := range SUPPORTED_PROTOCOL_TYPES {
+	for _, protocol := range helper.SUPPORTED_PROTOCOL_TYPES {
 		if protocol == "all" {
 			continue
 		}
@@ -103,16 +107,29 @@ func startAllConsumer(ctx context.Context) {
 }
 
 func startConsumer(ctx context.Context, protocol string) {
-	if vantagePoint == nil || *vantagePoint == "" {
-		logrus.Fatalf("vantage point name is missing")
+	var queryConfig *query.QueryConfig
+
+	kafkaServer, err := helper.GetEnvVar(helper.KAFKA_SERVER_ENV, true)
+	if err != nil {
 		return
 	}
 
-	var queryConfig *query.QueryConfig
-	if localAddr != nil && *localAddr != "" {
-		localIpAddr := net.ParseIP(*localAddr)
+	mongoServer, err := helper.GetEnvVar(helper.MONGO_SERVER_ENV, true)
+	if err != nil {
+		return
+	}
+
+	vantagePoint, err := helper.GetEnvVar(helper.VANTAGE_POINT_ENV, true)
+	if err != nil {
+		return
+	}
+
+	localAddr, _ := helper.GetEnvVar(helper.LOCAL_ADDRESS_ENV, false)
+
+	if localAddr != "" {
+		localIpAddr := net.ParseIP(localAddr)
 		if localIpAddr == nil {
-			logrus.Fatalf("invalid local address %s", *localAddr)
+			logrus.Fatalf("invalid local address %s", localAddr)
 			return
 		}
 
@@ -122,9 +139,8 @@ func startConsumer(ctx context.Context, protocol string) {
 	}
 
 	config := producer.GetDefaultKafkaProducerConfig()
-	if kakfaServer != nil {
-		config.Server = *kakfaServer
-	}
+	config.Server = kafkaServer
+
 	prod, err := producer.NewKafkaScanProducer(config)
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)
@@ -134,15 +150,19 @@ func startConsumer(ctx context.Context, protocol string) {
 
 	switch protocol {
 	case "ddr":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, *mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+		threads, err := helper.GetThreads(helper.THREADS_DDR_ENV)
+		if err != nil {
+			return
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, *vantagePoint)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, mongoServer)
+
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  kafkaServer,
+			Threads: threads,
+		}
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -155,14 +175,19 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "doh":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, *mongoServer)
-
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+		threads, err := helper.GetThreads(helper.THREADS_DOH_ENV)
+		if err != nil {
+			return
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, *vantagePoint)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, mongoServer)
+
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  kafkaServer,
+			Threads: threads,
+		}
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, prod, sh, queryConfig)
@@ -174,16 +199,21 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "doq":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, *mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+		threads, err := helper.GetThreads(helper.THREADS_DOQ_ENV)
+		if err != nil {
+			return
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, *vantagePoint)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, mongoServer)
+
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  kafkaServer,
+			Threads: threads,
+		}
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoQEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
@@ -194,16 +224,22 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "dot":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, *mongoServer)
+		threads, err := helper.GetThreads(helper.THREADS_DOT_ENV)
+		if err != nil {
+			return
+		}
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, mongoServer)
 
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+			Server:  kafkaServer,
+			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, *vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoTEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
@@ -214,16 +250,22 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "ptr":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, *mongoServer)
+		threads, err := helper.GetThreads(helper.THREADS_PTR_ENV)
+		if err != nil {
+			return
+		}
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, mongoServer)
 
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+			Server:  kafkaServer,
+			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, *vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaPTREventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
@@ -234,16 +276,22 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "edsr":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, *mongoServer)
+		threads, err := helper.GetThreads(helper.THREADS_EDSR_ENV)
+		if err != nil {
+			return
+		}
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, mongoServer)
 
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+			Server:  kafkaServer,
+			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, *vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_EDSR_CONSUMER_GROUP
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
@@ -254,16 +302,22 @@ func startConsumer(ctx context.Context, protocol string) {
 		}
 		_ = pc.Consume(ctx)
 	case "certificate":
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, *mongoServer)
+		threads, err := helper.GetThreads(helper.THREADS_DOH_ENV)
+		if err != nil {
+			return
+		}
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, mongoServer)
 
 		// remove later
 		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  *kakfaServer,
-			Threads: *threads,
+			Server:  kafkaServer,
+			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, *vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, vantagePoint)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaCertificateEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
