@@ -1,7 +1,6 @@
 package producer_test
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 
@@ -39,8 +38,9 @@ func TestFileProducer_Produce(t *testing.T) {
 		_, err = f.WriteString(host)
 		require.NoError(t, err)
 
-		mkp := &mockedKafkaEventProducer{}
+		mkp := &mockedScanProducer{}
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		fp := &producer.FileProducer{
@@ -61,12 +61,10 @@ func TestFileProducer_Produce(t *testing.T) {
 
 				args := call.Arguments
 
-				sb := args[0].([]byte)
-				require.NotEmpty(t, sb)
+				s := args.Get(0).(scan.Scan)
 
-				ddrScan := new(scan.DDRScan)
-				err = json.Unmarshal(sb, ddrScan)
-				require.NoError(t, err)
+				ddrScan, ok := s.(*scan.DDRScan)
+				require.True(t, ok)
 
 				require.Equal(t, topic, args[1])
 				require.Equal(t, vp, ddrScan.Meta.VantagePoint)

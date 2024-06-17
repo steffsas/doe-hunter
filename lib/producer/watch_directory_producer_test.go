@@ -2,7 +2,6 @@ package producer_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -14,6 +13,24 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+type mockedScanProducer struct {
+	mock.Mock
+}
+
+func (m *mockedScanProducer) Produce(s scan.Scan, topic string) error {
+	args := m.Called(s, topic)
+	return args.Error(0)
+}
+
+func (m *mockedScanProducer) Close() {
+	m.Called()
+}
+
+func (m *mockedScanProducer) Flush(timeout int) int {
+	args := m.Called(timeout)
+	return args.Int(0)
+}
 
 func newScan(host, runId, vp string) scan.Scan {
 	q := query.NewDDRQuery()
@@ -42,8 +59,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
 
-		mkp := &mockedKafkaEventProducer{}
+		mkp := &mockedScanProducer{}
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
@@ -71,11 +89,10 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		for _, call := range calls {
 			if call.Method == "Produce" {
 				args := call.Arguments
-				b := args.Get(0).([]byte)
+				s := args.Get(0).(scan.Scan)
 
-				ddrScan := &scan.DDRScan{}
-				err = json.Unmarshal(b, ddrScan)
-				require.NoError(t, err)
+				ddrScan, ok := s.(*scan.DDRScan)
+				require.True(t, ok)
 
 				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
 				require.Equal(t, ddrScan.Query.Host, host)
@@ -96,8 +113,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
 
-		mkp := &mockedKafkaEventProducer{}
+		mkp := &mockedScanProducer{}
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
@@ -130,11 +148,10 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		for _, call := range calls {
 			if call.Method == "Produce" {
 				args := call.Arguments
-				b := args.Get(0).([]byte)
+				s := args.Get(0).(scan.Scan)
 
-				ddrScan := &scan.DDRScan{}
-				err = json.Unmarshal(b, ddrScan)
-				require.NoError(t, err)
+				ddrScan, ok := s.(*scan.DDRScan)
+				require.True(t, ok)
 
 				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
 				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
@@ -168,14 +185,15 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		subCtx, subCancel := context.WithCancel(ctx)
 
-		mkp := &mockedKafkaEventProducer{}
+		mkp := &mockedScanProducer{}
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
 			NewScan:       newScan,
 			Producer:      mkp,
-			WaitUntilExit: 250 * time.Millisecond,
+			WaitUntilExit: 500 * time.Millisecond,
 		}
 
 		firstHost := "8.8.8.8"
@@ -207,11 +225,10 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		for _, call := range calls {
 			if call.Method == "Produce" {
 				args := call.Arguments
-				b := args.Get(0).([]byte)
+				s := args.Get(0).(scan.Scan)
 
-				ddrScan := &scan.DDRScan{}
-				err = json.Unmarshal(b, ddrScan)
-				require.NoError(t, err)
+				ddrScan, ok := s.(*scan.DDRScan)
+				require.True(t, ok)
 
 				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
 				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
