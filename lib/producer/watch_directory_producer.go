@@ -18,14 +18,14 @@ const WAIT_UNTIL_EXIT_TAILING = 30 * time.Minute
 
 type NewScan func(host string, runId string, vantagePoint string) scan.Scan
 
-type DirectoryProducer struct {
+type WatchDirectoryProducer struct {
 	NewScan  NewScan
 	Producer EventProducer
 
 	WaitUntilExit time.Duration
 }
 
-func (dp *DirectoryProducer) WatchAndProduce(ctx context.Context, dir, topic, vantagePoint string) error {
+func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topic, vantagePoint string) error {
 	// watch the folder and spawn new producer for each file
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -94,7 +94,7 @@ func (dp *DirectoryProducer) WatchAndProduce(ctx context.Context, dir, topic, va
 }
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
-func (dp *DirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, topic string, vantagePoint string, filepath string, timeAfterExit time.Duration) error {
+func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, topic string, vantagePoint string, filepath string, timeAfterExit time.Duration) error {
 	defer outerWg.Done()
 
 	// tail the output file (will contain IP addresses for scanning)
@@ -173,8 +173,10 @@ func (dp *DirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.
 	return nil
 }
 
-func NewDirectoryProducer(producer EventProducer) *DirectoryProducer {
-	return &DirectoryProducer{
-		Producer: producer,
+func NewDirectoryProducer(newScan NewScan, producer EventProducer) *WatchDirectoryProducer {
+	return &WatchDirectoryProducer{
+		NewScan:       newScan,
+		Producer:      producer,
+		WaitUntilExit: WAIT_UNTIL_EXIT_TAILING,
 	}
 }

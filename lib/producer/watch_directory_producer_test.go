@@ -21,7 +21,7 @@ func newScan(host, runId, vp string) scan.Scan {
 	return scan.NewDDRScan(q, true, runId, vp)
 }
 
-func TestDirectoryProducer_WatchAndProduce(t *testing.T) {
+func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	t.Parallel()
 
 	topic := "test-topic"
@@ -46,7 +46,7 @@ func TestDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Close", mock.Anything).Return(nil)
 
-		dp := &producer.DirectoryProducer{
+		dp := &producer.WatchDirectoryProducer{
 			NewScan:       newScan,
 			Producer:      mkp,
 			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
@@ -55,7 +55,7 @@ func TestDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(ctx, tmp, host)
 
 		go func() {
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -100,7 +100,7 @@ func TestDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Close", mock.Anything).Return(nil)
 
-		dp := &producer.DirectoryProducer{
+		dp := &producer.WatchDirectoryProducer{
 			NewScan:       newScan,
 			Producer:      mkp,
 			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
@@ -172,7 +172,7 @@ func TestDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Close", mock.Anything).Return(nil)
 
-		dp := &producer.DirectoryProducer{
+		dp := &producer.WatchDirectoryProducer{
 			NewScan:       newScan,
 			Producer:      mkp,
 			WaitUntilExit: 250 * time.Millisecond,
