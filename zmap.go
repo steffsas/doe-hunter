@@ -15,6 +15,8 @@ import (
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
+const TIME_AFTER_EXIT = 30 * time.Minute
+
 func produceFromZmap(folder string) {
 	// watch the folder and spawn new producer for each file-
 }
@@ -49,6 +51,9 @@ func produceFromZmapFile(filepath string, timeAfterExit time.Duration) error {
 	}
 	defer p.Close()
 
+	// create runId to group scans for this zmap file
+	runId := uuid.New().String()
+
 	// create producer channel
 	producerChannel := make(chan scan.Scan)
 
@@ -72,7 +77,7 @@ func produceFromZmapFile(filepath string, timeAfterExit time.Duration) error {
 					q := query.NewDDRQuery()
 					q.Host = line.Text
 
-					s := scan.NewDDRScan(q, true, uuid.New().String(), vantagePoint)
+					s := scan.NewDDRScan(q, true, runId, vantagePoint)
 
 					// produce scan
 					producerChannel <- s
