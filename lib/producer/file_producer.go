@@ -9,7 +9,7 @@ import (
 
 type FileProducer struct {
 	NewScan  NewScan
-	Producer EventProducer
+	Producer ScanProducer
 }
 
 func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
@@ -29,13 +29,7 @@ func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
 		if len(line) > 0 {
 			s := dp.NewScan(line, runId, vantagePoint)
 
-			// marshall scan
-			b, err := s.Marshall()
-			if err != nil {
-				return err
-			}
-
-			err = dp.Producer.Produce(b, topic)
+			err = dp.Producer.Produce(s, topic)
 			if err != nil {
 				return err
 			}
@@ -47,7 +41,7 @@ func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
 	return nil
 }
 
-func NewFileProducer(newScan NewScan, producer EventProducer) *FileProducer {
+func NewFileProducer(newScan NewScan, producer ScanProducer) *FileProducer {
 	return &FileProducer{
 		NewScan:  newScan,
 		Producer: producer,

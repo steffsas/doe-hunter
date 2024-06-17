@@ -13,6 +13,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
+	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
@@ -39,16 +40,35 @@ func main() {
 		return
 	}
 
+	vp, err := helper.GetEnvVar(helper.VANTAGE_POINT_ENV, true)
+	if err != nil {
+		return
+	}
+
 	if toRun == "consumer" {
 		switch toRun {
 		case "all":
-			startAllConsumer(ctx)
+			startAllConsumer(ctx, vp)
 		default:
-			startConsumer(ctx, toRun)
+			startConsumer(ctx, toRun, vp)
 		}
 	} else {
 		if protocolToRun == "ddr" {
-			// do smth nice
+			dirToWatch, _ := helper.GetEnvVar(helper.PRODUCER_WATCH_DIRECTORY, false)
+			produceFromFile, _ := helper.GetEnvVar(helper.PRODUCER_FROM_FILE, false)
+
+			if dirToWatch != "" {
+				// let's start a producer that watches a directory for file creations and tailing
+				startWatchDirectoryProducer(ctx, dirToWatch, kafka.DEFAULT_DDR_TOPIC, vp)
+				return
+			}
+			if produceFromFile != "" {
+				// let's start a producer that reads from a file
+				startProducerFromFile(produceFromFile, kafka.DEFAULT_DDR_TOPIC, vp)
+				return
+			}
+
+			logrus.Fatal("either specify a directory to watch or a file to read from")
 		} else {
 			logrus.Fatalf("unsupported protocol type %s", protocolToRun)
 		}
@@ -89,7 +109,52 @@ func setLogger() {
 	logrus.SetOutput(os.Stdout)
 }
 
-func startAllConsumer(ctx context.Context) {
+func startProducerFromFile(file, topic, vantagePoint string) {
+	// let's start a producer that reads from a file
+	newScan := func(host, runId, vp string) scan.Scan {
+		q := query.NewDDRQuery()
+		q.Host = host
+
+		s := scan.NewDDRScan(q, true, runId, vp)
+		return s
+	}
+
+	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
+	if err != nil {
+		logrus.Fatalf("failed to create producer: %v", err)
+		return
+	}
+	p := producer.NewFileProducer(newScan, sp)
+
+	err = p.Produce(file, topic, vantagePoint)
+	if err != nil {
+		logrus.Fatalf("failed to produce from file: %v", err)
+	}
+}
+
+func startWatchDirectoryProducer(ctx context.Context, dir, topic, vantagePoint string) {
+	// let's start a producer that watches a directory
+	newScan := func(host, runId, vp string) scan.Scan {
+		q := query.NewDDRQuery()
+		q.Host = host
+
+		s := scan.NewDDRScan(q, true, runId, vp)
+		return s
+	}
+
+	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
+	if err != nil {
+		logrus.Fatalf("failed to create producer: %v", err)
+		return
+	}
+	p := producer.NewWatchDirectoryProducer(newScan, sp)
+	err = p.WatchAndProduce(ctx, dir, topic, vantagePoint)
+	if err != nil {
+		logrus.Fatalf("failed to watch and produce: %v", err)
+	}
+}
+
+func startAllConsumer(ctx context.Context, vp string) {
 	wg := sync.WaitGroup{}
 
 	for _, protocol := range helper.SUPPORTED_PROTOCOL_TYPES {
@@ -99,14 +164,14 @@ func startAllConsumer(ctx context.Context) {
 		wg.Add(1)
 		go func(p string) {
 			defer wg.Done()
-			startConsumer(ctx, p)
+			startConsumer(ctx, p, vp)
 		}(protocol)
 	}
 
 	wg.Wait()
 }
 
-func startConsumer(ctx context.Context, protocol string) {
+func startConsumer(ctx context.Context, protocol, vp string) {
 	var queryConfig *query.QueryConfig
 
 	kafkaServer, err := helper.GetEnvVar(helper.KAFKA_SERVER_ENV, true)
@@ -115,11 +180,6 @@ func startConsumer(ctx context.Context, protocol string) {
 	}
 
 	mongoServer, err := helper.GetEnvVar(helper.MONGO_SERVER_ENV, true)
-	if err != nil {
-		return
-	}
-
-	vantagePoint, err := helper.GetEnvVar(helper.VANTAGE_POINT_ENV, true)
 	if err != nil {
 		return
 	}
@@ -162,7 +222,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -187,7 +247,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, prod, sh, queryConfig)
@@ -211,7 +271,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -237,7 +297,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -263,7 +323,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -289,7 +349,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_EDSR_CONSUMER_GROUP
 
 		//nolint:contextcheck
@@ -315,7 +375,7 @@ func startConsumer(ctx context.Context, protocol string) {
 			Threads: threads,
 		}
 
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, vantagePoint)
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
 
 		//nolint:contextcheck

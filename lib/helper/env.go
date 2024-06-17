@@ -48,6 +48,9 @@ var PRODUCER_WATCH_DIRECTORY = "PRODUCER_WATCH_DIRECTORY"
 // CONSUMER ENVIRONMENT VARIABLES
 
 // nolint: gochecknoglobals
+var PRODUCER_FROM_FILE = "PRODUCER_FROM_FILE"
+
+// nolint: gochecknoglobals
 var THREADS_ENV = "THREADS"
 
 // nolint: gochecknoglobals

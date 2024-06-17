@@ -20,7 +20,7 @@ type NewScan func(host string, runId string, vantagePoint string) scan.Scan
 
 type WatchDirectoryProducer struct {
 	NewScan  NewScan
-	Producer EventProducer
+	Producer ScanProducer
 
 	WaitUntilExit time.Duration
 }
@@ -156,16 +156,20 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 
 		// quits when producerChannel is closed and drained
 		for s := range producerChannel {
-			b, err := s.Marshall()
-			if err != nil {
-				logrus.Errorf("failed to marshall scan: %v", err)
-				continue
-			}
-
-			if err := dp.Producer.Produce(b, topic); err != nil {
+			if err := dp.Producer.Produce(s, topic); err != nil {
 				logrus.Errorf("failed to produce scan in topic %s: %v", topic, err)
 			}
 			logrus.Debugf("produced scan in topic %s", topic)
+		}
+
+		flushCounter := 0
+		for dp.Producer.Flush(1000) > 0 {
+			flushCounter++
+			logrus.Info("still waiting for events to be flushed")
+			if flushCounter > 10 {
+				logrus.Warn("flushing takes too long, exiting")
+				break
+			}
 		}
 	}()
 
@@ -173,7 +177,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	return nil
 }
 
-func NewDirectoryProducer(newScan NewScan, producer EventProducer) *WatchDirectoryProducer {
+func NewWatchDirectoryProducer(newScan NewScan, producer ScanProducer) *WatchDirectoryProducer {
 	return &WatchDirectoryProducer{
 		NewScan:       newScan,
 		Producer:      producer,

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
 const DEFAULT_KAFKA_SERVER = "localhost:29092"
@@ -122,8 +123,13 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 }
 
 func GetDefaultKafkaProducerConfig() *KafkaProducerConfig {
+	kafkaServer, _ := helper.GetEnvVar(helper.KAFKA_SERVER_ENV, false)
+	if kafkaServer == "" {
+		kafkaServer = DEFAULT_KAFKA_SERVER
+	}
+
 	return &KafkaProducerConfig{
-		Server:        DEFAULT_KAFKA_SERVER,
+		Server:        kafkaServer,
 		Timeout:       DEFAULT_KAFKA_WRITE_TIMEOUT,
 		Acks:          DEFAULT_ACKS,
 		MaxPartitions: DEFAULT_MAX_PARTITIONS,
