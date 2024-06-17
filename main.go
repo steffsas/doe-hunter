@@ -2,17 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
 	"fmt"
-	"io"
 	"net"
 	"os"
-	"slices"
-	"strings"
 	"sync"
 
-	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/kafka"
@@ -22,38 +17,18 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-// nolint: gochecknoglobals
-var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "all",
-}
-
-// nolint: gochecknoglobals
-var SUPPORTED_RUN_TYPES = []string{
-	"consumer", "producer",
-}
-
-// nolint: gochecknoglobals
-var (
-	exec             = flag.String("exec", "consumer", "consumer or producer")
-	protocol         = flag.String("protocol", "ddr", "protocol type (ddr, doh, doq, dot, certificate, ptr, all)")
-	threads          = flag.Int("threads", consumer.DEFAULT_CONCURRENT_THREADS, "number of threads used for consuming scan tasks")
-	kakfaServer      = flag.String("kafkaServer", kafka.DEFAULT_KAFKA_SERVER, "kafka server address")
-	mongoServer      = flag.String("mongoServer", storage.DEFAULT_MONGO_URL, "mongo server address")
-	vantagePoint     = flag.String("vantagePoint", "default", "vantage point name, used for meta data of scan and kafka topics")
-	logLevel         = flag.String("logLevel", "info", "log level (trace, debug, info, warn, error, fatal, panic)")
-	producerFilePath = flag.String("producerFilePath", "data/censys_100k.json", "file path to the producer file to produce ddr scans")
-	localAddr        = flag.String("localAddr", "", "local address (NIC) to bind DNS/DoE/Cert etc. queries to")
-)
-
 func main() {
 	ctx := context.Background()
 
-	flag.Parse()
+	err := godotenv.Load()
+	if err != nil {
+		logrus.Fatalf("failed to load .env file: %v", err)
+	}
 
 	setLogger()
 
 	if *exec == "consumer" {
-		switch *protocol {
+		switch getEnvVar() {
 		case "all":
 			startAllConsumer(ctx)
 		default:
@@ -100,150 +75,6 @@ func setLogger() {
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
 	logrus.SetOutput(os.Stdout)
-}
-
-type CensysData struct {
-	Ipv4             string  `json:"ipv4"`
-	Ipv6             string  `json:"ipv6"`
-	Dns_version      string  `json:"dns_version"`
-	Dns_server_type  string  `json:"dns_server_type"`
-	Continent        string  `json:"continent"`
-	Country          string  `json:"country"`
-	City             string  `json:"city"`
-	Country_code     string  `json:"country_code"`
-	Latitude         float32 `json:"latitude"`
-	Longitude        float32 `json:"longitude"`
-	Asn              string  `json:"asn"`
-	Asn_name         string  `json:"asn_name"`
-	Asn_country_code string  `json:"asn_country_code"`
-	Os_id            string  `json:"os_id"`
-	Os_vendor        string  `json:"os_vendor"`
-	Os_product       string  `json:"os_product"`
-	Os_version       string  `json:"os_version"`
-}
-
-func produceDDRScansFromCensys(filePath string, scheduleDoEScans bool) error {
-	// read json file with censys data
-	file, err := os.Open(filePath)
-	if err != nil {
-		logrus.Errorf("failed to open file: %v", err)
-		return err
-	}
-	defer file.Close()
-
-	content, err := io.ReadAll(file)
-	if err != nil {
-		logrus.Errorf("failed to read file: %v", err)
-		return err
-	}
-
-	contentSplit := strings.Split(string(content), "\n")
-	contentSplit = contentSplit[:len(contentSplit)-1] // remove last empty line
-
-	// marshall the json data
-	censysData := []CensysData{}
-	for _, line := range contentSplit {
-		c := &CensysData{}
-		if err := json.Unmarshal([]byte(line), c); err != nil {
-			logrus.Errorf("failed to unmarshal json: %v, %s", err, line)
-			return err
-		}
-		censysData = append(censysData, *c)
-	}
-
-	logrus.Infof("got %d resolvers from censys data", len(censysData))
-
-	// create a new producer
-	config := producer.GetDefaultKafkaProducerConfig()
-	if kakfaServer != nil {
-		config.Server = *kakfaServer
-	}
-	p, err := producer.NewKafkaScanProducer(config)
-	if err != nil {
-		logrus.Errorf("failed to create DDR producer: %v", err)
-		return err
-	}
-	defer p.Close()
-
-	wg := sync.WaitGroup{}
-
-	ipv4Considered := []string{}
-	ipv6Considered := []string{}
-
-	runId := uuid.New().String()
-
-	for _, res := range censysData {
-		if res.Ipv4 != "" {
-			if !slices.Contains(ipv4Considered, res.Ipv4) {
-				ipv4Considered = append(ipv4Considered, res.Ipv4)
-
-				// create DDR query
-				q := query.NewDDRQuery()
-				q.Host = res.Ipv4
-				q.AutoFallbackTCP = true
-				q.Protocol = query.DNS_UDP
-				q.Port = 53
-
-				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans, runId, *vantagePoint)
-				fillCensysMetaInformation(scan, res)
-
-				wg.Add(1)
-				go scheduleDDRScan(scan, p, &wg)
-			} else {
-				logrus.Infof("skipping ipv4 %s as it was already considered", res.Ipv4)
-			}
-		}
-
-		if res.Ipv6 != "" {
-			if !slices.Contains(ipv6Considered, res.Ipv6) {
-				ipv6Considered = append(ipv6Considered, res.Ipv6)
-
-				// create DDR query
-				q := query.NewDDRQuery()
-				q.Host = res.Ipv6
-				q.AutoFallbackTCP = true
-				q.Protocol = query.DNS_UDP
-				q.Port = 53
-
-				// create scan
-				scan := scan.NewDDRScan(q, scheduleDoEScans, *vantagePoint, runId)
-				fillCensysMetaInformation(scan, res)
-
-				wg.Add(1)
-				go scheduleDDRScan(scan, p, &wg)
-			} else {
-				logrus.Infof("skipping ipv6 %s as it was already considered", res.Ipv6)
-			}
-		}
-	}
-
-	wg.Wait()
-
-	// Flush and close the producer and the events channel
-	for p.Flush(10000) > 0 {
-		logrus.Info("still waiting for events to be flushed")
-	}
-
-	return nil
-}
-
-func fillCensysMetaInformation(scan *scan.DDRScan, c CensysData) {
-	scan.Meta.DNSVersion = c.Dns_version
-	scan.Meta.DNSServerType = c.Dns_server_type
-	scan.Meta.Continent = c.Continent
-	scan.Meta.Country = c.Country
-	scan.Meta.City = c.City
-	scan.Meta.CountryCode = c.Country_code
-	scan.Meta.Latitude = c.Latitude
-	scan.Meta.Longitude = c.Longitude
-	scan.Meta.ASN = c.Asn
-	scan.Meta.ASNName = c.Asn_name
-	scan.Meta.ASNCountryCode = c.Asn_country_code
-	scan.Meta.OSId = c.Os_id
-	scan.Meta.OSVendor = c.Os_vendor
-	scan.Meta.OSProduct = c.Os_product
-	scan.Meta.OSVersion = c.Os_version
 }
 
 func scheduleDDRScan(s scan.Scan, p producer.ScanProducer, wg *sync.WaitGroup) {
