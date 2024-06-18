@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -78,7 +79,7 @@ func main() {
 func setLogger() {
 	logLevel, _ := helper.GetEnvVar(helper.LOG_LEVEL_ENV, false)
 
-	switch logLevel {
+	switch strings.ToLower(logLevel) {
 	case "trace":
 		logrus.SetLevel(logrus.TraceLevel)
 	case "debug":
@@ -147,6 +148,9 @@ func startWatchDirectoryProducer(ctx context.Context, dir, topic, vantagePoint s
 		logrus.Fatalf("failed to create producer: %v", err)
 		return
 	}
+
+	logrus.Infof("start watching directory %s to produce DDR scans", dir)
+
 	p := producer.NewWatchDirectoryProducer(newScan, sp)
 	err = p.WatchAndProduce(ctx, dir, topic, vantagePoint)
 	if err != nil {

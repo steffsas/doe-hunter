@@ -2,7 +2,6 @@ package producer_test
 
 import (
 	"errors"
-	"sync"
 	"testing"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -14,9 +13,6 @@ import (
 type mockedKafkaProducer struct {
 	mock.Mock
 }
-
-//nolint:gochecknoglobals
-var eventMsgLock = &sync.Mutex{}
 
 //nolint:gochecknoglobals
 var eventMsg kafka.Event = &kafka.Message{}
@@ -46,11 +42,7 @@ func (mkp *mockedKafkaProducer) Events() chan kafka.Event {
 }
 
 func TestKafkaEventProducer_Produce(t *testing.T) {
-	t.Parallel()
-
 	t.Run("valid produce", func(t *testing.T) {
-		t.Parallel()
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mp.On("Close").Return()
@@ -69,12 +61,10 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		// test
 		err := kep.Produce([]byte("test"), "test-topic")
 
-		assert.Nil(t, err, "expected no error")
+		assert.NoError(t, err, "expected no error")
 	})
 
 	t.Run("nil producer", func(t *testing.T) {
-		t.Parallel()
-
 		kep := &producer.KafkaEventProducer{
 			Producer: nil,
 			Config: &producer.KafkaProducerConfig{
@@ -89,8 +79,6 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	})
 
 	t.Run("empty message", func(t *testing.T) {
-		t.Parallel()
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mp.On("Close").Return()
@@ -109,8 +97,6 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	})
 
 	t.Run("empty topic", func(t *testing.T) {
-		t.Parallel()
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mp.On("Close").Return()
@@ -129,10 +115,8 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	})
 
 	t.Run("error on produce", func(t *testing.T) {
-		t.Parallel()
-
 		mp := &mockedKafkaProducer{}
-		mp.On("Produce", mock.Anything, mock.Anything).Return(assert.AnError)
+		mp.On("Produce", mock.Anything, mock.Anything).Return(errors.New("got some error"))
 		mp.On("Close").Return()
 
 		kep := &producer.KafkaEventProducer{
@@ -147,12 +131,8 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	})
 
 	t.Run("partition error", func(t *testing.T) {
-		t.Parallel()
-
-		eventMsgLock.Lock()
-
 		mp := &mockedKafkaProducer{}
-		mp.On("Produce", mock.Anything, mock.Anything).Return(assert.AnError)
+		mp.On("Produce", mock.Anything, mock.Anything).Return(errors.New("got some error"))
 		mp.On("Close").Return()
 
 		kep := &producer.KafkaEventProducer{
@@ -171,8 +151,6 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 
 		assert.NotNil(t, err, "expected error on produce")
 		assert.Equal(t, "test", err.Error(), "expected error message")
-
-		eventMsgLock.Unlock()
 	})
 }
 
@@ -227,13 +205,7 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 }
 
 func TestKafkaEventProducer_Events(t *testing.T) {
-	t.Parallel()
-
 	t.Run("valid flush", func(t *testing.T) {
-		t.Parallel()
-
-		eventMsgLock.Lock()
-
 		c := make(chan kafka.Event)
 
 		mp := &mockedKafkaProducer{}
@@ -246,8 +218,6 @@ func TestKafkaEventProducer_Events(t *testing.T) {
 		kep.Events()
 
 		assert.Equal(t, "Events", mp.Calls[0].Method)
-
-		eventMsgLock.Unlock()
 	})
 }
 

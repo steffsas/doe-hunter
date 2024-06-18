@@ -51,6 +51,8 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 	// start watching for new files in directory
 	go func() {
 		defer wg.Done()
+
+		watchedFiles := make(map[string]context.CancelFunc)
 		for {
 			select {
 			case <-terminateChan:
@@ -64,18 +66,31 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 				if !ok {
 					return
 				}
-				logrus.Debugf("got event in directory %s: %s", dir, event)
-				if event.Op == fsnotify.Create {
+				switch event.Op {
+				case fsnotify.Create:
 					logrus.Infof("new file with name servers created, will tail now: %s", event.Name)
+
+					// let's create a cancel function for this file, so we can stop tailing it if file gets deleted
+					childCtx, cancel := context.WithCancel(ctx)
+
+					watchedFiles[event.Name] = cancel
 					wg.Add(1)
 
 					var err error
 					go func() {
-						err = dp.produceFromFile(ctx, &wg, topic, vantagePoint, event.Name, dp.WaitUntilExit)
+						err = dp.produceFromFile(childCtx, &wg, topic, vantagePoint, event.Name, dp.WaitUntilExit)
 					}()
 					if err != nil {
 						logrus.Errorf("failed to tail file: %v", err)
 					}
+				case fsnotify.Remove, fsnotify.Rename:
+					if cancel, ok := watchedFiles[event.Name]; ok {
+						logrus.Infof("tailed file got removed or renamed, will stop tailing now: %s", event.Name)
+						cancel()
+						delete(watchedFiles, event.Name)
+					}
+				default:
+					logrus.Debugf("got event in directory %s, will ignore: %s", dir, event)
 				}
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -106,6 +121,8 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		logrus.Errorf("failed to tail (watch) output file: %v", err)
 		return err
 	}
+	defer tailChannel.Cleanup()
+	defer tailChannel.Dead()
 
 	// create runId to group scans for this file
 	runId := uuid.New().String()
@@ -128,8 +145,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				close(producerChannel)
 				return
 			case line := <-tailChannel.Lines:
+				logrus.Debugf("got line from tail: %v", line)
 				if line != nil {
-					logrus.Infof("got line for scan: %s", line.Text)
+					logrus.Debugf("read line %s, use it for scan host", line.Text)
 
 					// update last read line
 					lastReadLine = time.Now()
@@ -138,6 +156,8 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 
 					// produce scan
 					producerChannel <- s
+
+					logrus.Debugf("added line %s to producerChannel", line.Text)
 				}
 			default:
 				// check if we should exit
@@ -162,6 +182,8 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 			logrus.Debugf("produced scan in topic %s", topic)
 		}
 
+		logrus.Debugf("producer channel for file %s closed", filepath)
+
 		flushCounter := 0
 		for dp.Producer.Flush(1000) > 0 {
 			flushCounter++
@@ -174,6 +196,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	}()
 
 	wg.Wait()
+
+	logrus.Debugf("stopped tailing file %s", filepath)
+
 	return nil
 }
 
