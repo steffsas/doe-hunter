@@ -17,7 +17,7 @@ jobs:
           working-directory: ./lib
         
   test:
-    name: Go test and coverage check
+    name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
