@@ -1,5 +1,5 @@
 # https://docs.github.com/en/actions/publishing-packages/publishing-docker-images
-name: Create and publish Docker image
+name: Release
 
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 # on:
@@ -18,6 +18,32 @@ env:
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
+  # lint
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: lint lib
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: ./lib
+
+  # test   
+  test:
+    name: Go test and coverage check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+      - name: generate test coverage
+        run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
+  
+  # build and push
   build-and-push-image:
     needs: [lint, test]
     runs-on: ubuntu-latest
