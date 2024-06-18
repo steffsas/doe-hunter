@@ -1,4 +1,4 @@
-name: test
+name: Test and Coverage
 on: [push]
 permissions:
   contents: write

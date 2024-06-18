@@ -16,11 +16,11 @@ FROM golang:1.22.3-bullseye as runner
 
 WORKDIR /app
 
-ENV DOE_RUN_TYPE=""
-ENV DOE_PROTOCOL_TYPE=""
-ENV DOE_KAFKA_SERVER="localhost:9092"
-ENV DOE_PARALLEL_CONSUMER="1"
-
+# copy go binary
 COPY --from=builder /app/scanner /app/scanner
 
-CMD ["/app/scanner"]
+# copy default .env file
+COPY --from=builder /app/.env /app/.env
+
+ENTRYPOINT [ "/app/scanner" ]
+CMD [""]
