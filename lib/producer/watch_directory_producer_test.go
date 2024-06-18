@@ -44,7 +44,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	topic := "test-topic"
 	vp := "test-vp"
 
-	t.Run("test valid watch and produce on single file", func(t *testing.T) {
+	t.Run("valid watch and produce on single file", func(t *testing.T) {
 		t.Parallel()
 
 		host := "8.8.8.8"
@@ -70,10 +70,10 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
-		go createFileAndWrite(ctx, tmp, host)
+		go createFileAndWrite(ctx, tmp, host, "", false)
 
 		go func() {
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(2000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -100,7 +100,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		}
 	})
 
-	t.Run("test valid watch and produce on multiple files", func(t *testing.T) {
+	t.Run("valid watch and produce on multiple files", func(t *testing.T) {
 		t.Parallel()
 
 		tmp, err := os.MkdirTemp("", "tests-*")
@@ -127,11 +127,12 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		firstHost := "8.8.8.8"
 		secondHost := "1.1.1.1"
 
-		go createFileAndWrite(ctx, tmp, firstHost)
-		go createFileAndWrite(ctx, tmp, secondHost)
+		// crate and write to files
+		go createFileAndWrite(ctx, tmp, firstHost, "", false)
+		go createFileAndWrite(ctx, tmp, secondHost, "", false)
 
 		go func() {
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(2000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -142,6 +143,83 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*4)
+
+		gotFirstHost := false
+		gotSecondHost := false
+		for _, call := range calls {
+			if call.Method == "Produce" {
+				args := call.Arguments
+				s := args.Get(0).(scan.Scan)
+
+				ddrScan, ok := s.(*scan.DDRScan)
+				require.True(t, ok)
+
+				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
+				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
+
+				// check if we have both hosts
+				switch ddrScan.Query.Host {
+				case firstHost:
+					gotFirstHost = true
+				case secondHost:
+					gotSecondHost = true
+				}
+			}
+		}
+
+		require.True(t, gotFirstHost, "should have produced a scan for first host")
+		require.True(t, gotSecondHost, "should have produced a scan for second host")
+	})
+
+	t.Run("remove and recreate file", func(t *testing.T) {
+		t.Parallel()
+
+		tmp, err := os.MkdirTemp("", "tests-*")
+		if err != nil {
+			t.Fatalf("failed to create temp dir: %v", err)
+			return
+		}
+		defer os.RemoveAll(tmp)
+
+		firstHost := "8.8.8.8"
+		secondHost := "1.1.1.1"
+		filename := "test.csv"
+
+		ctx := context.Background()
+		ctx, cancel := context.WithCancel(ctx)
+		firstCtx, firstCancel := context.WithCancel(ctx)
+		secondCtx, secondCancel := context.WithCancel(ctx)
+
+		mkp := &mockedScanProducer{}
+		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mkp.On("Flush", mock.Anything).Return(0)
+		mkp.On("Close", mock.Anything).Return(nil)
+
+		dp := &producer.WatchDirectoryProducer{
+			NewScan:       newScan,
+			Producer:      mkp,
+			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
+		}
+
+		go createFileAndWrite(firstCtx, tmp, firstHost, filename, true)
+
+		go func() {
+			time.Sleep(2000 * time.Millisecond)
+			firstCancel()
+			time.Sleep(500 * time.Millisecond)
+			go createFileAndWrite(secondCtx, tmp, secondHost, filename, true)
+			time.Sleep(500 * time.Millisecond)
+			secondCancel()
+			cancel()
+		}()
+
+		err = dp.WatchAndProduce(ctx, tmp, topic, vp)
+
+		require.NoError(t, err)
+		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		calls := mkp.Calls
+		// this is just a lower boundary which has to be met, typically there are more calls
+		require.GreaterOrEqual(t, len(calls), 2*2)
 
 		gotFirstHost := false
 		gotSecondHost := false
@@ -199,11 +277,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		firstHost := "8.8.8.8"
 		secondHost := "1.1.1.1"
 
-		go createFileAndWrite(subCtx, tmp, firstHost)
-		go createFileAndWrite(subCtx, tmp, secondHost)
+		go createFileAndWrite(subCtx, tmp, firstHost, "", false)
+		go createFileAndWrite(subCtx, tmp, secondHost, "", false)
 
 		go func() {
-			time.Sleep(1000 * time.Millisecond)
+			time.Sleep(2000 * time.Millisecond)
 			subCancel()
 		}()
 
@@ -248,12 +326,20 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	})
 }
 
-func createFileAndWrite(ctx context.Context, tmpFolder, lineContent string) {
-	f, err := os.CreateTemp(tmpFolder, "test-*.csv")
+func createFileAndWrite(ctx context.Context, tmpFolder string, lineContent string, optionalFileName string, deleteOnClose bool) {
+	if optionalFileName == "" {
+		optionalFileName = "test-*.csv"
+	}
+	f, err := os.CreateTemp(tmpFolder, optionalFileName)
 	if err != nil {
 		return
 	}
 	defer f.Close()
+	defer func() {
+		if deleteOnClose {
+			os.Remove(f.Name())
+		}
+	}()
 
 	for {
 		select {
