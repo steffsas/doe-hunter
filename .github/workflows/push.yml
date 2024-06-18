@@ -1,0 +1,27 @@
+name: Lint and Test
+on: [push]
+jobs:
+  # basic linting
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: lint lib
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: ./lib
+        
+  test:
+    name: Go test and coverage check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+      
+      - name: generate test coverage
+        run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
