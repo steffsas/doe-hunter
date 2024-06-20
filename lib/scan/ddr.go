@@ -176,7 +176,6 @@ func produceScansFromAlpn(
 	certQuery := query.NewCertificateQuery()
 	certQuery.Host = host
 	if host != targetName {
-		// TODO add ALPN?
 		certQuery.SNI = targetName
 	}
 
