@@ -180,6 +180,11 @@ func produceScansFromAlpn(
 		certQuery.SNI = targetName
 	}
 
+	// set ALPN since some hosts require it to hand out the proper certificate
+	if alpn != "" {
+		certQuery.ALPN = []string{alpn}
+	}
+
 	// create EDSR query
 	edsrQuery := query.NewEDSRQuery(targetName)
 	edsrQuery.Host = host
