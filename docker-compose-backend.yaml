@@ -1,7 +1,6 @@
 version: '3'
 
 services:
-  ## UIs AND MEASUREMENTs
   kafka-ui:
     image: provectuslabs/kafka-ui
     ports:
@@ -14,51 +13,8 @@ services:
     depends_on:
       - kafka
     networks:
-      - network
+      - kafka
 
-  # grafana:
-  #   image: grafana/grafana
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     GF_PATHS_DATA: /var/lib/grafana
-  #     GF_SECURITY_ADMIN_PASSWORD: kafka
-  #   volumes:
-  #     - ./grafana/provisioning:/etc/grafana/provisioning
-  #     - ./grafana/dashboards:/var/lib/grafana/dashboards
-  #   container_name: grafana
-  #   depends_on:
-  #     - prometheus
-  #   networks:
-  #     - network
-
-  # prometheus:
-  #   image: prom/prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   volumes:
-  #     - ./config/prometheus/config.yml:/etc/prometheus/prometheus.yml
-  #   command: "--config.file=/etc/prometheus/prometheus.yml"
-  #   container_name: prometheus
-  #   networks:
-  #     - network
-
-  # jmx-kafka:
-  #   image: "sscaling/jmx-prometheus-exporter"
-  #   restart: always
-  #   ports:
-  #     - "5556:5556"
-  #   environment:
-  #     CONFIG_YML: "/etc/jmx_exporter/config.yml"
-  #   volumes:
-  #     - ./config/jmx_exporter/config.yml:/etc/jmx_exporter/config.yml
-  #   container_name: jmx-kafka
-  #   depends_on:
-  #     - kafka
-  #   networks:
-  #     - network
-
-  ## ACTUAL SERVICES
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     environment:
@@ -67,7 +23,7 @@ services:
     ports:
       - 2181:2181
     networks:
-      - network
+      - kafka
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -96,7 +52,7 @@ services:
       KAFKA_LOG_RETENTION_MS: "172800000"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
-      - network
+      - kafka
 
   mongo:
     image: mongo
@@ -108,6 +64,8 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
+    networks:
+      - mongo
 
   mongo-express:
     image: mongo-express
@@ -116,29 +74,18 @@ services:
       - 8081:8081
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
-      ME_CONFIG_MONGODB_URL: mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_SERVER: mongo
+      #ME_CONFIG_MONGODB_URL: mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/
       ME_CONFIG_BASICAUTH: false
-
-  # postgresql:
-  #   image: postgres
-  #   volumes:
-  #     - postgresql_data:/var/lib/postgresql/data
-  #   networks:
-  #     - network
-
-  # ddr-scanner:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   depends_on:
-  #     - kafka
-  #   networks:
-  #     - network
+    depends_on:
+      - mongo
+    networks:
+      - mongo
 
 networks:
-  network:
+  kafka:
+  mongo:
 
 volumes:
   mongo_data:
-  # postgresql_data:

@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  ddr-scanner:
+    image: ghcr.io/steffsas/doe-hunter:v0.0.3
+    environment:
+      - RUN=consumer
+      - PROTOCOL=ddr
+      - THREADS=1000
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+networks:
+  scanner:
+    driver: bridge
