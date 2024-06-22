@@ -36,10 +36,8 @@ func (mqh *mockedDDRQueryHandler) Query(q *query.ConventionalDNSQuery) (*query.C
 }
 
 func TestDDRScanConsumeHandler_Process(t *testing.T) {
-	t.Parallel()
-
 	t.Run("consume valid message", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		scan := &scan.DDRScan{
 			Meta: &scan.DDRScanMetaInformation{
@@ -77,7 +75,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 
 	t.Run("consume invalid message", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		res := &query.ConventionalDNSResponse{}
 
@@ -107,7 +105,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 
 	t.Run("critical query error that is not no response", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mqh := mockedDDRQueryHandler{}
 		mqh.On("Query", mock.Anything).Return(nil, custom_errors.NewQueryError(custom_errors.ErrNoResponse, true))
@@ -145,7 +143,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 
 	t.Run("critical query error", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mqh := mockedDDRQueryHandler{}
 		mqh.On("Query", mock.Anything).Return(nil, custom_errors.NewQueryError(custom_errors.ErrUnpackFailed, true))
@@ -183,7 +181,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 	})
 
 	t.Run("storage error", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mqh := mockedDDRQueryHandler{}
 		mqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
@@ -240,12 +238,10 @@ func (mpf *mockedProducerFactory) Flush(timeout int) int {
 }
 
 func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
-	t.Parallel()
-
 	const vantagePoint = "test"
 
 	t.Run("schedule scans on response", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
@@ -293,8 +289,105 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
 	})
 
+	t.Run("cache scans", func(t *testing.T) {
+		defer consumer.ScanCache.Clear()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		firstDDRScan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
+			},
+			Query: &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2", "dot", "doq"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		secondDDRScan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleDoEScans: true,
+			},
+			Query: &query.ConventionalDNSQuery{},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2", "dot", "doq"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(firstDDRScan)
+
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOQ_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_EDSR_TOPIC, vantagePoint))
+
+		// check cache, i.e., the already produced scans are not produced again
+		producerCounter := 0
+		for _, c := range mpf.Calls {
+			if c.Method == "Produce" {
+				producerCounter++
+			}
+		}
+
+		ph.ScheduleScans(secondDDRScan)
+
+		// should not have called produce again
+		mpf.AssertNumberOfCalls(t, "Produce", producerCounter)
+
+		// check wether children are added properly
+		assert.Greater(t, len(firstDDRScan.Meta.Children), 0)
+		assert.Equal(t, len(firstDDRScan.Meta.Children), len(secondDDRScan.Meta.Children))
+	})
+
 	t.Run("do not schedule scans if there is no response", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
@@ -319,7 +412,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	})
 
 	t.Run("add error to meta information", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		produceError := errors.New("some error")
 
@@ -372,7 +465,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	})
 
 	t.Run("schedule PTR scan on query host IP address", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
@@ -424,7 +517,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	})
 
 	t.Run("do not schedule PTR scan on query host domain name", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
@@ -477,7 +570,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	})
 
 	t.Run("do not schedule DoE scans if not wanted", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
@@ -523,7 +616,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	})
 
 	t.Run("add PTR produce error to meta data", func(t *testing.T) {
-		t.Parallel()
+		defer consumer.ScanCache.Clear()
 
 		produceError := errors.New("some error")
 

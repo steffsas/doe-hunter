@@ -99,6 +99,10 @@ func (cs *ScanCache) ContainsScan(s Scan) (string, bool) {
 	return src.ContainsScan(s)
 }
 
+func (cs *ScanCache) Clear() {
+	cs.Scans = make(map[string]*ScanRunCache)
+}
+
 // NewScanCache creates a new ScanCache
 func NewScanCache() *ScanCache {
 	return &ScanCache{
