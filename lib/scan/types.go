@@ -8,10 +8,6 @@ import (
 	"github.com/steffsas/doe-hunter/lib/query"
 )
 
-type ScanIds struct {
-	ScanId string `json:"scan_id"`
-}
-
 type ScanMetaInformation struct {
 	// RunId is a unique identifier for a set of scans
 	RunId string `json:"run_id"`
@@ -37,6 +33,10 @@ type ScanMetaInformation struct {
 	// Finished is the time when the scan was finished
 	Finished time.Time `json:"finished"`
 
+	// the children scans of this scan (DoE, PTR, EDSR, ...)
+	Children []string `json:"children"`
+
+	// Errors is a list of errors that occurred during the scan
 	Errors []custom_errors.DoEErrors `json:"errors"`
 }
 
@@ -73,6 +73,7 @@ type Scan interface {
 	GetType() string
 	GetMetaInformation() *ScanMetaInformation
 	Marshall() ([]byte, error)
+	GetIdentifier() string
 }
 
 type DoEScan interface {

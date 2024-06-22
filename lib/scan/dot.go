@@ -2,6 +2,7 @@ package scan
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/steffsas/doe-hunter/lib/query"
 )
@@ -38,6 +39,15 @@ func (scan *DoTScan) GetScanId() string {
 
 func (scan *DoTScan) GetDoEQuery() *query.DoEQuery {
 	return &scan.Query.DoEQuery
+}
+
+func (scan *DoTScan) GetIdentifier() string {
+	// host, port
+	return fmt.Sprintf("%s|%s|%d|skip_tls_verify_%t",
+		DOT_SCAN_TYPE,
+		scan.Query.Host,
+		scan.Query.Port,
+		scan.Query.SkipCertificateVerify)
 }
 
 func NewDoTScan(q *query.DoTQuery, parentScanId, rootScanId, runId, vantagePoint string) *DoTScan {
