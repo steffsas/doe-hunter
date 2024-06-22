@@ -169,10 +169,6 @@ func produceScansFromAlpn(
 		certQuery.ALPN = []string{alpn}
 	}
 
-	// create EDSR query
-	edsrQuery := query.NewEDSRQuery(targetName)
-	edsrQuery.Host = host
-
 	var doeScan DoEScan
 
 	switch alpn {
@@ -266,6 +262,7 @@ func produceScansFromAlpn(
 
 		// create certificate scan
 		certScan := NewCertificateScan(certQuery, parentScanId, doeScan.GetMetaInformation().ScanId, runId, vantagePoint)
+		certScan.Meta.Children = []string{doeScan.GetMetaInformation().ScanId}
 		scans = append(scans, certScan)
 		logrus.Debugf("produced certificate scan for ALPN %s", alpn)
 	}

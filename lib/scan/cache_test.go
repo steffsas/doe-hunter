@@ -89,3 +89,26 @@ func TestScanCache_AddScan(t *testing.T) {
 		assert.Equal(t, "", scanId, "scan id should be empty")
 	})
 }
+
+func TestScanCache_Clear(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should clear the cache", func(t *testing.T) {
+		t.Parallel()
+
+		q := query.NewDDRQuery()
+		q.Host = "test-host"
+		q.Port = 1234
+		s := scan.NewDDRScan(q, true, "someRunId", "someVantagePoint")
+
+		src := scan.NewScanCache()
+		src.AddScan(s)
+
+		src.Clear()
+
+		scanId, found := src.ContainsScan(s)
+
+		assert.False(t, found, "scan should not be found after clearing the cache")
+		assert.Equal(t, "", scanId, "scan id should be empty")
+	})
+}

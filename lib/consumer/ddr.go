@@ -17,6 +17,9 @@ import (
 
 const DEFAULT_DDR_CONSUMER_GROUP = "ddr-scan-group"
 
+// nolint: gochecknoglobals
+var ScanCache = scan.NewScanCache()
+
 type DDRProcessEventHandler struct {
 	EventProcessHandler
 
@@ -39,15 +42,27 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 			scans, errColl := ddrScan.CreateScansFromResponse()
 			ddrScan.Meta.AddError(errColl...)
 
-			// schedule
+			ddrChildren := []string{}
 			for _, s := range scans {
-				if err := ddr.Producer.Produce(s, GetKafkaTopicFromScan(s)); err != nil {
-					logrus.Errorf("failed to produce scan of type %s: %v", s.GetType(), err)
-					ddrScan.Meta.AddError(
-						custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true).AddInfo(err),
-					)
+				// use scan cache to only produce scans that haven't been produced yet
+				if scanId, found := ScanCache.ContainsScan(s); found {
+					logrus.Debugf("scan %s already in cache, not producing", scanId)
+					ddrChildren = append(ddrChildren, scanId)
+				} else {
+					// got a new scan, add to cache and produce
+					ddrChildren = append(ddrChildren, s.GetMetaInformation().ScanId)
+					if err := ddr.Producer.Produce(s, GetKafkaTopicFromScan(s)); err != nil {
+						logrus.Errorf("failed to produce scan of type %s: %v", s.GetType(), err)
+						ddrScan.Meta.AddError(
+							custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true).AddInfo(err),
+						)
+					} else {
+						// add scan to cache
+						ScanCache.AddScan(s)
+					}
 				}
 			}
+			ddrScan.Meta.Children = ddrChildren
 		} else {
 			logrus.Infof("no DoE scans to schedule since there was no SVCB answers %s", ddrScan.Meta.ScanId)
 		}
@@ -74,6 +89,9 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
 		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId, ddrScan.Meta.RunId, ddrScan.Meta.VantagePoint)
+
+		// add to children
+		ddrScan.Meta.Children = append(ddrScan.Meta.Children, ptrScan.Meta.ScanId)
 
 		// produce PTR scan
 		if err := ddr.Producer.Produce(ptrScan, GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {
