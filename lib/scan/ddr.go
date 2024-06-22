@@ -13,34 +13,11 @@ import (
 
 const DDR_SCAN_TYPE = "DDR"
 
-type CensysData struct {
-	Ipv4             string  `json:"ipv4"`
-	Ipv6             string  `json:"ipv6"`
-	Dns_version      string  `json:"dns_version"`
-	Dns_server_type  string  `json:"dns_server_type"`
-	Continent        string  `json:"continent"`
-	Country          string  `json:"country"`
-	City             string  `json:"city"`
-	Country_code     string  `json:"country_code"`
-	Latitude         float32 `json:"latitude"`
-	Longitude        float32 `json:"longitude"`
-	Asn              string  `json:"asn"`
-	Asn_name         string  `json:"asn_name"`
-	Asn_country_code string  `json:"asn_country_code"`
-	Os_id            string  `json:"os_id"`
-	Os_vendor        string  `json:"os_vendor"`
-	Os_product       string  `json:"os_product"`
-	Os_version       string  `json:"os_version"`
-}
-
 type DDRScanMetaInformation struct {
 	ScanMetaInformation
 
 	ScheduleDoEScans bool `json:"schedule_doe_scans"`
 	PTRScheduled     bool `json:"ptr_scheduled"`
-
-	// censys, see big query sql script
-	CensysData CensysData `json:"censys_data"`
 }
 
 type DDRScan struct {
