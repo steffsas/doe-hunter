@@ -29,6 +29,11 @@ func (ms *mockedScan) Marshall() ([]byte, error) {
 	return args.Get(0).([]byte), args.Error(1)
 }
 
+func (ms *mockedScan) GetIdentifier() string {
+	args := ms.Called()
+	return args.String(0)
+}
+
 type mockedKafkaEventProducer struct {
 	mock.Mock
 }

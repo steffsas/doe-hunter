@@ -2,6 +2,7 @@ package scan
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/steffsas/doe-hunter/lib/query"
 )
@@ -30,6 +31,14 @@ func (scan *PTRScan) GetMetaInformation() *ScanMetaInformation {
 
 func (scan *PTRScan) GetType() string {
 	return PTR_SCAN_TYPE
+}
+
+func (scan *PTRScan) GetIdentifier() string {
+	// host, port
+	return fmt.Sprintf("%s|%s|%d",
+		PTR_SCAN_TYPE,
+		scan.Query.Host,
+		scan.Query.Port)
 }
 
 // TODO: Just pass meta information as a struct

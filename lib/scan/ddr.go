@@ -44,6 +44,13 @@ func (scan *DDRScan) GetType() string {
 	return DDR_SCAN_TYPE
 }
 
+func (scan *DDRScan) GetIdentifier() string {
+	return fmt.Sprintf("%s|%s|%d",
+		DDR_SCAN_TYPE,
+		scan.Query.Host,
+		scan.Query.Port)
+}
+
 func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEErrors) {
 	scans := []Scan{}
 	errorColl := []custom_errors.DoEErrors{}
