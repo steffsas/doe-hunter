@@ -70,7 +70,6 @@ func checkForQueryParams(host string, port int, timeout time.Duration, checkForT
 }
 
 func GetRandomizedQueryHost(host string) string {
-	// 50 is some safety buffer to not be too close to the MAX_DNS_FQDN_LENGTH
 	l := MAX_DNS_FQDN_LENGTH - MAX_SUBDOMAIN_LENGTH - len(host)
 	if l < 0 {
 		return host
