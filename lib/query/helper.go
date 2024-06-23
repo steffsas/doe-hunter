@@ -5,10 +5,17 @@ import (
 	"net"
 	"time"
 
+	"github.com/dchest/uniuri"
 	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
+
+// see https://datatracker.ietf.org/doc/html/rfc1035#section-3.1
+// however, let's be slightly below the threshold
+const MAX_DNS_FQDN_LENGTH = 255
+const MAX_SUBDOMAIN_LENGTH = 25
+const QUERY_HOST = "raiun.de"
 
 func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoEErrors, res *DoEResponse, skipCertificateVerification bool) custom_errors.DoEErrors {
 	setCertificateValidationToResponse(queryErr, res, skipCertificateVerification)
@@ -62,6 +69,17 @@ func checkForQueryParams(host string, port int, timeout time.Duration, checkForT
 	return nil
 }
 
+func GetRandomizedQueryHost(host string) string {
+	// 50 is some safety buffer to not be too close to the MAX_DNS_FQDN_LENGTH
+	l := MAX_DNS_FQDN_LENGTH - MAX_SUBDOMAIN_LENGTH - len(host)
+	if l < 0 {
+		return host
+	}
+	// let's generate some random string to make the FQDN unique
+	r := uniuri.NewLen(MAX_SUBDOMAIN_LENGTH)
+	return fmt.Sprintf("%s.%s", r, host)
+}
+
 func GetDefaultQueryMsg() *dns.Msg {
 	msg := &dns.Msg{}
 
@@ -69,6 +87,9 @@ func GetDefaultQueryMsg() *dns.Msg {
 	msg.MsgHdr = dns.MsgHdr{
 		Id: 0,
 	}
+
+	// let's randomize the query message
+	msg.SetQuestion(GetRandomizedQueryHost(QUERY_HOST), dns.TypeA)
 
 	return msg
 }
