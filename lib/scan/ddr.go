@@ -154,8 +154,6 @@ func produceScansFromAlpn(
 
 	// create query message for DoE
 	queryMsg := query.GetDefaultQueryMsg()
-	// TODO change this and randomize
-	queryMsg.SetQuestion("raiun.de.", dns.TypeA)
 
 	// create certificate query
 	certQuery := query.NewCertificateQuery()
