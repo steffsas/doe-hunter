@@ -14,7 +14,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 )
 
-const WAIT_UNTIL_EXIT_TAILING = 30 * time.Minute
+const WAIT_UNTIL_EXIT_TAILING = 60 * time.Minute
 
 type NewScan func(host string, runId string, vantagePoint string) scan.Scan
 
