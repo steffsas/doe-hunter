@@ -75,6 +75,9 @@ var ErrCertificateInvalid = errors.New("certificate is invalid")
 var ErrProducerCreationFailed = errors.New("failed to create producer")
 var ErrProducerProduceFailed = errors.New("failed to produce message")
 
+// SSH query errors
+var ErrQueryDial = errors.New("failed to dial SSH server")
+
 type DoEErrors interface {
 	Error() string
 	IsError(errId string) bool
