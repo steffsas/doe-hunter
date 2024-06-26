@@ -94,7 +94,7 @@ func TestSSHQueryHandler_Query(t *testing.T) {
 		assert.Contains(t, qErr.Error(), err.Error())
 	})
 
-	t.Run("successfull ssh dial", func(t *testing.T) {
+	t.Run("successful ssh dial", func(t *testing.T) {
 		t.Parallel()
 
 		mtd := &mockedTCPDialer{}
