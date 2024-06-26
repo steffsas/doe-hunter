@@ -62,7 +62,7 @@ func (qh *SSHQueryHandler) Query(query *SSHQuery) (*SSHResponse, custom_errors.D
 	con, err := qh.TCPDialer.Dial("tcp", fmt.Sprintf("%s:%d", query.Host, query.Port))
 	if err != nil {
 		dialErr := custom_errors.NewQueryError(custom_errors.ErrQueryDial, false)
-		dialErr.AddInfo(err)
+		_ = dialErr.AddInfo(err)
 		res.Errors = append(res.Errors, dialErr)
 		return res, dialErr
 	}
@@ -70,7 +70,7 @@ func (qh *SSHQueryHandler) Query(query *SSHQuery) (*SSHResponse, custom_errors.D
 	config := &ssh.ClientConfig{
 		// this function is called to check whether the pubkey is considered to be valid
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			res.PubKeyFingerprint = base64.StdEncoding.EncodeToString([]byte(key.Marshal()))
+			res.PubKeyFingerprint = base64.StdEncoding.EncodeToString(key.Marshal())
 			res.PubKeyType = key.Type()
 
 			res.SSHEnabled = true
@@ -83,7 +83,7 @@ func (qh *SSHQueryHandler) Query(query *SSHQuery) (*SSHResponse, custom_errors.D
 
 	if err != nil {
 		dialErr := custom_errors.NewQueryError(custom_errors.ErrQueryDial, false)
-		dialErr.AddInfo(err)
+		_ = dialErr.AddInfo(err)
 		res.Errors = append(res.Errors, dialErr)
 		// return no error since it will fail anyways
 		return res, nil
