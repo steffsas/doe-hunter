@@ -27,7 +27,7 @@ type EDSRProcessConsumer struct {
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
 
-func (edsr *EDSRProcessConsumer) ProcessScan(msg *kafka.Message, sh storage.StorageHandler) error {
+func (edsr *EDSRProcessConsumer) Process(msg *kafka.Message, sh storage.StorageHandler) error {
 	if msg == nil {
 		return errors.New("message is nil")
 	}
@@ -41,12 +41,24 @@ func (edsr *EDSRProcessConsumer) ProcessScan(msg *kafka.Message, sh storage.Stor
 	}
 
 	// process result
+	edsrScan.Meta.SetStarted()
 	edsr.StartEDSR(edsrScan)
+	edsrScan.Meta.SetFinished()
 
-	return nil
+	// store
+	err = sh.Store(edsrScan)
+	if err != nil {
+		logrus.Errorf("failed to store %s: %v", edsrScan.Meta.ScanId, err)
+	}
+
+	return err
 }
 
 func (edsr *EDSRProcessConsumer) StartEDSR(s *scan.EDSRScan) {
+	if s.Result == nil {
+		s.Result = &scan.EDSRResult{}
+	}
+
 	// let's create the first hop's query
 	q := query.NewEDSRQuery(s.TargetName)
 	q.Host = s.Host
@@ -70,6 +82,7 @@ func (edsr *EDSRProcessConsumer) StartEDSR(s *scan.EDSRScan) {
 
 	// -1 because NewEDSRHop takes parentHop counter and increments it by 1
 	initialHop := scan.NewEDSRHop(-1, q)
+
 	s.Result.Redirections = append(s.Result.Redirections, initialHop)
 
 	// let's create a channel

@@ -1,6 +1,7 @@
 package consumer_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -34,6 +35,153 @@ func (mqh *mockedConventionalDNSQueryHandler) Query(q *query.ConventionalDNSQuer
 	}
 
 	return args.Get(0).(*query.ConventionalDNSResponse), args.Get(1).(custom_errors.DoEErrors)
+}
+
+func TestEDSRProcessConsumer_Process(t *testing.T) {
+	t.Parallel()
+
+	targetName := "dns.google."
+
+	t.Run("process valid message", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		msh.On("Store", mock.Anything).Return(nil)
+
+		mqh := &mockedConventionalDNSQueryHandler{}
+
+		// first hop
+		firstHop := &query.ConventionalDNSResponse{
+			Response: &query.DNSResponse{
+				ResponseMsg: &dns.Msg{
+					Answer: []dns.RR{
+						&dns.SVCB{
+							Hdr: dns.RR_Header{
+								Name:   targetName,
+								Rrtype: dns.TypeSVCB,
+								Class:  dns.ClassINET,
+								Ttl:    300,
+							},
+							Priority: 1,
+							Target:   targetName,
+							Value: []dns.SVCBKeyValue{
+								&dns.SVCBAlpn{
+									Alpn: []string{"h2"},
+								},
+							},
+						},
+					},
+					Extra: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   targetName,
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+								Ttl:    300,
+							},
+							A: net.IP{8, 8, 4, 4},
+						},
+					},
+				},
+			},
+		}
+		mqh.On("Query", mock.Anything).Return(firstHop, nil)
+
+		pc := &consumer.EDSRProcessConsumer{
+			QueryHandler: mqh,
+		}
+
+		edsrScan := &scan.EDSRScan{
+			Meta: &scan.EDSRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			Protocol:   "h2",
+			TargetName: "dns.google.",
+			Host:       "8.8.8.8",
+		}
+
+		// marshall to bytes
+		edsrScanBytes, _ := json.Marshal(edsrScan)
+		msg := &kafka.Message{
+			Value: edsrScanBytes,
+		}
+
+		// test
+		err := pc.Process(msg, msh)
+
+		assert.NoError(t, err)
+		msh.AssertCalled(t, "Store", mock.Anything)
+	})
+
+	t.Run("store error", func(t *testing.T) {
+		t.Parallel()
+
+		msh := &mockedStorageHandler{}
+		msh.On("Store", mock.Anything).Return(errors.New("error"))
+
+		mqh := &mockedConventionalDNSQueryHandler{}
+
+		// first hop
+		firstHop := &query.ConventionalDNSResponse{
+			Response: &query.DNSResponse{
+				ResponseMsg: &dns.Msg{
+					Answer: []dns.RR{
+						&dns.SVCB{
+							Hdr: dns.RR_Header{
+								Name:   targetName,
+								Rrtype: dns.TypeSVCB,
+								Class:  dns.ClassINET,
+								Ttl:    300,
+							},
+							Priority: 1,
+							Target:   targetName,
+							Value: []dns.SVCBKeyValue{
+								&dns.SVCBAlpn{
+									Alpn: []string{"h2"},
+								},
+							},
+						},
+					},
+					Extra: []dns.RR{
+						&dns.A{
+							Hdr: dns.RR_Header{
+								Name:   targetName,
+								Rrtype: dns.TypeA,
+								Class:  dns.ClassINET,
+								Ttl:    300,
+							},
+							A: net.IP{8, 8, 4, 4},
+						},
+					},
+				},
+			},
+		}
+		mqh.On("Query", mock.Anything).Return(firstHop, nil)
+
+		pc := &consumer.EDSRProcessConsumer{
+			QueryHandler: mqh,
+		}
+
+		edsrScan := &scan.EDSRScan{
+			Meta: &scan.EDSRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			Protocol:   "h2",
+			TargetName: "dns.google.",
+			Host:       "8.8.8.8",
+		}
+
+		// marshall to bytes
+		edsrScanBytes, _ := json.Marshal(edsrScan)
+		msg := &kafka.Message{
+			Value: edsrScanBytes,
+		}
+
+		// test
+		err := pc.Process(msg, msh)
+
+		assert.Error(t, err)
+	})
 }
 
 func TestEDSR_RealWorld(t *testing.T) {
@@ -1392,7 +1540,7 @@ func TestEDSR_PRocessScan(t *testing.T) {
 
 		esh := &storage.EmptyStorageHandler{}
 
-		err := pc.ProcessScan(nil, esh)
+		err := pc.Process(nil, esh)
 
 		assert.Error(t, err)
 	})
@@ -1406,7 +1554,7 @@ func TestEDSR_PRocessScan(t *testing.T) {
 
 		msg := &kafka.Message{}
 
-		err := pc.ProcessScan(msg, esh)
+		err := pc.Process(msg, esh)
 
 		assert.Error(t, err)
 	})

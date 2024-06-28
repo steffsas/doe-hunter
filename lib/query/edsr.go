@@ -10,8 +10,7 @@ func NewEDSRQuery(targetName string) *ConventionalDNSQuery {
 	q := NewConventionalQuery()
 
 	q.QueryMsg.SetQuestion(fmt.Sprintf("_dns.%s", targetName), dns.TypeSVCB)
-	// this is important since most authoritative servers will not respond to a query with RD set
-	q.QueryMsg.RecursionDesired = false
+	// we explicitly do not set the recurive desired flag to false because this will end up in SERVFAIL responses
 
 	// we are not interested in DNSSEC since EDSR runs in a secure channel anyways
 	q.DNSSEC = false
