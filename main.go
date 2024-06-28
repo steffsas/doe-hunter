@@ -391,6 +391,32 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
+	case "fingerprint":
+		threads, err := helper.GetThreads(helper.THREADS_FINGERPRINT_ENV)
+		if err != nil {
+			return
+		}
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_FINGERPRINT_COLLECTION, mongoServer)
+
+		// remove later
+		consumerConfig := &consumer.KafkaConsumerConfig{
+			Server:  kafkaServer,
+			Threads: threads,
+		}
+
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_FINGERPRINT_TOPIC, vp)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_FINGERPRINT_CONSUMER_GROUP
+
+		//nolint:contextcheck
+		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
+		}
+		_ = pc.Consume(ctx)
 	default:
 		logrus.Fatalf("unsupported protocol type %s", protocol)
 	}

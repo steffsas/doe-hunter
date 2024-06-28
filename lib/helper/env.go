@@ -12,7 +12,7 @@ import (
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "all",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "all",
 }
 
 // nolint: gochecknoglobals
@@ -62,6 +62,9 @@ var THREADS_DDR_ENV = "THREADS_DDR"
 
 // nolint: gochecknoglobals
 var THREADS_EDSR_ENV = "THREADS_EDSR"
+
+// nolint: gochecknoglobals
+var THREADS_FINGERPRINT_ENV = "THREADS_FINGERPRINT"
 
 // nolint: gochecknoglobals
 var THREADS_DOH_ENV = "THREADS_DOH"
