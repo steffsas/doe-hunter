@@ -1,11 +1,145 @@
 version: '3'
 
 services:
+  ## producer
+  ddr-ipv6-producer:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=producer
+      - PROTOCOL=ddr
+      - THREADS=1
+      - PRODUCER_WATCH_DIRECTORY=/data/ipv6
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  ddr-ipv4-producer:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=producer
+      - PROTOCOL=ddr
+      - THREADS=1
+      - PRODUCER_WATCH_DIRECTORY=/data/ipv4
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  ## scanner/consumer
   ddr-scanner:
-    image: ghcr.io/steffsas/doe-hunter:v0.0.3
+    image: ghcr.io/steffsas/doe-hunter:latest
     environment:
       - RUN=consumer
       - PROTOCOL=ddr
+      - THREADS=5000
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  doh-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=doh
+      - THREADS=50
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  dot-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=dot
+      - THREADS=50
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  doq-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=doq
+      - THREADS=10
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  ptr-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=ptr
+      - THREADS=100
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  edsr-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=edsr
+      - THREADS=100
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  certificate-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=certificate
+      - THREADS=50
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  fingerprint-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=fingerprint
+      - THREADS=1000
+      - KAFKA_SERVER=localhost:29092
+      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - VANTAGE_POINT=HPI
+      - LOG_LEVEL=DEBUG
+    networks:
+      - scanner
+
+  dnssec-scanner:
+    image: ghcr.io/steffsas/doe-hunter:latest
+    environment:
+      - RUN=consumer
+      - PROTOCOL=dnssec
       - THREADS=1000
       - KAFKA_SERVER=localhost:29092
       - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
