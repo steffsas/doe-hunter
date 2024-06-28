@@ -305,7 +305,8 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 				ScanMetaInformation: scan.ScanMetaInformation{
 					VantagePoint: vantagePoint,
 				},
-				ScheduleDoEScans: true,
+				ScheduleFingerprintScan: true,
+				ScheduleDoEScans:        true,
 			},
 			Query: &query.ConventionalDNSQuery{},
 			Result: &query.ConventionalDNSResponse{
@@ -335,7 +336,8 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 				ScanMetaInformation: scan.ScanMetaInformation{
 					VantagePoint: vantagePoint,
 				},
-				ScheduleDoEScans: true,
+				ScheduleDoEScans:        true,
+				ScheduleFingerprintScan: false, // needed for assertion later on
 			},
 			Query: &query.ConventionalDNSQuery{},
 			Result: &query.ConventionalDNSResponse{
@@ -367,6 +369,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOT_TOPIC, vantagePoint))
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_CERTIFICATE_TOPIC, vantagePoint))
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_EDSR_TOPIC, vantagePoint))
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint))
 
 		// check cache, i.e., the already produced scans are not produced again
 		producerCounter := 0
@@ -378,7 +381,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 
 		ph.ScheduleScans(secondDDRScan)
 
-		// should not have called produce again
+		// should not have called produce on DoE scans again
 		mpf.AssertNumberOfCalls(t, "Produce", producerCounter)
 
 		// check wether children are added properly
@@ -647,5 +650,157 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		require.NotEmpty(t, scan.Meta.Errors)
 		assert.Equal(t, 1, len(scan.Meta.Errors))
 		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint))
+	})
+
+	t.Run("test fingerprint scan schedule", func(t *testing.T) {
+		defer consumer.ScanCache.Clear()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleFingerprintScan: true,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "example.com",
+				},
+			},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint))
+	})
+
+	t.Run("test fingerprint scan no schedule", func(t *testing.T) {
+		defer consumer.ScanCache.Clear()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleFingerprintScan: false,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "example.com",
+				},
+			},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		mpf.AssertNotCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint))
+	})
+
+	t.Run("test fingerprint scan error", func(t *testing.T) {
+		defer consumer.ScanCache.Clear()
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint)).Return(errors.New("some error"))
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := consumer.DDRProcessEventHandler{
+			Producer: mpf,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					VantagePoint: vantagePoint,
+				},
+				ScheduleFingerprintScan: true,
+			},
+			Query: &query.ConventionalDNSQuery{
+				DNSQuery: query.DNSQuery{
+					Host: "example.com",
+				},
+			},
+			Result: &query.ConventionalDNSResponse{
+				Response: &query.DNSResponse{
+					ResponseMsg: &dns.Msg{
+						Answer: []dns.RR{
+							&dns.SVCB{
+								Priority: 1,
+								Target:   "example.com",
+								Value: []dns.SVCBKeyValue{
+									&dns.SVCBAlpn{
+										Alpn: []string{"h2"},
+									},
+									&dns.SVCBDoHPath{
+										Template: "/dns-query",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		ph.ScheduleScans(scan)
+
+		assert.NotEmpty(t, scan.Meta.Errors)
+		mpf.AssertCalled(t, "Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint))
 	})
 }

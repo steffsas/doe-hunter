@@ -16,8 +16,9 @@ const DDR_SCAN_TYPE = "DDR"
 type DDRScanMetaInformation struct {
 	ScanMetaInformation
 
-	ScheduleDoEScans bool `json:"schedule_doe_scans"`
-	PTRScheduled     bool `json:"ptr_scheduled"`
+	ScheduleDoEScans        bool `json:"schedule_doe_scans"`
+	ScheduleFingerprintScan bool `json:"schedule_fingerprint_scan"`
+	PTRScheduled            bool `json:"ptr_scheduled"`
 }
 
 type DDRScan struct {
@@ -118,6 +119,7 @@ func NewDDRScan(q *query.ConventionalDNSQuery, scheduleDoEScans bool, runId stri
 	scan := &DDRScan{
 		Meta: &DDRScanMetaInformation{},
 	}
+	scan.Meta.ScheduleFingerprintScan = true
 	scan.Meta.ScanMetaInformation = *NewScanMetaInformation("", "", runId, vantagePoint)
 	scan.Meta.ScheduleDoEScans = scheduleDoEScans
 	scan.Meta.VantagePoint = vantagePoint

@@ -68,9 +68,20 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 		}
 	}
 
+	// schedule fingerprint scan
+	if ddrScan.Meta.ScheduleFingerprintScan {
+		logrus.Infof("schedule fingerprint scan for DDR scan %s", ddrScan.Meta.ScanId)
+		fingerprintScan := scan.NewFingerprintScan(ddrScan.Query.Host, ddrScan.Meta.RootScanId, ddrScan.Meta.ScanId, ddrScan.Meta.RunId, ddrScan.Meta.VantagePoint)
+		if err := ddr.Producer.Produce(fingerprintScan, GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, ddrScan.Meta.VantagePoint)); err != nil {
+			logrus.Errorf("failed to produce fingerprint scan: %v", err)
+			ddrScan.Meta.AddError(
+				custom_errors.NewGenericError(custom_errors.ErrProducerProduceFailed, true).AddInfo(err),
+			)
+		}
+	}
+
 	// schedule PTR scan
 	logrus.Infof("schedule PTR scan for DDR scan %s", ddrScan.Meta.ScanId)
-
 	ddrScan.Meta.PTRScheduled = true
 
 	// check if ddr scan was based on an IP address
