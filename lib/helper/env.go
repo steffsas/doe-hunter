@@ -12,7 +12,7 @@ import (
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "all",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "dnssec", "all",
 }
 
 // nolint: gochecknoglobals
@@ -64,9 +64,6 @@ var THREADS_DDR_ENV = "THREADS_DDR"
 var THREADS_EDSR_ENV = "THREADS_EDSR"
 
 // nolint: gochecknoglobals
-var THREADS_FINGERPRINT_ENV = "THREADS_FINGERPRINT"
-
-// nolint: gochecknoglobals
 var THREADS_DOH_ENV = "THREADS_DOH"
 
 // nolint: gochecknoglobals
@@ -80,6 +77,12 @@ var THREADS_CERTIFICATE_ENV = "THREADS_CERTIFICATE"
 
 // nolint: gochecknoglobals
 var THREADS_PTR_ENV = "THREADS_PTR"
+
+// nolint: gochecknoglobals
+var THREADS_FINGERPRINT_ENV = "THREADS_FINGERPRINT"
+
+// nolint: gochecknoglobals
+var THREADS_DNSSEC_ENV = "THREADS_DNSSEC"
 
 func LoadEnv(filepath string) error {
 	if err := godotenv.Load(filepath); err != nil {

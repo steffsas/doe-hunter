@@ -23,6 +23,7 @@ const DEFAULT_PTR_COLLECTION = "ptr-scans"
 const DEFAULT_EDSR_COLLECTION = "edsr-scans"
 const DEFAULT_CERTIFICATE_COLLECTION = "certificate-scans"
 const DEFAULT_FINGERPRINT_COLLECTION = "edsr-scans"
+const DEFAULT_DNSSEC_COLLECTION = "dnssec-scans"
 
 type MongoCollection interface {
 	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)

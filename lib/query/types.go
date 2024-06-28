@@ -47,7 +47,7 @@ func (q *DNSQuery) SetDNSSEC() {
 		if q.QueryMsg == nil {
 			q.QueryMsg = new(dns.Msg)
 		}
-		q.QueryMsg.SetEdns0(2048, true)
+		q.QueryMsg.SetEdns0(1232, true)
 	}
 }
 
