@@ -26,3 +26,6 @@
 .vscode
 
 data/
+
+# SLOC metrics
+.VSCodeCounter/
