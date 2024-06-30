@@ -9,8 +9,8 @@ services:
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -23,8 +23,8 @@ services:
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -37,8 +37,8 @@ services:
       - RUN=consumer
       - PROTOCOL=ddr
       - THREADS=5000
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -50,8 +50,8 @@ services:
       - RUN=consumer
       - PROTOCOL=doh
       - THREADS=50
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -63,8 +63,8 @@ services:
       - RUN=consumer
       - PROTOCOL=dot
       - THREADS=50
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -76,8 +76,8 @@ services:
       - RUN=consumer
       - PROTOCOL=doq
       - THREADS=10
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -89,8 +89,8 @@ services:
       - RUN=consumer
       - PROTOCOL=ptr
       - THREADS=100
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -102,8 +102,8 @@ services:
       - RUN=consumer
       - PROTOCOL=edsr
       - THREADS=100
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -115,8 +115,8 @@ services:
       - RUN=consumer
       - PROTOCOL=certificate
       - THREADS=50
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -128,8 +128,8 @@ services:
       - RUN=consumer
       - PROTOCOL=fingerprint
       - THREADS=1000
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
@@ -141,8 +141,8 @@ services:
       - RUN=consumer
       - PROTOCOL=dnssec
       - THREADS=1000
-      - KAFKA_SERVER=localhost:29092
-      - MONGO_SERVER=mongodb://root:${MONGO_ROOT_PASSWORD}@localhost:27017/
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=HPI
       - LOG_LEVEL=DEBUG
     networks:
