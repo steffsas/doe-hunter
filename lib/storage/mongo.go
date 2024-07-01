@@ -22,7 +22,7 @@ const DEFAULT_DOH_COLLECTION = "doh-scans"
 const DEFAULT_PTR_COLLECTION = "ptr-scans"
 const DEFAULT_EDSR_COLLECTION = "edsr-scans"
 const DEFAULT_CERTIFICATE_COLLECTION = "certificate-scans"
-const DEFAULT_FINGERPRINT_COLLECTION = "edsr-scans"
+const DEFAULT_FINGERPRINT_COLLECTION = "fingerprint-scans"
 const DEFAULT_DNSSEC_COLLECTION = "dnssec-scans"
 
 type MongoCollection interface {
