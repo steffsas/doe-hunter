@@ -67,8 +67,14 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 					return
 				}
 				switch event.Op {
-				case fsnotify.Create:
-					logrus.Infof("new file with name servers created, will tail now: %s", event.Name)
+				// we also include chmod since docker bind mounts will have sometimes only chmod instead of create on file creation
+				case fsnotify.Create, fsnotify.Chmod:
+					logrus.Infof("new file event %s for %s", event.Op, event.Name)
+
+					if _, ok := watchedFiles[event.Name]; ok {
+						logrus.Infof("file already watched, will ignore: %s", event.Name)
+						continue
+					}
 
 					// let's create a cancel function for this file, so we can stop tailing it if file gets deleted
 					childCtx, cancel := context.WithCancel(ctx)
