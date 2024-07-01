@@ -60,12 +60,12 @@ func main() {
 
 			if dirToWatch != "" {
 				// let's start a producer that watches a directory for file creations and tailing
-				startWatchDirectoryProducer(ctx, dirToWatch, kafka.DEFAULT_DDR_TOPIC, vp)
+				startWatchDirectoryProducer(ctx, dirToWatch, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
 				return
 			}
 			if produceFromFile != "" {
 				// let's start a producer that reads from a file
-				startProducerFromFile(produceFromFile, kafka.DEFAULT_DDR_TOPIC, vp)
+				startProducerFromFile(produceFromFile, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
 				return
 			}
 
