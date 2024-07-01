@@ -29,3 +29,5 @@ data/
 
 # SLOC metrics
 .VSCodeCounter/
+
+pprof/
