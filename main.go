@@ -409,7 +409,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_FINGERPRINT_CONSUMER_GROUP
 
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaFingerprintEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
@@ -435,7 +435,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DNSSEC_CONSUMER_GROUP
 
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaDNSSECEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
