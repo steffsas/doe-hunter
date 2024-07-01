@@ -51,7 +51,7 @@ func main() {
 		case "all":
 			startAllConsumer(ctx, vp)
 		default:
-			startConsumer(ctx, toRun, vp)
+			startConsumer(ctx, protocolToRun, vp)
 		}
 	} else {
 		if protocolToRun == "ddr" {
