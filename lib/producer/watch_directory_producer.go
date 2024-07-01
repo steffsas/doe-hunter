@@ -68,7 +68,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 				}
 				switch event.Op {
 				// we also include chmod since docker bind mounts will have sometimes only chmod instead of create on file creation
-				case fsnotify.Create, fsnotify.Chmod:
+				case fsnotify.Create:
 					logrus.Infof("new file event %s for %s", event.Op, event.Name)
 
 					if _, ok := watchedFiles[event.Name]; ok {
