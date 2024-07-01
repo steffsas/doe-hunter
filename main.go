@@ -19,6 +19,14 @@ import (
 )
 
 func main() {
+	// enable if you do want to profile the application
+	// f, perr := os.Create("/data/cpu.pprof")
+	// if perr != nil {
+	// 	logrus.Fatal(perr)
+	// }
+	// pprof.StartCPUProfile(f)
+	// defer pprof.StopCPUProfile()
+
 	ctx := context.Background()
 
 	// load environment variables and settings
@@ -212,6 +220,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 	}
 	defer prod.Close()
 
+	consumerConfig := &consumer.KafkaConsumerConfig{
+		Server:  kafkaServer,
+		Timeout: kafka.DEFAULT_KAFKA_READ_TIMEOUT,
+	}
+
 	switch protocol {
 	case "ddr":
 		threads, err := helper.GetThreads(helper.THREADS_DDR_ENV)
@@ -219,15 +232,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, mongoServer)
-
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, prod, sh, queryConfig)
@@ -244,15 +253,12 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, mongoServer)
-
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, mongoServer)
+
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoHEventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
@@ -268,15 +274,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, mongoServer)
-
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoQEventConsumer(consumerConfig, prod, sh, queryConfig)
@@ -293,16 +295,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDoTEventConsumer(consumerConfig, prod, sh, queryConfig)
@@ -319,16 +316,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaPTREventConsumer(consumerConfig, sh, queryConfig)
@@ -345,16 +337,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_EDSR_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaEDSREventConsumer(consumerConfig, sh, queryConfig)
@@ -371,16 +358,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaCertificateEventConsumer(consumerConfig, sh, queryConfig)
@@ -397,16 +379,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_FINGERPRINT_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_FINGERPRINT_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_FINGERPRINT_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_FINGERPRINT_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaFingerprintEventConsumer(consumerConfig, sh, queryConfig)
@@ -423,16 +400,11 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			return
 		}
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DNSSEC_COLLECTION, mongoServer)
-
-		// remove later
-		consumerConfig := &consumer.KafkaConsumerConfig{
-			Server:  kafkaServer,
-			Threads: threads,
-		}
-
+		consumerConfig.Threads = threads
 		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DNSSEC_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DNSSEC_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DNSSEC_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDNSSECEventConsumer(consumerConfig, sh, queryConfig)

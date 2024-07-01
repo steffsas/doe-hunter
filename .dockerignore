@@ -1,6 +1,7 @@
 .github/
 data/
 img/
+pprof/
 
 kafka.config
 LICENSE
