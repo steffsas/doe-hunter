@@ -5,9 +5,11 @@ FROM golang:1.22.3-bullseye as builder
 
 WORKDIR /app
 
-COPY . ./
-
+# install dependencies
+COPY ./ /app/
 RUN go mod download
+
+# build go binary
 RUN go build -o /app/scanner .
 
 ### RUNTIME IMAGE
