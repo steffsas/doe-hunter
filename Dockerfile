@@ -6,8 +6,12 @@ FROM golang:1.22.3-bullseye as builder
 WORKDIR /app
 
 # install dependencies
-COPY ./ /app/
+COPY go.mod go.sum go.work go.work.sum /app/
+COPY lib/go.mod lib/go.sum /app/lib/
 RUN go mod download
+
+# copy source code
+COPY . /app
 
 # build go binary
 RUN go build -o /app/scanner .
