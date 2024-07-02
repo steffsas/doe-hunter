@@ -29,3 +29,7 @@ services:
       - scanner
   
   # this worker will also run zmap
+
+networks:
+  scanner:
+    driver: bridge
