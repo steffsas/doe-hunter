@@ -144,7 +144,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 3, c[scan.DOH_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.CERTIFICATE_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.EDSR_SCAN_TYPE])
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE])
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE])
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -152,7 +152,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -178,7 +178,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -226,7 +226,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 3, c[scan.DOH_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.CERTIFICATE_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.EDSR_SCAN_TYPE])
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE])
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE])
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -234,7 +234,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -260,7 +260,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -311,14 +311,14 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 3, c[scan.DOH_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.CERTIFICATE_SCAN_TYPE])
 		assert.Equal(t, 3, c[scan.EDSR_SCAN_TYPE])
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE])
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE])
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -344,7 +344,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -401,7 +401,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 6, c[scan.DOH_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 6, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 6, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 2, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 2, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -416,7 +416,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -459,7 +459,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -525,7 +525,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 9, c[scan.DOH_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 9, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 9, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 3, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 3, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should not have returned an error")
@@ -540,7 +540,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -585,7 +585,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -653,7 +653,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 6, c[scan.DOH_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 6, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 6, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 2, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 2, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -668,7 +668,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -711,7 +711,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -781,7 +781,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		assert.Equal(t, 9, c[scan.DOH_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 9, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 9, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 3, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 3, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			require.Nil(t, err, "should have returned an error")
@@ -796,7 +796,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -839,7 +839,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -898,7 +898,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		assert.Equal(t, 1, c[scan.DOT_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -906,7 +906,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -930,7 +930,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -977,7 +977,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		assert.Equal(t, 1, c[scan.DOT_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -985,7 +985,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -1009,7 +1009,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -1055,7 +1055,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 		assert.Equal(t, 1, c[scan.DOQ_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 		assert.Equal(t, 1, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		for _, err := range errors {
 			assert.NotNil(t, err, "should have returned an error")
@@ -1063,7 +1063,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -1087,7 +1087,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
-			case scan.DNSSEC_SCAN_TYPE:
+			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 				require.True(t, ok, "should have returned an DNSSEC scan")
@@ -1135,7 +1135,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			assert.Equal(t, 1, c[scan.DOQ_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 			assert.Equal(t, 1, c[scan.CERTIFICATE_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
 			assert.Equal(t, 1, c[scan.EDSR_SCAN_TYPE], "ALPN * (ipv4Hint + targetName)")
-			assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+			assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 			for _, err := range errors {
 				assert.NotNil(t, err, "should have returned an error")
@@ -1143,7 +1143,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			}
 
 			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 				switch ss.GetType() {
 				case scan.CERTIFICATE_SCAN_TYPE:
@@ -1167,7 +1167,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					require.True(t, ok, "should have returned an EDSR scan")
 
 					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
-				case scan.DNSSEC_SCAN_TYPE:
+				case scan.DDR_DNSSEC_SCAN_TYPE:
 					// cast to DNSSEC scan
 					dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
 					require.True(t, ok, "should have returned an DNSSEC scan")
@@ -1215,7 +1215,7 @@ func TestDDRScan_CreateScansFromResponse_UnkownALPN(t *testing.T) {
 		assert.Equal(t, 1, len(scans))
 
 		c := scanCounter(scans)
-		assert.Equal(t, 1, c[scan.DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
+		assert.Equal(t, 1, c[scan.DDR_DNSSEC_SCAN_TYPE], "targetName + ipv4Hint")
 
 		assert.NotNil(t, errors, "should have returned errors")
 	})

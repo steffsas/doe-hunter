@@ -7,7 +7,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/query"
 )
 
-const DNSSEC_SCAN_TYPE = "DNSSEC"
+const DDR_DNSSEC_SCAN_TYPE = "DNSSEC"
 
 type DDRDNSSECScanMetaInformation struct {
 	ScanMetaInformation
@@ -36,13 +36,13 @@ func (scan *DDRDNSSECScan) GetScanId() string {
 }
 
 func (scan *DDRDNSSECScan) GetType() string {
-	return DNSSEC_SCAN_TYPE
+	return DDR_DNSSEC_SCAN_TYPE
 }
 
 func (scan *DDRDNSSECScan) GetIdentifier() string {
 	// host, port, method, path, http_version, skip_tls_verify
 	return fmt.Sprintf("%s|%s|%s",
-		DNSSEC_SCAN_TYPE,
+		DDR_DNSSEC_SCAN_TYPE,
 		scan.Meta.OriginTargetName,
 		scan.Query.Host,
 	)
