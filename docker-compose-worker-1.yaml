@@ -4,121 +4,126 @@ services:
   ## scanner/consumer
   ddr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=ddr
       - THREADS=5000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   doh-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=doh
       - THREADS=50
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   dot-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=dot
       - THREADS=50
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   doq-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=doq
       - THREADS=10
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   ptr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=ptr
       - THREADS=100
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   edsr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=edsr
       - THREADS=100
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   certificate-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=certificate
       - THREADS=50
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
   fingerprint-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
       - PROTOCOL=fingerprint
       - THREADS=1000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    # needed to access db-1
+    network_mode: host
 
-  dnssec-scanner:
+  ddr-dnssec-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=consumer
-      - PROTOCOL=dnssec
+      - PROTOCOL=ddr-dnssec
       - THREADS=1000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
-
-networks:
-  scanner:
-    driver: bridge
+    # needed to access db-1
+    network_mode: host
