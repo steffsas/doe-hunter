@@ -1,7 +1,11 @@
+
+ # this worker will also run zmap
+
 services:
   ## producer
   ddr-ipv6-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=producer
       - PROTOCOL=ddr
@@ -9,13 +13,16 @@ services:
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
+    volumes:
+      - /data/ipv6/:/data/ipv6/
+    # needed to access db-1
+    network_mode: host
 
   ddr-ipv4-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
+    restart: always
     environment:
       - RUN=producer
       - PROTOCOL=ddr
@@ -23,13 +30,9 @@ services:
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=HPI
+      - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
-    networks:
-      - scanner
-  
-  # this worker will also run zmap
-
-networks:
-  scanner:
-    driver: bridge
+    volumes:
+      - /data/ipv4/:/data/ipv4/
+    # needed to access db-1
+    network_mode: host
