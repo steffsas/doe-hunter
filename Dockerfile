@@ -25,8 +25,5 @@ WORKDIR /app
 # copy go binary
 COPY --from=builder /app/scanner /app/scanner
 
-# copy default .env file
-COPY --from=builder /app/.env /app/.env
-
 ENTRYPOINT [ "/app/scanner" ]
 CMD [""]
