@@ -7,7 +7,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/query"
 )
 
-const DDR_DNSSEC_SCAN_TYPE = "DNSSEC"
+const DDR_DNSSEC_SCAN_TYPE = "DDR_DNSSEC"
 
 type DDRDNSSECScanMetaInformation struct {
 	ScanMetaInformation

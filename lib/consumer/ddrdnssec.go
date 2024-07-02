@@ -59,7 +59,7 @@ func NewKafkaDDRDNSSECEventConsumer(config *KafkaConsumerConfig, storageHandler 
 	}
 
 	newPh := func() (EventProcessHandler, error) {
-		return &EDSRProcessConsumer{
+		return &DDRDNSSECProcessConsumer{
 			QueryHandler: query.NewConventionalDNSQueryHandler(queryConfig),
 		}, nil
 	}
