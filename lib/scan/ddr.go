@@ -3,6 +3,7 @@ package scan
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
@@ -68,19 +69,28 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 		return scans, nil
 	}
 
+	dnssecOrigins := []string{}
+
 	for _, answer := range scan.Result.Response.ResponseMsg.Answer {
-		svcRecord, ok := answer.(*dns.SVCB)
+		svcbRecord, ok := answer.(*dns.SVCB)
 		if !ok {
 			logrus.Warnf("parsing DDR scan %s: could not cast DDR DNS answer to SVCB, ignore DNS RR", scan.Meta.ScanId)
 			errorColl = append(errorColl, custom_errors.NewQueryError(custom_errors.ErrInvalidSVCBRR, false).AddInfoString("could not cast DNS answer to SVCB"))
 			continue
 		}
 
-		svcb, err := svcb.ParseDDRSVCB(scan.Meta.ScanId, svcRecord)
+		svcb, err := svcb.ParseDDRSVCB(scan.Meta.ScanId, svcbRecord)
 		errorColl = append(errorColl, err...)
 		if custom_errors.ContainsCriticalErr(err) {
 			logrus.Errorf("parsing DDR scan %s: critical error while parsing SVCB record, ignore DNS RR", scan.Meta.ScanId)
 			continue
+		}
+
+		// create DNSSEC scan for host targetName (note that this scan still might not be added since it is not unique)
+		dnssec := NewDDRDNSSECScan(svcb.Target, svcb.Target, scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
+		if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
+			scans = append(scans, dnssec)
+			dnssecOrigins = append(dnssecOrigins, dnssec.GetIdentifier())
 		}
 
 		// create DoE scans for each ALPN and ip hint
@@ -95,6 +105,13 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint, svcb.Target, ipv4.String(), alpn, svcb)
 					scans = append(scans, s...)
 					errorColl = append(errorColl, e...)
+
+					// create DNSSEC scan (note that this scan still might not be added since it is not unique)
+					dnssec := NewDDRDNSSECScan(svcb.Target, ipv4.String(), scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
+					if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
+						scans = append(scans, dnssec)
+						dnssecOrigins = append(dnssecOrigins, dnssec.GetIdentifier())
+					}
 				}
 			}
 
@@ -103,6 +120,41 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 					s, e := produceScansFromAlpn(scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint, svcb.Target, ipv6.String(), alpn, svcb)
 					scans = append(scans, s...)
 					errorColl = append(errorColl, e...)
+
+					// create DNSSEC scan (note that this scan still might not be added since it is not unique)
+					dnssec := NewDDRDNSSECScan(svcb.Target, ipv6.String(), scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
+					if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
+						scans = append(scans, dnssec)
+						dnssecOrigins = append(dnssecOrigins, dnssec.GetIdentifier())
+					}
+				}
+			}
+
+			// loop through glue records
+			// hint: we scan for each IP as a host to detect misconfigurations/deltas in DNSSEC between the NS
+			for _, g := range scan.Result.Response.ResponseMsg.Extra {
+				if A, ok := g.(*dns.A); ok {
+					// if there are multiple glue records, we should only consider those for the right target
+					if A.Hdr.Name == svcb.Target {
+						// // create DNSSEC scan (note that this scan still might not be added since it is not unique)
+						dnssec := NewDDRDNSSECScan(svcb.Target, A.A.String(), scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
+						if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
+							scans = append(scans, dnssec)
+							dnssecOrigins = append(dnssecOrigins, dnssec.GetIdentifier())
+						}
+					}
+				}
+
+				if AAAA, ok := g.(*dns.AAAA); ok {
+					// if there are multiple glue records, we should only consider those for the right target
+					if AAAA.Hdr.Name == svcb.Target {
+						// // create DNSSEC scan (note that this scan still might not be added since it is not unique)
+						dnssec := NewDDRDNSSECScan(svcb.Target, AAAA.AAAA.String(), scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
+						if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
+							scans = append(scans, dnssec)
+							dnssecOrigins = append(dnssecOrigins, dnssec.GetIdentifier())
+						}
+					}
 				}
 			}
 		}
@@ -199,7 +251,7 @@ func produceScansFromAlpn(
 		// empty ALPN for DoT
 		certQuery.Port = doeScan.GetDoEQuery().Port
 
-		logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, q.Port, targetName)
+		logrus.Debugf("produced DoT scan from ALPN %s for %s on %d with SNI %s", alpn, host, q.Port, targetName)
 	case "h1", "http/1.0", "http/1.1":
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
@@ -208,7 +260,7 @@ func produceScansFromAlpn(
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
-			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
+			logrus.Debugf("produced DoH http1 scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
 		}
@@ -224,7 +276,7 @@ func produceScansFromAlpn(
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
-			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
+			logrus.Debugf("produced DoH http2 scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
 		}
@@ -240,7 +292,7 @@ func produceScansFromAlpn(
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
-			logrus.Debugf("produced DoQ scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
+			logrus.Debugf("produced DoH http3 scan from ALPN %s for %s on %d with SNI %s", alpn, host, dohScan.Query.Port, targetName)
 		} else {
 			logrus.Warnf("got error on creating DoH scan %s:", sErr.Error())
 		}

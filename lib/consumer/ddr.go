@@ -93,11 +93,8 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 	} else {
 		logrus.Infof("DDR scan %s was based on an IP address, schedule PTR scan", ddrScan.Meta.ScanId)
 		q := query.NewPTRQuery()
-		// getting error on invalid ip is not possible at this point
+		// getting error on invalid ip is not possible at this point because we already parse the IP beforehand
 		_ = q.SetQueryMsg(ip.String())
-
-		q.QueryMsg.RecursionDesired = true
-		q.Host = query.DEFAULT_RECURSIVE_RESOLVER
 
 		ptrScan := scan.NewPTRScan(&q.ConventionalDNSQuery, ddrScan.Meta.ScanId, ddrScan.Meta.RootScanId, ddrScan.Meta.RunId, ddrScan.Meta.VantagePoint)
 

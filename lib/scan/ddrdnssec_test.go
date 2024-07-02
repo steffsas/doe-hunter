@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDNSSEC_New(t *testing.T) {
+func TestDDRDNSSEC_New(t *testing.T) {
 	t.Parallel()
 	t.Run("valid new DNSSEC scan", func(t *testing.T) {
 		t.Parallel()
-		scan := scan.NewDNSSECScan("target", "host", "protocol", "parent", "root", "run", "vantagepoint")
+		scan := scan.NewDDRDNSSECScan("target", "host", "parent", "root", "run", "vantagepoint")
 
 		assert.NotNil(t, scan.Meta)
 		require.NotNil(t, scan.Query)
@@ -21,9 +21,9 @@ func TestDNSSEC_New(t *testing.T) {
 	})
 }
 
-func TestDNSSEC_Marshall(t *testing.T) {
+func TestDDRDNSSEC_Marshall(t *testing.T) {
 	t.Parallel()
-	s := scan.NewDNSSECScan("target", "host", "protocol", "parent", "root", "run", "vantagepoint")
+	s := scan.NewDDRDNSSECScan("target", "host", "parent", "root", "run", "vantagepoint")
 	bytes, err := s.Marshall()
 
 	// test
@@ -31,7 +31,7 @@ func TestDNSSEC_Marshall(t *testing.T) {
 	assert.NotNil(t, bytes, "should have returned bytes")
 
 	// unmarshall again
-	scan2 := &scan.DNSSECScan{}
+	scan2 := &scan.DDRDNSSECScan{}
 	err = json.Unmarshal(bytes, scan2)
 	assert.Nil(t, err, "should not have returned an error")
 	assert.Equal(t, s.GetIdentifier(), scan2.GetIdentifier())

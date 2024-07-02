@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDNSSECProcessConsumer_Process(t *testing.T) {
+func TestDDRDNSSECProcessConsumer_Process(t *testing.T) {
 	t.Parallel()
 
 	t.Run("process valid message", func(t *testing.T) {
@@ -27,12 +27,12 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		cqh := mockedConventionalDNSQueryHandler{}
 		cqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
 
-		dph := &consumer.DNSSECProcessConsumer{
+		dph := &consumer.DDRDNSSECProcessConsumer{
 			QueryHandler: &cqh,
 		}
 
-		dnssecScan := &scan.DNSSECScan{
-			Meta: &scan.DNSSECScanMetaInformation{
+		dnssecScan := &scan.DDRDNSSECScan{
+			Meta: &scan.DDRDNSSECScanMetaInformation{
 				ScanMetaInformation: scan.ScanMetaInformation{},
 			},
 			Query: &query.ConventionalDNSQuery{},
@@ -60,7 +60,7 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		cqh := mockedConventionalDNSQueryHandler{}
 		cqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
 
-		dph := &consumer.DNSSECProcessConsumer{
+		dph := &consumer.DDRDNSSECProcessConsumer{
 			QueryHandler: &cqh,
 		}
 
@@ -80,7 +80,7 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		cqh := mockedConventionalDNSQueryHandler{}
 		cqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
 
-		dph := &consumer.DNSSECProcessConsumer{
+		dph := &consumer.DDRDNSSECProcessConsumer{
 			QueryHandler: &cqh,
 		}
 
@@ -106,12 +106,12 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		qErr := custom_errors.NewQueryError(custom_errors.ErrDNSPackFailed, true)
 		cqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, qErr)
 
-		dph := &consumer.DNSSECProcessConsumer{
+		dph := &consumer.DDRDNSSECProcessConsumer{
 			QueryHandler: &cqh,
 		}
 
-		dnssecScan := &scan.DNSSECScan{
-			Meta: &scan.DNSSECScanMetaInformation{
+		dnssecScan := &scan.DDRDNSSECScan{
+			Meta: &scan.DDRDNSSECScanMetaInformation{
 				ScanMetaInformation: scan.ScanMetaInformation{},
 			},
 			Query: &query.ConventionalDNSQuery{},
@@ -129,7 +129,7 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		assert.NoError(t, err) // query error should not return an error
 		msh.AssertCalled(t, "Store", mock.Anything)
 
-		storedDNSSECSan := msh.Calls[0].Arguments.Get(0).(*scan.DNSSECScan)
+		storedDNSSECSan := msh.Calls[0].Arguments.Get(0).(*scan.DDRDNSSECScan)
 		require.NotEmpty(t, storedDNSSECSan.Meta.Errors)
 		assert.Contains(t, storedDNSSECSan.Meta.Errors, qErr)
 	})
@@ -143,12 +143,12 @@ func TestDNSSECProcessConsumer_Process(t *testing.T) {
 		cqh := mockedConventionalDNSQueryHandler{}
 		cqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
 
-		dph := &consumer.DNSSECProcessConsumer{
+		dph := &consumer.DDRDNSSECProcessConsumer{
 			QueryHandler: &cqh,
 		}
 
-		dnssecScan := &scan.DNSSECScan{
-			Meta: &scan.DNSSECScanMetaInformation{
+		dnssecScan := &scan.DDRDNSSECScan{
+			Meta: &scan.DDRDNSSECScanMetaInformation{
 				ScanMetaInformation: scan.ScanMetaInformation{},
 			},
 			Query: &query.ConventionalDNSQuery{},

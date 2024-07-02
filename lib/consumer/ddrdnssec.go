@@ -12,21 +12,21 @@ import (
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
-const DEFAULT_DNSSEC_CONSUMER_GROUP = "dnssec-scan-group"
+const DEFAULT_DDR_DNSSEC_CONSUMER_GROUP = "ddr-dnssec-scan-group"
 
-type DNSSECProcessConsumer struct {
+type DDRDNSSECProcessConsumer struct {
 	EventProcessHandler
 
 	QueryHandler query.ConventionalDNSQueryHandlerI
 }
 
-func (dpc *DNSSECProcessConsumer) Process(msg *kafka.Message, sh storage.StorageHandler) error {
+func (dpc *DDRDNSSECProcessConsumer) Process(msg *kafka.Message, sh storage.StorageHandler) error {
 	if msg == nil {
 		return errors.New("message is nil")
 	}
 
 	// unmarshal kafka msg to scan
-	dnssecScan := &scan.DNSSECScan{}
+	dnssecScan := &scan.DDRDNSSECScan{}
 	err := json.Unmarshal(msg.Value, dnssecScan)
 	if err != nil {
 		logrus.Errorf("error unmarshaling DDR scan: %s", err.Error())
@@ -53,9 +53,9 @@ func (dpc *DNSSECProcessConsumer) Process(msg *kafka.Message, sh storage.Storage
 	return err
 }
 
-func NewKafkaDNSSECEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
+func NewKafkaDDRDNSSECEventConsumer(config *KafkaConsumerConfig, storageHandler storage.StorageHandler, queryConfig *query.QueryConfig) (kec *KafkaEventConsumer, err error) {
 	if config != nil && config.ConsumerGroup == "" {
-		config.ConsumerGroup = DEFAULT_DNSSEC_CONSUMER_GROUP
+		config.ConsumerGroup = DEFAULT_DDR_DNSSEC_CONSUMER_GROUP
 	}
 
 	newPh := func() (EventProcessHandler, error) {

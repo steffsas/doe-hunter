@@ -64,6 +64,32 @@ func getDefaultQuery() *query.ConventionalDNSQuery {
 func TestDNSQuery_RealWorld(t *testing.T) {
 	t.Parallel()
 
+	// t.Run("test", func(t *testing.T) {
+	// 	t.Parallel()
+
+	// 	dq := getDefaultQueryHandler()
+	// 	q := getDefaultQuery()
+
+	// 	q.Host = "8.8.8.8"
+	// 	q.QueryMsg.SetQuestion("_dns.resolver.arpa.", dns.TypeSVCB)
+
+	// 	res, err := dq.Query(q)
+
+	// 	require.Nil(t, err)
+
+	// 	for _, e := range res.Response.ResponseMsg.Extra {
+	// 		if A, ok := e.(*dns.A); ok {
+	// 			fmt.Println(A.A, A.Hdr.Name)
+	// 		}
+
+	// 		if AAAA, ok := e.(*dns.AAAA); ok {
+	// 			fmt.Println(AAAA.AAAA, AAAA.Hdr.Name)
+	// 		}
+	// 	}
+
+	// 	assert.True(t, false)
+	// })
+
 	t.Run("hostname", func(t *testing.T) {
 		t.Parallel()
 

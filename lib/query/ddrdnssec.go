@@ -6,7 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func NewDNSSECQuery(targetName string) *ConventionalDNSQuery {
+func NewDDRDNSSECQuery(targetName string) *ConventionalDNSQuery {
 	q := NewConventionalQuery()
 
 	q.QueryMsg.SetQuestion(fmt.Sprintf("_dns.%s", targetName), dns.TypeSVCB)
@@ -18,6 +18,6 @@ func NewDNSSECQuery(targetName string) *ConventionalDNSQuery {
 	return q
 }
 
-func NewDNSSECQueryHandler(config *QueryConfig) *ConventionalDNSQueryHandler {
+func NewDDRDNSSECQueryHandler(config *QueryConfig) *ConventionalDNSQueryHandler {
 	return NewConventionalDNSQueryHandler(config)
 }

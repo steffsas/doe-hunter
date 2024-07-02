@@ -15,9 +15,9 @@ func TestNewDNSSECQuery(t *testing.T) {
 	t.Run("real world query with host IP", func(t *testing.T) {
 		t.Parallel()
 
-		qh := query.NewDNSSECQueryHandler(nil)
+		qh := query.NewDDRDNSSECQueryHandler(nil)
 
-		q := query.NewDNSSECQuery("one.one.one.one.")
+		q := query.NewDDRDNSSECQuery("one.one.one.one.")
 		q.Host = "1.1.1.1"
 
 		res, err := qh.Query(q)
@@ -47,9 +47,9 @@ func TestNewDNSSECQuery(t *testing.T) {
 	t.Run("real world query with hostname", func(t *testing.T) {
 		t.Parallel()
 
-		qh := query.NewDNSSECQueryHandler(nil)
+		qh := query.NewDDRDNSSECQueryHandler(nil)
 
-		q := query.NewDNSSECQuery("one.one.one.one.")
+		q := query.NewDDRDNSSECQuery("one.one.one.one.")
 		q.Host = "one.one.one.one."
 
 		res, err := qh.Query(q)
