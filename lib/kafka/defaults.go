@@ -15,7 +15,7 @@ const DEFAULT_DOH_TOPIC = "doh-scan"
 const DEFAULT_CERTIFICATE_TOPIC = "certificate-scan"
 const DEFAULT_EDSR_TOPIC = "edsr-scan"
 const DEFAULT_FINGERPRINT_TOPIC = "fingerprint-scan"
-const DEFAULT_DNSSEC_TOPIC = "dnssec-scan"
+const DEFAULT_DDR_DNSSEC_TOPIC = "ddr-dnssec-scan"
 
 const DEFAULT_CONCURRENT_CONSUMER = 10
 const DEFAULT_PARTITIONS = 100

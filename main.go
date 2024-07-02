@@ -394,20 +394,20 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
-	case "dnssec":
-		threads, err := helper.GetThreads(helper.THREADS_DNSSEC_ENV)
+	case "ddr-dnssec":
+		threads, err := helper.GetThreads(helper.THREADS_DDR_DNSSEC_ENV)
 		if err != nil {
 			return
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DNSSEC_TOPIC, vp)
-		consumerConfig.ConsumerGroup = consumer.DEFAULT_DNSSEC_CONSUMER_GROUP
+		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_DNSSEC_TOPIC, vp)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_DNSSEC_CONSUMER_GROUP
 
-		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DNSSEC_COLLECTION, mongoServer)
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_DNSSEC_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
-		pc, err := consumer.NewKafkaDNSSECEventConsumer(consumerConfig, sh, queryConfig)
+		pc, err := consumer.NewKafkaDDRDNSSECEventConsumer(consumerConfig, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return

@@ -88,10 +88,11 @@ func (scan *EDSRScan) GetType() string {
 
 func (scan *EDSRScan) GetIdentifier() string {
 	// host, port
-	return fmt.Sprintf("%s|%s|%s",
+	return fmt.Sprintf("%s|%s|%s|%s",
 		EDSR_SCAN_TYPE,
 		scan.Host,
-		scan.TargetName)
+		scan.TargetName,
+		scan.Protocol)
 }
 
 func NewEDSRScan(targetName, host, protocol, parentScanId, rootScanId, runId, vantagePoint string) *EDSRScan {
