@@ -30,7 +30,7 @@ func main() {
 	ctx := context.Background()
 
 	// load environment variables and settings
-	err := helper.LoadEnv(".env")
+	err := helper.LoadEnv("default.env")
 	if err != nil {
 		return
 	}
