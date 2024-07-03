@@ -61,12 +61,36 @@ func NewFingerprintScan(host string, rootScanId, parentScanId, runId, vantagePoi
 
 	versionBind := query.NewConventionalQuery()
 	versionBind.Host = host
-	versionBind.DNSQuery.QueryMsg.SetQuestion("version.bind", dns.ClassCHAOS)
+
+	// version.bind is a special query that is used to determine the version of the DNS server
+	// https://tools.ietf.org/html/rfc4892
+	versionBindQuestion := dns.Question{
+		Name:   "version.bind.",
+		Qtype:  dns.TypeTXT,
+		Qclass: dns.ClassCHAOS,
+	}
+	versionBind.DNSQuery.QueryMsg = new(dns.Msg)
+	versionBind.DNSQuery.QueryMsg.Question = make([]dns.Question, 1)
+	versionBind.DNSQuery.QueryMsg.Question[0] = versionBindQuestion
+	versionBind.DNSQuery.QueryMsg.Id = 0
+	versionBind.DNSQuery.QueryMsg.RecursionDesired = true
 	scan.VersionBindQuery = versionBind
 
 	versionServer := query.NewConventionalQuery()
 	versionServer.Host = host
-	versionServer.DNSQuery.QueryMsg.SetQuestion("version.server", dns.ClassCHAOS)
+
+	// version.server is a special query that is used to determine the version of the DNS server
+	versionServerQuestion := dns.Question{
+		Name:   "version.server.",
+		Qtype:  dns.TypeTXT,
+		Qclass: dns.ClassCHAOS,
+	}
+	versionServer.DNSQuery.QueryMsg = new(dns.Msg)
+	versionServer.DNSQuery.QueryMsg.Question = make([]dns.Question, 1)
+	versionServer.DNSQuery.QueryMsg.Question[0] = versionServerQuestion
+	versionServer.DNSQuery.QueryMsg.Id = 0
+	versionServer.DNSQuery.QueryMsg.RecursionDesired = true
+
 	scan.VersionServerQuery = versionServer
 
 	sshQuery := query.NewSSHQuery(host)
