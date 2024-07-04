@@ -3,7 +3,6 @@ package consumer
 import (
 	"encoding/json"
 	"net"
-	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
@@ -128,12 +127,18 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 	ddrScan.Result, qErr = ddr.QueryHandler.Query(ddrScan.Query)
 	ddrScan.Meta.SetFinished()
 
-	if qErr != nil {
-		if qErr.IsCritical() && !strings.Contains(qErr.Error(), custom_errors.ErrNoResponse.Error()) {
+	if qErr != nil && qErr.IsCritical() {
+		if qErr.IsCritical() {
 			logrus.Errorf("fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
+		} else {
+			logrus.Debugf("non-fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
 		}
 		ddrScan.Meta.AddError(qErr)
-	} else {
+	}
+
+	// schedule scans if no critical error occurred
+	// short circuit evaluation
+	if qErr == nil || !qErr.IsCritical() {
 		// produce PTR and DoE scans
 		ddr.ScheduleScans(ddrScan)
 	}
