@@ -72,6 +72,14 @@ func TestGetEnvVar(t *testing.T) {
 		assert.Error(t, err)
 		assert.Empty(t, value)
 	})
+
+	t.Run("invalid ip version env var", func(t *testing.T) {
+		t.Setenv(helper.IP_VERSION_ENV, "invalid_protocol_type")
+
+		value, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
+		assert.Error(t, err)
+		assert.Empty(t, value)
+	})
 }
 
 func TestGetThreads(t *testing.T) {

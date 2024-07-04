@@ -9,6 +9,7 @@ services:
     restart: always
     environment:
       - RUN=producer
+      - IP_VERSION=ipv6
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
@@ -29,6 +30,7 @@ services:
     restart: always
     environment:
       - RUN=producer
+      - IP_VERSION=ipv4
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
