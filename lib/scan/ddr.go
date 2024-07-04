@@ -17,9 +17,10 @@ const DDR_SCAN_TYPE = "DDR"
 type DDRScanMetaInformation struct {
 	ScanMetaInformation
 
-	ScheduleDoEScans        bool `json:"schedule_doe_scans"`
-	ScheduleFingerprintScan bool `json:"schedule_fingerprint_scan"`
-	PTRScheduled            bool `json:"ptr_scheduled"`
+	IpVersion               string `json:"ip_version"`
+	ScheduleDoEScans        bool   `json:"schedule_doe_scans"`
+	ScheduleFingerprintScan bool   `json:"schedule_fingerprint_scan"`
+	PTRScheduled            bool   `json:"ptr_scheduled"`
 }
 
 type DDRScan struct {

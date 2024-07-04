@@ -20,6 +20,11 @@ var SUPPORTED_RUN_TYPES = []string{
 	"consumer", "producer",
 }
 
+// nolint: gochecknoglobals
+var SUPPORTED_IP_VERSIONS = []string{
+	"ipv4", "ipv6", "all",
+}
+
 // COMMON ENVIRONMENT VARIABLES
 
 // nolint: gochecknoglobals
@@ -36,6 +41,9 @@ var KAFKA_SERVER_ENV = "KAFKA_SERVER"
 
 // nolint: gochecknoglobals
 var VANTAGE_POINT_ENV = "VANTAGE_POINT"
+
+// nolint: gochecknoglobals
+var IP_VERSION_ENV = "IP_VERSION"
 
 // nolint: gochecknoglobals
 var LOG_LEVEL_ENV = "LOG_LEVEL"
@@ -102,12 +110,17 @@ func GetEnvVar(variable string, requireNotEmpty bool) (string, error) {
 		case RUN_ENV:
 			if !slices.Contains(SUPPORTED_RUN_TYPES, value) {
 				logrus.Errorf("unsupported run type %s", value)
-				return "", fmt.Errorf("unsupported run type %s", value)
+				return "", fmt.Errorf("unsupported run type %s, should be one of %s", value, SUPPORTED_RUN_TYPES)
 			}
 		case PROTOCOL_ENV:
 			if !slices.Contains(SUPPORTED_PROTOCOL_TYPES, value) {
 				logrus.Errorf("unsupported protocol type %s", value)
-				return "", fmt.Errorf("unsupported protocol type %s", value)
+				return "", fmt.Errorf("unsupported protocol type %s, should be one of %s", value, SUPPORTED_PROTOCOL_TYPES)
+			}
+		case IP_VERSION_ENV:
+			if !slices.Contains(SUPPORTED_IP_VERSIONS, value) {
+				logrus.Errorf("unsupported IP version %s", value)
+				return "", fmt.Errorf("unsupported IP version %s, should be one of %s", value, SUPPORTED_IP_VERSIONS)
 			}
 		}
 	}
