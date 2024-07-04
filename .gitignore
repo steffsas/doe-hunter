@@ -35,3 +35,6 @@ data/
 pprof/
 
 mongo.env
+
+zmap/results/*
+zmap/logs/*
