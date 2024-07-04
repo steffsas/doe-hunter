@@ -53,7 +53,7 @@ services:
       - DOWNLOAD_FOLDER=/data/hitlist/downloads/
       - OUTPUT_FOLDER=/data/output/
       - LOG_FOLDER=/data/hitlist/logs/
-      - SCHEDULE=false
+      - SCHEDULE=true
       - SCHEDULE_DAILY_AT=00:15:00
     volumes:
       - /data/hitlist/downloads/:/data/hitlist/downloads/
