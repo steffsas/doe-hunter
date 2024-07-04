@@ -33,3 +33,5 @@ data/
 .VSCodeCounter/
 
 pprof/
+
+mongo.env
