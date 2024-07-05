@@ -80,6 +80,9 @@ var ErrProducerProduceFailed = errors.New("failed to produce message")
 // SSH query errors
 var ErrQueryDial = errors.New("failed to dial SSH server")
 
+// generic consumer errors
+var ErrQueryBlockList = errors.New("query host is on blocklist")
+
 type DoEErrors interface {
 	Error() string
 	IsError(errId string) bool

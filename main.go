@@ -55,6 +55,13 @@ func main() {
 	}
 
 	if toRun == "consumer" {
+		// load blocklist
+		err = helper.InitBlocklist()
+		if err != nil {
+			logrus.Fatalf("failed to load blocklist: %v", err)
+			return
+		}
+
 		switch toRun {
 		case "all":
 			startAllConsumer(ctx, vp)

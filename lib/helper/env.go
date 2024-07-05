@@ -92,6 +92,9 @@ var THREADS_FINGERPRINT_ENV = "THREADS_FINGERPRINT"
 // nolint: gochecknoglobals
 var THREADS_DDR_DNSSEC_ENV = "THREADS_DDR_DNSSEC"
 
+// nolint: gochecknoglobals
+var BLOCKLIST_FILE_PATH_ENV = "BLOCKLIST_FILE_PATH"
+
 func LoadEnv(filepath string) error {
 	if err := godotenv.Load(filepath); err != nil {
 		logrus.Errorf("failed to load .env file: %v", err)
