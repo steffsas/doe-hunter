@@ -251,7 +251,10 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 	//nolint:gocritic
 	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
+		httpReq, err := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
+		if err != nil {
+			return res, custom_errors.NewQueryError(custom_errors.ErrFailedFailedToCreateHTTPReq, true).AddInfo(err)
+		}
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
 		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
@@ -259,7 +262,10 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
 		body := bytes.NewReader(buf)
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
+		httpReq, err := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
+		if err != nil {
+			return res, custom_errors.NewQueryError(custom_errors.ErrFailedFailedToCreateHTTPReq, true).AddInfo(err)
+		}
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
