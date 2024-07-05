@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -245,7 +246,12 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 
 	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(query.Host, query.Port))
 
-	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
+	baseUri, err := url.JoinPath(endpoint, path)
+	if err != nil {
+		return res, custom_errors.NewQueryError(custom_errors.ErrFailedToJoinURLPath, true).AddInfo(err)
+	}
+
+	fullGetURI := fmt.Sprintf("%s?%s=%s", baseUri, param, string(b64))
 
 	var queryErr error
 	//nolint:gocritic

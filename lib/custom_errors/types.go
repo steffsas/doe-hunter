@@ -40,6 +40,7 @@ var ErrDNSPackFailed = errors.New("failed to pack DNS message")
 var ErrDNSUnpackFailed = errors.New("failed to unpack DNS message")
 var ErrDoHRequestError = errors.New("DoH request failed")
 var ErrFailedFailedToCreateHTTPReq = errors.New("failed to create HTTP request")
+var ErrFailedToJoinURLPath = errors.New("failed to join URL path")
 
 // specific DoQ query errors
 var ErrSessionEstablishmentFailed = errors.New("quic session establishment failed")
