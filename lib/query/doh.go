@@ -193,8 +193,6 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 
 	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
-		// see https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
-		tlsConfig.NextProtos = []string{"http/1.1"}
 		transport = &http.Transport{
 			TLSClientConfig: tlsConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
@@ -205,8 +203,6 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 			ForceAttemptHTTP2: false,
 		}
 	case HTTP_VERSION_2:
-		// see https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
-		tlsConfig.NextProtos = []string{"h2"}
 		transport = &http.Transport{
 			TLSClientConfig: tlsConfig,
 			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
