@@ -216,7 +216,6 @@ func produceScansFromAlpn(
 	if host != targetName {
 		certQuery.SNI = targetName
 	}
-
 	// set ALPN since some hosts require it to hand out the proper certificate
 	if alpn != "" {
 		certQuery.ALPN = []string{alpn}
@@ -257,7 +256,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
@@ -273,7 +271,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
@@ -289,7 +286,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_3, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
