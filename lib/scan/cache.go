@@ -75,10 +75,14 @@ func NewScanRunContainer(runId string) *ScanRunCache {
 type ScanCache struct {
 	// maps runsId to identifier to scanId
 	Scans map[string]*ScanRunCache
+	Mutex *sync.Mutex
 }
 
 // AddScan adds a scan to the run cache and resets the timer
 func (cs *ScanCache) AddScan(s Scan) {
+	cs.Mutex.Lock()
+	defer cs.Mutex.Unlock()
+
 	src, found := cs.Scans[s.GetMetaInformation().RunId]
 	if !found {
 		src = NewScanRunContainer(s.GetMetaInformation().RunId)
@@ -100,6 +104,8 @@ func (cs *ScanCache) ContainsScan(s Scan) (string, bool) {
 }
 
 func (cs *ScanCache) Clear() {
+	cs.Mutex.Lock()
+	defer cs.Mutex.Unlock()
 	cs.Scans = make(map[string]*ScanRunCache)
 }
 
@@ -107,5 +113,6 @@ func (cs *ScanCache) Clear() {
 func NewScanCache() *ScanCache {
 	return &ScanCache{
 		Scans: make(map[string]*ScanRunCache),
+		Mutex: &sync.Mutex{},
 	}
 }
