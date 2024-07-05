@@ -57,7 +57,7 @@ func NewFingerprintScan(host string, rootScanId, parentScanId, runId, vantagePoi
 	scan := &FingerprintScan{
 		Meta: &FingerprintScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(rootScanId, parentScanId, runId, vantagePoint)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 
 	versionBind := query.NewConventionalQuery()
 	versionBind.Host = host
