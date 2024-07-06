@@ -66,7 +66,7 @@ func NewCertificateScan(q *query.CertificateQuery, rootScanId, parentScanId, run
 	scan := &CertificateScan{
 		Meta: &CertificateScanMetaInformation{},
 	}
-	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(rootScanId, parentScanId, runId, vantagePoint)
+	scan.Meta.ScanMetaInformation = *NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint)
 	scan.Query = q
 	return scan
 }

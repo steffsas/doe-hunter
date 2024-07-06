@@ -2,6 +2,7 @@ services:
   ## scanner/consumer
   ddr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: ddr-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -16,6 +17,7 @@ services:
 
   doh-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: doh-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -30,6 +32,7 @@ services:
 
   dot-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: dot-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -44,6 +47,7 @@ services:
 
   doq-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: doq-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -58,6 +62,7 @@ services:
 
   ptr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: ptr-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -72,6 +77,7 @@ services:
 
   edsr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: edsr-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -86,6 +92,7 @@ services:
 
   certificate-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: certificate-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -100,6 +107,7 @@ services:
 
   fingerprint-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: fingerprint-scanner
     restart: always
     environment:
       - RUN=consumer
@@ -114,6 +122,7 @@ services:
 
   ddr-dnssec-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: ddr-dnssec-scanner
     restart: always
     environment:
       - RUN=consumer

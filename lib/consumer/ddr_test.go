@@ -217,6 +217,47 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		assert.Error(t, err)
 		msh.AssertCalled(t, "Store", mock.Anything)
 	})
+
+	t.Run("should not query ips on blocklist", func(t *testing.T) {
+		defer consumer.ScanCache.Clear()
+
+		mqh := mockedDDRQueryHandler{}
+		mqh.On("Query", mock.Anything).Return(&query.ConventionalDNSResponse{}, nil)
+
+		msh := mockedStorageHandler{}
+		msh.On("Store", mock.Anything).Return(nil)
+
+		mpf := &mockedProducerFactory{}
+		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Flush", mock.Anything).Return(0)
+
+		ph := &consumer.DDRProcessEventHandler{
+			Producer:     mpf,
+			QueryHandler: &mqh,
+		}
+
+		scan := &scan.DDRScan{
+			Meta: &scan.DDRScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{
+					IsOnBlocklist: true,
+				},
+			},
+			Query: &query.ConventionalDNSQuery{},
+		}
+
+		// marshall to bytes
+		scanBytes, _ := json.Marshal(scan)
+
+		msg := kafka.Message{
+			Value: scanBytes,
+		}
+
+		err := ph.Process(&msg, &msh)
+
+		assert.NoError(t, err)
+		msh.AssertCalled(t, "Store", mock.Anything)
+		mqh.AssertNotCalled(t, "Query", mock.Anything)
+	})
 }
 
 type mockedProducerFactory struct {

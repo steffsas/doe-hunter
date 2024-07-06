@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -212,6 +213,9 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 			ForceAttemptHTTP2: true,
 		}
 	case HTTP_VERSION_3:
+		// we should set this, got it from error anlysis
+		// see https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
+		tlsConfig.NextProtos = []string{"h3"}
 		transport = &http3.RoundTripper{
 			TLSClientConfig: tlsConfig,
 			QUICConfig: &quic.Config{
@@ -245,13 +249,21 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 
 	endpoint := fmt.Sprintf("https://%s", helper.GetFullHostFromHostPort(query.Host, query.Port))
 
-	fullGetURI := fmt.Sprintf("%s%s?%s=%s", endpoint, path, param, string(b64))
+	baseUri, err := url.JoinPath(endpoint, path)
+	if err != nil {
+		return res, custom_errors.NewQueryError(custom_errors.ErrFailedToJoinURLPath, true).AddInfo(err)
+	}
+
+	fullGetURI := fmt.Sprintf("%s?%s=%s", baseUri, param, string(b64))
 
 	var queryErr error
 	//nolint:gocritic
 	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
+		httpReq, err := http.NewRequestWithContext(context.Background(), HTTP_GET, fullGetURI, nil)
+		if err != nil {
+			return res, custom_errors.NewQueryError(custom_errors.ErrFailedFailedToCreateHTTPReq, true).AddInfo(err)
+		}
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
 		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
@@ -259,7 +271,10 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
 		body := bytes.NewReader(buf)
-		httpReq, _ := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
+		httpReq, err := http.NewRequestWithContext(context.Background(), HTTP_POST, fullPostURI, body)
+		if err != nil {
+			return res, custom_errors.NewQueryError(custom_errors.ErrFailedFailedToCreateHTTPReq, true).AddInfo(err)
+		}
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)

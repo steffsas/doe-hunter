@@ -5,9 +5,11 @@ services:
   ## producer
   ddr-ipv6-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: ddr-ipv6-producer
     restart: always
     environment:
       - RUN=producer
+      - IP_VERSION=ipv6
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
@@ -17,14 +19,18 @@ services:
       - LOG_LEVEL=DEBUG
     volumes:
       - /data/ipv6/:/data/ipv6/
+    depends_on:
+      - hitlist-downloader
     # needed to access db-1
     network_mode: host
 
   ddr-ipv4-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
+    container_name: ddr-ipv4-producer
     restart: always
     environment:
       - RUN=producer
+      - IP_VERSION=ipv4
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
@@ -36,3 +42,20 @@ services:
       - /data/ipv4/:/data/ipv4/
     # needed to access db-1
     network_mode: host
+
+  # to download latest ipv6 scans form ipv6 hitlist
+  hitlist-downloader:
+    image: ghcr.io/steffsas/hitlist-downloader:latest
+    container_name: hitlist-downloader
+    restart: always
+    environment:
+      - URL=${IPV6_HITLIST_URL}
+      - DOWNLOAD_FOLDER=/data/hitlist/downloads/
+      - OUTPUT_FOLDER=/data/output/
+      - LOG_FOLDER=/data/hitlist/logs/
+      - SCHEDULE=true
+      - SCHEDULE_DAILY_AT=00:15:00
+    volumes:
+      - /data/hitlist/downloads/:/data/hitlist/downloads/
+      - /data/hitlist/logs/:/data/hitlist/logs/
+      - /data/ipv6/:/data/output/

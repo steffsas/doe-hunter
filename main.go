@@ -54,6 +54,13 @@ func main() {
 		return
 	}
 
+	// load blocklist
+	err = helper.InitBlocklist()
+	if err != nil {
+		logrus.Fatalf("failed to load blocklist: %v", err)
+		return
+	}
+
 	if toRun == "consumer" {
 		switch toRun {
 		case "all":
@@ -63,17 +70,22 @@ func main() {
 		}
 	} else {
 		if protocolToRun == "ddr" {
+			ipVersion, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
+			if err != nil {
+				return
+			}
+
 			dirToWatch, _ := helper.GetEnvVar(helper.PRODUCER_WATCH_DIRECTORY, false)
 			produceFromFile, _ := helper.GetEnvVar(helper.PRODUCER_FROM_FILE, false)
 
 			if dirToWatch != "" {
 				// let's start a producer that watches a directory for file creations and tailing
-				startWatchDirectoryProducer(ctx, dirToWatch, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
+				startWatchDirectoryProducer(ctx, ipVersion, dirToWatch, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
 				return
 			}
 			if produceFromFile != "" {
 				// let's start a producer that reads from a file
-				startProducerFromFile(produceFromFile, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
+				startProducerFromFile(produceFromFile, ipVersion, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
 				return
 			}
 
@@ -118,13 +130,21 @@ func setLogger() {
 	logrus.SetOutput(os.Stdout)
 }
 
-func startProducerFromFile(file, topic, vantagePoint string) {
+func startProducerFromFile(file, ipVersion, topic, vantagePoint string) {
 	// let's start a producer that reads from a file
 	newScan := func(host, runId, vp string) scan.Scan {
 		q := query.NewDDRQuery()
 		q.Host = host
 
 		s := scan.NewDDRScan(q, true, runId, vp)
+		s.Meta.IpVersion = ipVersion
+
+		if ip := net.ParseIP(host); ip != nil {
+			if helper.BlockedIPs.Contains(ip) {
+				s.Meta.IsOnBlocklist = true
+			}
+		}
+
 		return s
 	}
 
@@ -141,13 +161,21 @@ func startProducerFromFile(file, topic, vantagePoint string) {
 	}
 }
 
-func startWatchDirectoryProducer(ctx context.Context, dir, topic, vantagePoint string) {
+func startWatchDirectoryProducer(ctx context.Context, ipVersion, dir, topic, vantagePoint string) {
 	// let's start a producer that watches a directory
 	newScan := func(host, runId, vp string) scan.Scan {
 		q := query.NewDDRQuery()
 		q.Host = host
 
 		s := scan.NewDDRScan(q, true, runId, vp)
+		s.Meta.IpVersion = ipVersion
+
+		if ip := net.ParseIP(host); ip != nil {
+			if helper.BlockedIPs.Contains(ip) {
+				s.Meta.IsOnBlocklist = true
+			}
+		}
+
 		return s
 	}
 

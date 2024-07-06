@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	"github.com/steffsas/doe-hunter/lib/helper"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -59,7 +60,7 @@ func (qh *SSHQueryHandler) Query(query *SSHQuery) (*SSHResponse, custom_errors.D
 	}
 
 	// let's first try to connect to the SSH server
-	con, err := qh.TCPDialer.Dial("tcp", fmt.Sprintf("%s:%d", query.Host, query.Port))
+	con, err := qh.TCPDialer.Dial("tcp", helper.GetFullHostFromHostPort(query.Host, query.Port))
 	if err != nil {
 		dialErr := custom_errors.NewQueryError(custom_errors.ErrQueryDial, false)
 		_ = dialErr.AddInfo(err)

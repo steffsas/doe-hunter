@@ -39,6 +39,8 @@ var ErrUnexpectedURIPath = errors.New("URI does not match the expected format")
 var ErrDNSPackFailed = errors.New("failed to pack DNS message")
 var ErrDNSUnpackFailed = errors.New("failed to unpack DNS message")
 var ErrDoHRequestError = errors.New("DoH request failed")
+var ErrFailedFailedToCreateHTTPReq = errors.New("failed to create HTTP request")
+var ErrFailedToJoinURLPath = errors.New("failed to join URL path")
 
 // specific DoQ query errors
 var ErrSessionEstablishmentFailed = errors.New("quic session establishment failed")
@@ -77,6 +79,9 @@ var ErrProducerProduceFailed = errors.New("failed to produce message")
 
 // SSH query errors
 var ErrQueryDial = errors.New("failed to dial SSH server")
+
+// generic consumer errors
+var ErrQueryBlockList = errors.New("query host is on blocklist")
 
 type DoEErrors interface {
 	Error() string

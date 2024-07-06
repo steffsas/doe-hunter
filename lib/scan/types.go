@@ -15,6 +15,9 @@ type ScanMetaInformation struct {
 	// ScanId is a unique identifier for a single scan
 	ScanId string `json:"scan_id"`
 
+	// IsOnBlocklist is true if the scan is on the blocklist
+	IsOnBlocklist bool `json:"is_on_blocklist"`
+
 	// ParentScanId is the scan id of the scan that triggered this scan
 	ParentScanId string `json:"parent_scan_id"`
 
@@ -90,6 +93,8 @@ func NewScanMetaInformation(parentScanId, rootScanId, runId, vantagePoint string
 		VantagePoint: vantagePoint,
 		Errors:       []custom_errors.DoEErrors{},
 	}
+
+	meta.IsOnBlocklist = false
 
 	meta.GenerateScanId()
 	meta.SetScheduled()

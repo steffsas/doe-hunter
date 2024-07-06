@@ -17,9 +17,10 @@ const DDR_SCAN_TYPE = "DDR"
 type DDRScanMetaInformation struct {
 	ScanMetaInformation
 
-	ScheduleDoEScans        bool `json:"schedule_doe_scans"`
-	ScheduleFingerprintScan bool `json:"schedule_fingerprint_scan"`
-	PTRScheduled            bool `json:"ptr_scheduled"`
+	IpVersion               string `json:"ip_version"`
+	ScheduleDoEScans        bool   `json:"schedule_doe_scans"`
+	ScheduleFingerprintScan bool   `json:"schedule_fingerprint_scan"`
+	PTRScheduled            bool   `json:"ptr_scheduled"`
 }
 
 type DDRScan struct {
@@ -215,7 +216,6 @@ func produceScansFromAlpn(
 	if host != targetName {
 		certQuery.SNI = targetName
 	}
-
 	// set ALPN since some hosts require it to hand out the proper certificate
 	if alpn != "" {
 		certQuery.ALPN = []string{alpn}
@@ -256,7 +256,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_1, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
@@ -272,7 +271,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_2, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 
@@ -288,7 +286,6 @@ func produceScansFromAlpn(
 		var dohScan *DoHScan
 		dohScan, sErr := createDoHScan(parentScanId, runId, vantagePoint, queryMsg, host, targetName, query.HTTP_VERSION_3, port, dohpath)
 		if sErr == nil || !sErr.IsCritical() {
-			certQuery.ALPN = []string{dohScan.Query.HTTPVersion}
 			certQuery.Port = dohScan.Query.Port
 			doeScan = dohScan
 

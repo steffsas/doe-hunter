@@ -19,6 +19,7 @@ const DEFAULT_DOQ_TIMEOUT time.Duration = 5000 * time.Millisecond
 // see https://www.rfc-editor.org/rfc/rfc9250.html#section-4.1.1
 const DEFAULT_DOQ_PORT = 853
 
+// see https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
 // nolint: gochecknoglobals
 var DOQ_TLS_PROTOCOLS = []string{"doq", "dq"}
 
