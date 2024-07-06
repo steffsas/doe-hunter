@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   kafka-ui:
     image: provectuslabs/kafka-ui
@@ -22,8 +20,12 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - 2181:2181
+    volumes:
+      - /db/zookeeper/data/:/var/lib/zookeeper/data
+      - /db/zookeeper/logs/:/var/lib/zookeeper/log
     networks:
       - kafka
+
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -51,6 +53,8 @@ services:
       KAFKA_LOG_CLEANUP_POLICY: delete
       KAFKA_LOG_RETENTION_MS: "172800000"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - /db/kafka/data/:/var/lib/kafka/data
     networks:
       - kafka
 
@@ -63,7 +67,7 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - mongo_data:/data/db
+      - /db/mongo/:/data/db
     networks:
       - mongo
 
@@ -86,6 +90,3 @@ services:
 networks:
   kafka:
   mongo:
-
-volumes:
-  mongo_data:
