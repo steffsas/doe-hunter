@@ -12,6 +12,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -27,6 +29,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -42,6 +46,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -57,6 +63,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -72,6 +80,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -87,6 +97,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -102,6 +114,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -117,6 +131,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
 
@@ -132,5 +148,7 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=DEBUG
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
     network_mode: host
