@@ -121,26 +121,30 @@ func (ddr *DDRProcessEventHandler) Process(msg *kafka.Message, storage storage.S
 		return err
 	}
 
-	// execute query
-	var qErr custom_errors.DoEErrors
-	ddrScan.Meta.SetStarted()
-	ddrScan.Result, qErr = ddr.QueryHandler.Query(ddrScan.Query)
-	ddrScan.Meta.SetFinished()
+	if !ddrScan.Meta.IsOnBlocklist {
+		// execute query
+		var qErr custom_errors.DoEErrors
+		ddrScan.Meta.SetStarted()
+		ddrScan.Result, qErr = ddr.QueryHandler.Query(ddrScan.Query)
+		ddrScan.Meta.SetFinished()
 
-	if qErr != nil && qErr.IsCritical() {
-		if qErr.IsCritical() {
-			logrus.Errorf("fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
-		} else {
-			logrus.Debugf("non-fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
+		if qErr != nil && qErr.IsCritical() {
+			if qErr.IsCritical() {
+				logrus.Errorf("fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
+			} else {
+				logrus.Debugf("non-fatal error during DDR query %s: %v", ddrScan.Meta.ScanId, qErr.Error())
+			}
+			ddrScan.Meta.AddError(qErr)
 		}
-		ddrScan.Meta.AddError(qErr)
-	}
 
-	// schedule scans if no critical error occurred
-	// short circuit evaluation
-	if qErr == nil || !qErr.IsCritical() {
-		// produce PTR and DoE scans
-		ddr.ScheduleScans(ddrScan)
+		// schedule scans if no critical error occurred
+		// short circuit evaluation
+		if qErr == nil || !qErr.IsCritical() {
+			// produce PTR, fingerprint, EDSR and DoE scans
+			ddr.ScheduleScans(ddrScan)
+		}
+	} else {
+		logrus.Warnf("DDR scan %s is on blocklist, not executing query", ddrScan.Meta.ScanId)
 	}
 
 	err = storage.Store(ddrScan)

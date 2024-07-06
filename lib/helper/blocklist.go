@@ -2,7 +2,6 @@ package helper
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"os"
 
@@ -11,6 +10,7 @@ import (
 
 const DEFAULT_BLOCKLIST_PATH = "blocklist.conf"
 
+// nolint: gochecknoglobals
 var BlockedIPs = Blocklist{}
 
 type Blocklist struct {
@@ -18,7 +18,6 @@ type Blocklist struct {
 }
 
 func (b *Blocklist) Load(filePath string) error {
-	fmt.Println(filePath)
 	// load blocklist from file
 	file, err := os.Open(filePath)
 	if err != nil {

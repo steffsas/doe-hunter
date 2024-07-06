@@ -54,14 +54,14 @@ func main() {
 		return
 	}
 
-	if toRun == "consumer" {
-		// load blocklist
-		err = helper.InitBlocklist()
-		if err != nil {
-			logrus.Fatalf("failed to load blocklist: %v", err)
-			return
-		}
+	// load blocklist
+	err = helper.InitBlocklist()
+	if err != nil {
+		logrus.Fatalf("failed to load blocklist: %v", err)
+		return
+	}
 
+	if toRun == "consumer" {
 		switch toRun {
 		case "all":
 			startAllConsumer(ctx, vp)
@@ -138,6 +138,13 @@ func startProducerFromFile(file, ipVersion, topic, vantagePoint string) {
 
 		s := scan.NewDDRScan(q, true, runId, vp)
 		s.Meta.IpVersion = ipVersion
+
+		if ip := net.ParseIP(host); ip != nil {
+			if helper.BlockedIPs.Contains(ip) {
+				s.Meta.IsOnBlocklist = true
+			}
+		}
+
 		return s
 	}
 
@@ -162,6 +169,13 @@ func startWatchDirectoryProducer(ctx context.Context, ipVersion, dir, topic, van
 
 		s := scan.NewDDRScan(q, true, runId, vp)
 		s.Meta.IpVersion = ipVersion
+
+		if ip := net.ParseIP(host); ip != nil {
+			if helper.BlockedIPs.Contains(ip) {
+				s.Meta.IsOnBlocklist = true
+			}
+		}
+
 		return s
 	}
 

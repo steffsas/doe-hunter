@@ -1,12 +1,12 @@
 package helper_test
 
 import (
-	"fmt"
 	"net"
 	"testing"
 
 	"github.com/steffsas/doe-hunter/lib/helper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBlocklist_Init(t *testing.T) {
@@ -14,9 +14,6 @@ func TestBlocklist_Init(t *testing.T) {
 
 	t.Run("default blocklist", func(t *testing.T) {
 		t.Setenv(helper.BLOCKLIST_FILE_PATH_ENV, "../../blocklist.conf")
-
-		te, e := helper.GetEnvVar(helper.BLOCKLIST_FILE_PATH_ENV, true)
-		fmt.Println(te, e)
 
 		err := helper.InitBlocklist()
 
@@ -69,7 +66,8 @@ func TestBlocklist_Contains(t *testing.T) {
 	t.Parallel()
 
 	b := helper.Blocklist{}
-	b.Load("../../blocklist.conf")
+	err := b.Load("../../blocklist.conf")
+	require.Nil(t, err, "should not have returned an error")
 
 	t.Run("google should not be blocked", func(t *testing.T) {
 		t.Parallel()
