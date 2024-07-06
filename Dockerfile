@@ -28,5 +28,8 @@ COPY --from=builder /app/scanner /app/scanner
 # copy default.env
 COPY --from=builder /app/default.env /app/default.env
 
+# copy blocklist.conf
+COPY --from=builder /app/blocklist.conf /app/blocklist.conf
+
 ENTRYPOINT [ "/app/scanner" ]
 CMD [""]

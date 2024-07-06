@@ -13,6 +13,7 @@ services:
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
+      - BLOCKLIST_FILE_PATH=blocklist.conf
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
@@ -34,6 +35,7 @@ services:
       - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
+      - BLOCKLIST_FILE_PATH=blocklist.conf
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
