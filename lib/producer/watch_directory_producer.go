@@ -173,7 +173,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 					}
 				} else {
 					// tail file closed
-					logrus.Debugf("line nil, writer of %s closed", filepath)
+					logrus.Debugf("line nil, writer of %s closed, exit tailing", filepath)
 					return
 				}
 			default:
