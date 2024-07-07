@@ -118,7 +118,17 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, topic string, vantagePoint string, filepath string, timeAfterExit time.Duration) error {
 	defer outerWg.Done()
 
+	// create runId to group scans for this file
+	runId := uuid.New().String()
+
+	// create producer channel
+	producerChannel := make(chan scan.Scan)
+
+	// remember the time of the last read line
+	lastReadLine := time.Now()
+
 	// tail the output file (will contain IP addresses for scanning)
+	logrus.Debugf("start tailing file %s (again)", filepath)
 	tailChannel, err := tail.TailFile(filepath, tail.Config{
 		Follow:    true,
 		Pipe:      true,
@@ -131,20 +141,11 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	defer tailChannel.Cleanup()
 	defer tailChannel.Dead()
 
-	// create runId to group scans for this file
-	runId := uuid.New().String()
-
-	// create producer channel
-	producerChannel := make(chan scan.Scan)
-
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-
-		// remember the time of the last read line
-		lastReadLine := time.Now()
 
 		for {
 			select {
@@ -153,20 +154,27 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				return
 			case line := <-tailChannel.Lines:
 				if line != nil {
-					logrus.Debugf("read line %s, use it for scan host", line.Text)
+					if line.Err != nil {
+						logrus.Errorf("failed to read line: %v", line.Err)
+						continue
+					}
+					if line.Text != "" {
+						logrus.Debugf("read line %s, use it for scan host", line.Text)
+						// update last read line
+						lastReadLine = time.Now()
+						s := dp.NewScan(line.Text, runId, vantagePoint)
 
-					// update last read line
-					lastReadLine = time.Now()
+						// produce scan
+						producerChannel <- s
 
-					s := dp.NewScan(line.Text, runId, vantagePoint)
-
-					// produce scan
-					producerChannel <- s
-
-					logrus.Debugf("added line %s to producerChannel", line.Text)
+						logrus.Debugf("added line %s to producerChannel", line.Text)
+					} else {
+						logrus.Debugf("empty line, ignore")
+					}
 				} else {
-					// wait a bit before checking again
-					time.Sleep(100 * time.Millisecond)
+					// tail file closed
+					logrus.Debugf("line nil, writer of %s closed", filepath)
+					return
 				}
 			default:
 				// check if we should exit
