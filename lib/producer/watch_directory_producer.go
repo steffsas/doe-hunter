@@ -152,7 +152,6 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				close(producerChannel)
 				return
 			case line := <-tailChannel.Lines:
-				logrus.Debugf("got line from tail: %v", line)
 				if line != nil {
 					logrus.Debugf("read line %s, use it for scan host", line.Text)
 
@@ -165,6 +164,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 					producerChannel <- s
 
 					logrus.Debugf("added line %s to producerChannel", line.Text)
+				} else {
+					// wait a bit before checking again
+					time.Sleep(100 * time.Millisecond)
 				}
 			default:
 				// check if we should exit
