@@ -121,6 +121,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	// tail the output file (will contain IP addresses for scanning)
 	tailChannel, err := tail.TailFile(filepath, tail.Config{
 		Follow:    true,
+		Pipe:      true,
 		MustExist: true,
 	})
 	if err != nil {
@@ -167,7 +168,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				}
 			default:
 				// check if we should exit
-				if time.Since(lastReadLine) > timeAfterExit {
+				if timeAfterExit > 0 && time.Since(lastReadLine) > timeAfterExit {
 					logrus.Info("no new data written to file, exit tailing")
 					close(producerChannel)
 					return
@@ -212,6 +213,6 @@ func NewWatchDirectoryProducer(newScan NewScan, producer ScanProducer) *WatchDir
 	return &WatchDirectoryProducer{
 		NewScan:       newScan,
 		Producer:      producer,
-		WaitUntilExit: WAIT_UNTIL_EXIT_TAILING,
+		WaitUntilExit: 0,
 	}
 }
