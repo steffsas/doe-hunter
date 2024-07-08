@@ -2,11 +2,13 @@ package producer
 
 import (
 	"context"
+	"io"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 
+	"github.com/containerd/fifo"
 	"github.com/google/uuid"
 	"github.com/hpcloud/tail"
 	"github.com/sirupsen/logrus"
@@ -127,60 +129,72 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	// remember the time of the last read line
 	lastReadLine := time.Now()
 
+	// check whether file is fifo, see https://linux.die.net/man/3/mkfifo
+	pipe, err := fifo.IsFifo(filepath)
+	if err != nil {
+		logrus.Errorf("failed to check if file %s is a pipe, set pipe to false: %v", filepath, err)
+		pipe = false
+	} else {
+		if pipe {
+			logrus.Debugf("file %s is a pipe", filepath)
+		} else {
+			logrus.Debugf("file %s is not a pipe", filepath)
+		}
+	}
+
 	// tail the output file (will contain IP addresses for scanning)
-	logrus.Debugf("start tailing file %s (again)", filepath)
+	logrus.Debugf("start tailing file %s", filepath)
 	tailChannel, err := tail.TailFile(filepath, tail.Config{
 		Follow:    true,
-		Pipe:      true,
+		Pipe:      pipe,
 		MustExist: true,
 	})
 	if err != nil {
 		logrus.Errorf("failed to tail (watch) output file: %v", err)
 		return err
 	}
+	defer tailChannel.Stop()
 	defer tailChannel.Cleanup()
-	defer tailChannel.Dead()
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
+		defer close(producerChannel)
 
 		for {
 			select {
 			case <-ctx.Done():
-				close(producerChannel)
 				return
 			case line := <-tailChannel.Lines:
-				if line != nil {
-					if line.Err != nil {
-						logrus.Errorf("failed to read line: %v", line.Err)
-						continue
-					}
-					if line.Text != "" {
-						logrus.Debugf("read line %s, use it for scan host", line.Text)
-						// update last read line
-						lastReadLine = time.Now()
-						s := dp.NewScan(line.Text, runId, vantagePoint)
-
-						// produce scan
-						producerChannel <- s
-
-						logrus.Debugf("added line %s to producerChannel", line.Text)
-					} else {
-						logrus.Debugf("empty line, ignore")
-					}
-				} else {
-					// tail file closed
-					logrus.Debugf("line nil, writer of %s closed, exit tailing", filepath)
+				switch {
+				case line == nil:
+					logrus.Infof("line nil in %s, exit tailing", filepath)
 					return
+				case line.Err != nil && line.Err == tail.ErrStop:
+					logrus.Debugf("tail of %s stopped, exit tailing", filepath)
+					return
+				case line.Err != nil && line.Err == io.EOF:
+					logrus.Debugf("tail of %s reached EOF, exit tailing", filepath)
+					return
+				case line.Text == "":
+					logrus.Debugf("empty line in %s, ignore", filepath)
+					continue
+				default:
+					logrus.Debugf("read line %s in %s, use it for scan host", line.Text, filepath)
+
+					// update last read line
+					lastReadLine = time.Now()
+					s := dp.NewScan(line.Text, runId, vantagePoint)
+
+					// produce scan
+					producerChannel <- s
 				}
 			default:
 				// check if we should exit
 				if timeAfterExit > 0 && time.Since(lastReadLine) > timeAfterExit {
 					logrus.Info("no new data written to file, exit tailing")
-					close(producerChannel)
 					return
 				}
 			}
@@ -223,6 +237,6 @@ func NewWatchDirectoryProducer(newScan NewScan, producer ScanProducer) *WatchDir
 	return &WatchDirectoryProducer{
 		NewScan:       newScan,
 		Producer:      producer,
-		WaitUntilExit: 0,
+		WaitUntilExit: WAIT_UNTIL_EXIT_TAILING,
 	}
 }
