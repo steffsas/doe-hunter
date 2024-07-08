@@ -30,10 +30,13 @@ zmap \
 	-G "${gateway}" \
    	-i "${interface}" \
    	--probe-args="file:${probe}" \
-	--status-updates-file="${logDir}/status-$(date +'%Y-%m-%d').log" \
+	--status-updates-file="${statusFile}" \
    	-o "${tailFile}" \
    	--verbosity 5 \
-    	0.0.0.0/0 2> "${logDir}/error-$(date +'%Y-%m-%d').log"
+    	0.0.0.0/0 2> "${errorFile}"
+
+# output current time to log file
+echo "stopped at $(date +'%Y-%m-%d %H:%M:%S')" >> "${statusFile}"
 
 # remove named pipe
 rm "${namedPipe}"
