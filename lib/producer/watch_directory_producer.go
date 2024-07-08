@@ -2,6 +2,7 @@ package producer
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/signal"
@@ -153,7 +154,11 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		logrus.Errorf("failed to tail (watch) output file: %v", err)
 		return err
 	}
-	defer tailChannel.Stop()
+	defer func() {
+		if err := tailChannel.Stop(); err != nil {
+			logrus.Errorf("failed to stop tailing file %s: %v", filepath, err)
+		}
+	}()
 	defer tailChannel.Cleanup()
 
 	wg := sync.WaitGroup{}
@@ -172,10 +177,10 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				case line == nil:
 					logrus.Infof("line nil in %s, exit tailing", filepath)
 					return
-				case line.Err != nil && line.Err == tail.ErrStop:
+				case line.Err != nil && errors.Is(line.Err, tail.ErrStop):
 					logrus.Debugf("tail of %s stopped, exit tailing", filepath)
 					return
-				case line.Err != nil && line.Err == io.EOF:
+				case line.Err != nil && errors.Is(line.Err, io.EOF):
 					logrus.Debugf("tail of %s reached EOF, exit tailing", filepath)
 					return
 				case line.Text == "":
