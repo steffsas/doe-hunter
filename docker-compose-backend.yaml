@@ -71,7 +71,8 @@ services:
     ports:
       - 27017:27017
     volumes:
-      - /db/mongo/:/data/db
+      - /db/mongo/:/data/db/
+      - /db/mongo_bak/:/data/db_bak/
     networks:
       - mongo
 
