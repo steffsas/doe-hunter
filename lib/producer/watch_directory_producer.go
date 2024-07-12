@@ -137,10 +137,11 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		}
 	}
 
-	bufferSize := 1 << 16
+	// 2^8 = 256 entries, this is the default buffer size
+	bufferSize := 1 << 8
 	if pipe {
 		// size of 2^25 is around 33M entries which is sufficient for containing all expected ips to be found in ipv4
-		// we do not want to implement back pressure because this will cause zmap in dropping packets/results
+		// we do not want to implement back pressure because this will cause zmap in combination with named pipes in dropping packets/results
 		bufferSize = 1 << 25
 		logrus.Debugf("since %s is a named pipe, set buffer size to 2^25", filepath)
 	}
