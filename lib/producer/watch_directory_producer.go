@@ -124,12 +124,6 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	// create runId to group scans for this file
 	runId := uuid.New().String()
 
-	// create producer channel
-	producerChannel := make(chan scan.Scan)
-
-	// remember the time of the last read line
-	lastReadLine := time.Now()
-
 	// check whether file is fifo, see https://linux.die.net/man/3/mkfifo
 	pipe, err := fifo.IsFifo(filepath)
 	if err != nil {
@@ -143,8 +137,21 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		}
 	}
 
+	bufferSize := 1 << 16
+	if pipe {
+		// size of 2^25 is around 33M entries which is sufficient for containing all expected ips to be found in ipv4
+		// we do not want to implement back pressure because this will cause zmap in dropping packets/results
+		bufferSize = 1 << 25
+		logrus.Debugf("since %s is a named pipe, set buffer size to 2^25", filepath)
+	}
+
+	// create producer channel
+	producerChannel := make(chan string, bufferSize)
+
 	// tail the output file (will contain IP addresses for scanning)
 	logrus.Debugf("start tailing file %s", filepath)
+
+	// warning: tailChannel is a buffer of size 1, so make sure to consume it in time otherwise the pipe will block
 	tailChannel, err := tail.TailFile(filepath, tail.Config{
 		Follow:    true,
 		Pipe:      pipe,
@@ -164,10 +171,15 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
+	// tail line worker
 	go func() {
 		defer wg.Done()
 		defer close(producerChannel)
 
+		// remember the time of the last read line
+		lastReadLine := time.Now()
+
+		counter := 0
 		for {
 			select {
 			case <-ctx.Done():
@@ -187,14 +199,19 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 					logrus.Debugf("empty line in %s, ignore", filepath)
 					continue
 				default:
-					logrus.Debugf("read line %s in %s, use it for scan host", line.Text, filepath)
+					counter++
 
-					// update last read line
-					lastReadLine = time.Now()
-					s := dp.NewScan(line.Text, runId, vantagePoint)
+					// log every 1000 lines
+					if counter%1000 == 0 {
+						logrus.Debugf("read %d lines from %s", counter, filepath)
+						// update last read line
+						lastReadLine = time.Now()
+						// reset counter
+						counter = 0
+					}
 
-					// produce scan
-					producerChannel <- s
+					// produce scan, line.Text should be an ip address/host to scan
+					producerChannel <- line.Text
 				}
 			default:
 				// check if we should exit
@@ -206,12 +223,13 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		}
 	}()
 
-	// produce scans
+	// creates and produces scans
 	go func() {
 		defer wg.Done()
 
 		// quits when producerChannel is closed and drained
-		for s := range producerChannel {
+		for ip := range producerChannel {
+			s := dp.NewScan(ip, runId, vantagePoint)
 			if err := dp.Producer.Produce(s, topic); err != nil {
 				logrus.Errorf("failed to produce scan in topic %s: %v", topic, err)
 			}
