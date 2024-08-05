@@ -1,4 +1,19 @@
 services:
+  # monitoring
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    # listens by default on 9100 --> host mode
+    # ports:
+    #   - 9100:9100
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+
   ## scanner/consumer
   ddr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
