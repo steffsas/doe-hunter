@@ -34,7 +34,7 @@ const HTTP_VERSION_3 = "HTTP3"
 
 const DEFAULT_DOH_PATH = "/dns-query{?dns}"
 
-const DEFAULT_DOH_TIMEOUT = 5000 * time.Millisecond
+const DEFAULT_DOH_TIMEOUT = 10000 * time.Millisecond
 const DEFAULT_DOH_PORT = 443
 
 type HttpQueryHandler interface {

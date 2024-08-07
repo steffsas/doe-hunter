@@ -14,7 +14,7 @@ import (
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
-const DEFAULT_DOQ_TIMEOUT time.Duration = 5000 * time.Millisecond
+const DEFAULT_DOQ_TIMEOUT time.Duration = 10000 * time.Millisecond
 
 // see https://www.rfc-editor.org/rfc/rfc9250.html#section-4.1.1
 const DEFAULT_DOQ_PORT = 853

@@ -13,7 +13,7 @@ import (
 const TLS_PROTOCOL_TCP = "tcp"
 const TLS_PROTOCOL_UDP = "udp"
 const DEFAULT_TLS_PORT = 443
-const DEFAULT_TLS_TIMEOUT time.Duration = 2500 * time.Millisecond
+const DEFAULT_TLS_TIMEOUT time.Duration = 5000 * time.Millisecond
 
 type Conn interface {
 	Close() error

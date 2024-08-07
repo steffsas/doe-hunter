@@ -10,7 +10,7 @@ import (
 
 const DNS_DOT_PROTOCOL = "tcp-tls"
 const DEFAULT_DOT_PORT = 853
-const DEFAULT_DOT_TIMEOUT time.Duration = 5000 * time.Millisecond
+const DEFAULT_DOT_TIMEOUT time.Duration = 10000 * time.Millisecond
 
 type DoTQuery struct {
 	DoEQuery
