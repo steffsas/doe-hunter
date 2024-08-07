@@ -6,7 +6,8 @@ services:
     container_name: node_exporter
     command:
       - '--path.rootfs=/host'
-      - '--web.listen-address=:9090'
+      # changed due to prometheus default port
+      - '--web.listen-address=:9095'
     network_mode: host
     pid: host
     restart: unless-stopped
