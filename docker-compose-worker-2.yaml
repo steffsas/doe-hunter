@@ -2,26 +2,27 @@
  # this worker will also run zmap
 
 services:
-  # monitoring
+   # monitoring
+  # node exporter for basic metrics about the host itself
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
     command:
       - '--path.rootfs=/host'
       - '--web.listen-address=:9090'
-    # listens by default on 9100 --> host mode
-    # ports:
-    #   - 9100:9100
     network_mode: host
     pid: host
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
 
+  # cadvisor for container metrics
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
     network_mode: host
+    environment:
+      - CADVISOR_HEALTHCHECK_URL=http://localhost:9080/metrics
     command:
       - '-port=9080'
     volumes:
