@@ -3,6 +3,17 @@ global:
 
 scrape_configs:
 
+  # monitoring server
+  - job_name: 'monitoring'
+    static_configs:
+      - targets:
+          # node_exporter
+          - 'vm-dnsscan-monitoring-1:9090'
+          # cadvisor
+          - 'vm-dnsscan-monitoring-1:9080'
+          # docker daemon
+          - 'vm-dnsscan-monitoring-1:9070'
+
   # db server
   - job_name: 'backend'
     static_configs:
