@@ -5,6 +5,7 @@ services:
     container_name: node_exporter
     command:
       - '--path.rootfs=/host'
+      - '--web.listen-address=:9090'
     # listens by default on 9100 --> host mode
     # ports:
     #   - 9100:9100
@@ -13,6 +14,18 @@ services:
     restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    network_mode: host
+    command:
+      - '-port=9080'
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
 
   ## scanner/consumer
   ddr-scanner:
