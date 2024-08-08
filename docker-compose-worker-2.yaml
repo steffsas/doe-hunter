@@ -92,3 +92,4 @@ services:
       - /data/hitlist/downloads/:/data/hitlist/downloads/
       - /data/hitlist/logs/:/data/hitlist/logs/
       - /data/ipv6/:/data/output/
+    network_mode: host
