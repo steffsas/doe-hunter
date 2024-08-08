@@ -15,7 +15,7 @@ import (
 // however, let's be slightly below the threshold
 const MAX_DNS_FQDN_LENGTH = 255
 const MAX_SUBDOMAIN_LENGTH = 25
-const QUERY_HOST = "raiun.de."
+const QUERY_HOST = "measurement.raiun.de."
 
 func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoEErrors, res *DoEResponse, skipCertificateVerification bool) custom_errors.DoEErrors {
 	setCertificateValidationToResponse(queryErr, res, skipCertificateVerification)
