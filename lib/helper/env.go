@@ -12,7 +12,7 @@ import (
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "ddr-dnssec", "all",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "ddr-dnssec", "canary", "all",
 }
 
 // nolint: gochecknoglobals
@@ -91,6 +91,9 @@ var THREADS_FINGERPRINT_ENV = "THREADS_FINGERPRINT"
 
 // nolint: gochecknoglobals
 var THREADS_DDR_DNSSEC_ENV = "THREADS_DDR_DNSSEC"
+
+// nolint: gochecknoglobals
+var THREADS_CANARY_ENV = "THREADS_CANARY"
 
 // nolint: gochecknoglobals
 var BLOCKLIST_FILE_PATH_ENV = "BLOCKLIST_FILE_PATH"

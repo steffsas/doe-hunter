@@ -8,11 +8,11 @@ import (
 )
 
 type FileProducer struct {
-	NewScan  NewScan
-	Producer ScanProducer
+	GetProduceableScans GetProduceableScans
+	Producer            ScanProducer
 }
 
-func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
+func (dp *FileProducer) Produce(file string) error {
 	// open file and read line by line to create scans
 	f, err := os.Open(file)
 	if err != nil {
@@ -27,11 +27,12 @@ func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
 		line := scanner.Text()
 
 		if len(line) > 0 {
-			s := dp.NewScan(line, runId, vantagePoint)
-
-			err = dp.Producer.Produce(s, topic)
-			if err != nil {
-				return err
+			scans := dp.GetProduceableScans(line, runId)
+			for _, s := range scans {
+				err = dp.Producer.Produce(s.Scan, s.Topic)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -41,9 +42,9 @@ func (dp *FileProducer) Produce(file string, topic, vantagePoint string) error {
 	return nil
 }
 
-func NewFileProducer(newScan NewScan, producer ScanProducer) *FileProducer {
+func NewFileProducer(newScans GetProduceableScans, producer ScanProducer) *FileProducer {
 	return &FileProducer{
-		NewScan:  newScan,
-		Producer: producer,
+		GetProduceableScans: newScans,
+		Producer:            producer,
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/steffsas/doe-hunter/lib/helper"
+	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/mock"
@@ -14,8 +16,10 @@ func TestFileProducer_Produce(t *testing.T) {
 	t.Parallel()
 
 	host := "8.8.8.8"
-	topic := "test-topic"
 	vp := "test-vp"
+	ipVersion := "ipv4"
+
+	newScans := producer.GetProduceableScansFactory(vp, ipVersion)
 
 	t.Run("test valid produce on single file", func(t *testing.T) {
 		t.Parallel()
@@ -44,34 +48,39 @@ func TestFileProducer_Produce(t *testing.T) {
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		fp := &producer.FileProducer{
-			NewScan:  newScan,
-			Producer: mkp,
+			GetProduceableScans: newScans,
+			Producer:            mkp,
 		}
 
-		err = fp.Produce(f.Name(), topic, vp)
+		err = fp.Produce(f.Name())
 
 		require.NoError(t, err)
-		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 
 		produceCounter := 0
+		ddrScanChecked := false
 		for _, call := range calls {
 			if call.Method == "Produce" {
-				produceCounter++
-
 				args := call.Arguments
 
 				s := args.Get(0).(scan.Scan)
 
-				ddrScan, ok := s.(*scan.DDRScan)
-				require.True(t, ok)
+				if ddrScan, ok := s.(*scan.DDRScan); ok {
+					produceCounter++
 
-				require.Equal(t, topic, args[1])
-				require.Equal(t, vp, ddrScan.Meta.VantagePoint)
-				require.Equal(t, host, ddrScan.Query.Host)
+					require.True(t, ok)
+
+					require.Equal(t, vp, ddrScan.Meta.VantagePoint)
+					require.Equal(t, host, ddrScan.Query.Host)
+
+					ddrScanChecked = true
+				}
 			}
 		}
 
 		require.Equal(t, 2, produceCounter)
+		require.True(t, ddrScanChecked)
 	})
 }

@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steffsas/doe-hunter/lib/helper"
+	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
-	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -32,17 +34,13 @@ func (m *mockedScanProducer) Flush(timeout int) int {
 	return args.Int(0)
 }
 
-func newScan(host, runId, vp string) scan.Scan {
-	q := query.NewDDRQuery()
-	q.Host = host
-	return scan.NewDDRScan(q, true, runId, vp)
-}
-
 func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	t.Parallel()
 
-	topic := "test-topic"
 	vp := "test-vp"
+	ipVersion := "ipv4"
+
+	newScans := producer.GetProduceableScansFactory(vp, ipVersion)
 
 	t.Run("valid watch and produce on single file", func(t *testing.T) {
 		t.Parallel()
@@ -65,9 +63,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
-			NewScan:       newScan,
-			Producer:      mkp,
-			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProduceableScans: newScans,
+			Producer:            mkp,
+			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		go createFileAndWrite(ctx, tmp, host, "", false)
@@ -77,10 +75,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp, topic, vp)
+		err = dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
-		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 
 		// this is just a lower boundary which has to be met, typically there are more calls
@@ -91,11 +90,23 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 				args := call.Arguments
 				s := args.Get(0).(scan.Scan)
 
-				ddrScan, ok := s.(*scan.DDRScan)
-				require.True(t, ok)
+				meta := s.GetMetaInformation()
+				require.Equal(t, meta.VantagePoint, vp)
 
-				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
-				require.Equal(t, ddrScan.Query.Host, host)
+				gotScanType := false
+				if ddrScan, ok := s.(*scan.DDRScan); ok {
+					require.Equal(t, ddrScan.Query.Host, host)
+					require.Equal(t, ddrScan.Meta.IpVersion, ipVersion)
+					gotScanType = true
+				}
+
+				if ddrScan, ok := s.(*scan.CanaryScan); ok {
+					require.Equal(t, ddrScan.Query.Host, host)
+					require.Equal(t, ddrScan.Meta.IpVersion, ipVersion)
+					gotScanType = true
+				}
+
+				assert.True(t, gotScanType, "should have produced either DDR or canary scans")
 			}
 		}
 	})
@@ -119,9 +130,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
-			NewScan:       newScan,
-			Producer:      mkp,
-			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProduceableScans: newScans,
+			Producer:            mkp,
+			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		firstHost := "8.8.8.8"
@@ -136,10 +147,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp, topic, vp)
+		err = dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
-		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*4)
@@ -151,18 +163,20 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 				args := call.Arguments
 				s := args.Get(0).(scan.Scan)
 
-				ddrScan, ok := s.(*scan.DDRScan)
-				require.True(t, ok)
+				// it is okay to just test for DDR scan
+				if ddrScan, ok := s.(*scan.DDRScan); ok {
+					require.True(t, ok)
 
-				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
-				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
+					require.Equal(t, ddrScan.Meta.VantagePoint, vp)
+					require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
 
-				// check if we have both hosts
-				switch ddrScan.Query.Host {
-				case firstHost:
-					gotFirstHost = true
-				case secondHost:
-					gotSecondHost = true
+					// check if we have both hosts
+					switch ddrScan.Query.Host {
+					case firstHost:
+						gotFirstHost = true
+					case secondHost:
+						gotSecondHost = true
+					}
 				}
 			}
 		}
@@ -196,9 +210,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
-			NewScan:       newScan,
-			Producer:      mkp,
-			WaitUntilExit: producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProduceableScans: newScans,
+			Producer:            mkp,
+			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		go createFileAndWrite(firstCtx, tmp, firstHost, filename, true)
@@ -213,10 +227,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp, topic, vp)
+		err = dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
-		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*2)
@@ -228,18 +243,20 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 				args := call.Arguments
 				s := args.Get(0).(scan.Scan)
 
-				ddrScan, ok := s.(*scan.DDRScan)
-				require.True(t, ok)
+				// it is okay to just test for DDR scan
+				if ddrScan, ok := s.(*scan.DDRScan); ok {
+					require.True(t, ok)
 
-				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
-				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
+					require.Equal(t, ddrScan.Meta.VantagePoint, vp)
+					require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
 
-				// check if we have both hosts
-				switch ddrScan.Query.Host {
-				case firstHost:
-					gotFirstHost = true
-				case secondHost:
-					gotSecondHost = true
+					// check if we have both hosts
+					switch ddrScan.Query.Host {
+					case firstHost:
+						gotFirstHost = true
+					case secondHost:
+						gotSecondHost = true
+					}
 				}
 			}
 		}
@@ -269,9 +286,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Close", mock.Anything).Return(nil)
 
 		dp := &producer.WatchDirectoryProducer{
-			NewScan:       newScan,
-			Producer:      mkp,
-			WaitUntilExit: 500 * time.Millisecond,
+			GetProduceableScans: newScans,
+			Producer:            mkp,
+			WaitUntilExit:       500 * time.Millisecond,
 		}
 
 		firstHost := "8.8.8.8"
@@ -290,10 +307,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp, topic, vp)
+		err = dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
-		mkp.AssertCalled(t, "Produce", mock.Anything, topic)
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
+		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*2)
@@ -305,18 +323,19 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 				args := call.Arguments
 				s := args.Get(0).(scan.Scan)
 
-				ddrScan, ok := s.(*scan.DDRScan)
-				require.True(t, ok)
+				if ddrScan, ok := s.(*scan.DDRScan); ok {
+					require.True(t, ok)
 
-				require.Equal(t, ddrScan.Meta.VantagePoint, vp)
-				require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
+					require.Equal(t, ddrScan.Meta.VantagePoint, vp)
+					require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
 
-				// check if we have both hosts
-				switch ddrScan.Query.Host {
-				case firstHost:
-					gotFirstHost = true
-				case secondHost:
-					gotSecondHost = true
+					// check if we have both hosts
+					switch ddrScan.Query.Host {
+					case firstHost:
+						gotFirstHost = true
+					case secondHost:
+						gotSecondHost = true
+					}
 				}
 			}
 		}

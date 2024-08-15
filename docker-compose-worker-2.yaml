@@ -32,14 +32,13 @@ services:
     - /var/lib/docker/:/var/lib/docker:ro
 
   ## producer
-  ddr-ipv6-producer:
+  ipv6-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
-    container_name: ddr-ipv6-producer
+    container_name: ipv6-producer
     restart: always
     environment:
       - RUN=producer
       - IP_VERSION=ipv6
-      - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv6
       # this is the default blocklist
@@ -55,14 +54,13 @@ services:
     # needed to access db-1
     network_mode: host
 
-  ddr-ipv4-producer:
+  ipv4-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
-    container_name: ddr-ipv4-producer
+    container_name: ipv4-producer
     restart: always
     environment:
       - RUN=producer
       - IP_VERSION=ipv4
-      - PROTOCOL=ddr
       - THREADS=1
       - PRODUCER_WATCH_DIRECTORY=/data/ipv4
       # this is the default blocklist

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,22 +14,30 @@ import (
 	"github.com/google/uuid"
 	"github.com/hpcloud/tail"
 	"github.com/sirupsen/logrus"
+	"github.com/steffsas/doe-hunter/lib/helper"
+	"github.com/steffsas/doe-hunter/lib/kafka"
+	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"gopkg.in/fsnotify.v1"
 )
 
 const WAIT_UNTIL_EXIT_TAILING = 60 * time.Minute
 
-type NewScan func(host string, runId string, vantagePoint string) scan.Scan
+type ProducableScan struct {
+	Scan  scan.Scan
+	Topic string
+}
+
+type GetProduceableScans func(host, runId string) []ProducableScan
 
 type WatchDirectoryProducer struct {
-	NewScan  NewScan
-	Producer ScanProducer
+	GetProduceableScans GetProduceableScans
+	Producer            ScanProducer
 
 	WaitUntilExit time.Duration
 }
 
-func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topic, vantagePoint string) error {
+func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir string) error {
 	// watch the folder and spawn new producer for each file
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -87,7 +96,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 
 					var err error
 					go func() {
-						err = dp.produceFromFile(childCtx, &wg, topic, vantagePoint, event.Name, dp.WaitUntilExit)
+						err = dp.produceFromFile(childCtx, &wg, event.Name, dp.WaitUntilExit)
 					}()
 					if err != nil {
 						logrus.Errorf("failed to tail file: %v", err)
@@ -118,7 +127,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir, topi
 }
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
-func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, topic string, vantagePoint string, filepath string, timeAfterExit time.Duration) error {
+func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, filepath string, timeAfterExit time.Duration) error {
 	defer outerWg.Done()
 
 	// create runId to group scans for this file
@@ -230,11 +239,13 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 
 		// quits when producerChannel is closed and drained
 		for ip := range producerChannel {
-			s := dp.NewScan(ip, runId, vantagePoint)
-			if err := dp.Producer.Produce(s, topic); err != nil {
-				logrus.Errorf("failed to produce scan in topic %s: %v", topic, err)
+			scans := dp.GetProduceableScans(ip, runId)
+			for _, s := range scans {
+				if err := dp.Producer.Produce(s.Scan, s.Topic); err != nil {
+					logrus.Errorf("failed to produce scan in topic %s: %v", s.Topic, err)
+				}
+				logrus.Debugf("produced scan in topic %s", s.Topic)
 			}
-			logrus.Debugf("produced scan in topic %s", topic)
 		}
 
 		logrus.Debugf("producer channel for file %s closed", filepath)
@@ -257,10 +268,52 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	return nil
 }
 
-func NewWatchDirectoryProducer(newScan NewScan, producer ScanProducer) *WatchDirectoryProducer {
+func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) []ProducableScan {
+	return func(host, runId string) []ProducableScan {
+		scans := []ProducableScan{}
+
+		// check if host is on blocklist
+		isOnBlocklist := false
+		if ip := net.ParseIP(host); ip != nil {
+			if helper.BlockedIPs.Contains(ip) {
+				isOnBlocklist = true
+			}
+		}
+
+		// ddr scan
+		q := query.NewDDRQuery()
+		q.Host = host
+
+		s := scan.NewDDRScan(q, true, runId, vp)
+		s.Meta.IpVersion = ipVersion
+		s.Meta.IsOnBlocklist = isOnBlocklist
+
+		scans = append(scans, ProducableScan{
+			Scan:  s,
+			Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp),
+		})
+
+		// canary scans
+		for _, domain := range scan.CANARY_DOMAINS {
+			q := query.NewCanaryQuery(domain, host)
+			s := scan.NewCanaryScan(q, runId, vp)
+			s.Meta.IpVersion = ipVersion
+			s.Meta.IsOnBlocklist = isOnBlocklist
+
+			scans = append(scans, ProducableScan{
+				Scan:  s,
+				Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp),
+			})
+		}
+
+		return scans
+	}
+}
+
+func NewWatchDirectoryProducer(newScans GetProduceableScans, producer ScanProducer) *WatchDirectoryProducer {
 	return &WatchDirectoryProducer{
-		NewScan:       newScan,
-		Producer:      producer,
-		WaitUntilExit: WAIT_UNTIL_EXIT_TAILING,
+		GetProduceableScans: newScans,
+		Producer:            producer,
+		WaitUntilExit:       WAIT_UNTIL_EXIT_TAILING,
 	}
 }

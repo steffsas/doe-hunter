@@ -7,6 +7,10 @@ import (
 	"net"
 )
 
+func GetTopicFromNameAndVP(topic string, vp string) string {
+	return fmt.Sprintf("%s-%s", topic, vp)
+}
+
 func GetFullHostFromHostPort(host string, port int) string {
 	return net.JoinHostPort(host, fmt.Sprintf("%d", port))
 }

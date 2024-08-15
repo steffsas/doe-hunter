@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/steffsas/doe-hunter/lib/query"
-	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/steffsas/doe-hunter/lib/storage"
 )
 
@@ -44,12 +42,12 @@ func main() {
 		return
 	}
 
-	protocolToRun, err := helper.GetEnvVar(helper.PROTOCOL_ENV, true)
+	vp, err := helper.GetEnvVar(helper.VANTAGE_POINT_ENV, true)
 	if err != nil {
 		return
 	}
 
-	vp, err := helper.GetEnvVar(helper.VANTAGE_POINT_ENV, true)
+	ipVersion, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
 	if err != nil {
 		return
 	}
@@ -66,33 +64,28 @@ func main() {
 		case "all":
 			startAllConsumer(ctx, vp)
 		default:
-			startConsumer(ctx, protocolToRun, vp)
-		}
-	} else {
-		if protocolToRun == "ddr" {
-			ipVersion, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
+			protocolToRun, err := helper.GetEnvVar(helper.PROTOCOL_ENV, true)
 			if err != nil {
 				return
 			}
-
-			dirToWatch, _ := helper.GetEnvVar(helper.PRODUCER_WATCH_DIRECTORY, false)
-			produceFromFile, _ := helper.GetEnvVar(helper.PRODUCER_FROM_FILE, false)
-
-			if dirToWatch != "" {
-				// let's start a producer that watches a directory for file creations and tailing
-				startWatchDirectoryProducer(ctx, ipVersion, dirToWatch, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
-				return
-			}
-			if produceFromFile != "" {
-				// let's start a producer that reads from a file
-				startProducerFromFile(produceFromFile, ipVersion, fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp), vp)
-				return
-			}
-
-			logrus.Fatal("either specify a directory to watch or a file to read from")
-		} else {
-			logrus.Fatalf("unsupported protocol type %s", protocolToRun)
+			startConsumer(ctx, protocolToRun, vp)
 		}
+	} else {
+		dirToWatch, _ := helper.GetEnvVar(helper.PRODUCER_WATCH_DIRECTORY, false)
+		produceFromFile, _ := helper.GetEnvVar(helper.PRODUCER_FROM_FILE, false)
+
+		if dirToWatch != "" {
+			// let's start a producer that watches a directory for file creations and tailing
+			startWatchDirectoryProducer(ctx, producer.GetProduceableScansFactory(vp, ipVersion), dirToWatch)
+			return
+		}
+		if produceFromFile != "" {
+			// let's start a producer that reads from a file
+			startProducerFromFile(producer.GetProduceableScansFactory(vp, ipVersion), produceFromFile)
+			return
+		}
+
+		logrus.Fatal("either specify a directory to watch or a file to read from")
 	}
 }
 
@@ -130,55 +123,21 @@ func setLogger() {
 	logrus.SetOutput(os.Stdout)
 }
 
-func startProducerFromFile(file, ipVersion, topic, vantagePoint string) {
-	// let's start a producer that reads from a file
-	newScan := func(host, runId, vp string) scan.Scan {
-		q := query.NewDDRQuery()
-		q.Host = host
-
-		s := scan.NewDDRScan(q, true, runId, vp)
-		s.Meta.IpVersion = ipVersion
-
-		if ip := net.ParseIP(host); ip != nil {
-			if helper.BlockedIPs.Contains(ip) {
-				s.Meta.IsOnBlocklist = true
-			}
-		}
-
-		return s
-	}
-
+func startProducerFromFile(newScans producer.GetProduceableScans, file string) {
 	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)
 		return
 	}
-	p := producer.NewFileProducer(newScan, sp)
+	p := producer.NewFileProducer(newScans, sp)
 
-	err = p.Produce(file, topic, vantagePoint)
+	err = p.Produce(file)
 	if err != nil {
 		logrus.Fatalf("failed to produce from file: %v", err)
 	}
 }
 
-func startWatchDirectoryProducer(ctx context.Context, ipVersion, dir, topic, vantagePoint string) {
-	// let's start a producer that watches a directory
-	newScan := func(host, runId, vp string) scan.Scan {
-		q := query.NewDDRQuery()
-		q.Host = host
-
-		s := scan.NewDDRScan(q, true, runId, vp)
-		s.Meta.IpVersion = ipVersion
-
-		if ip := net.ParseIP(host); ip != nil {
-			if helper.BlockedIPs.Contains(ip) {
-				s.Meta.IsOnBlocklist = true
-			}
-		}
-
-		return s
-	}
-
+func startWatchDirectoryProducer(ctx context.Context, newScans producer.GetProduceableScans, dir string) {
 	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)
@@ -187,8 +146,8 @@ func startWatchDirectoryProducer(ctx context.Context, ipVersion, dir, topic, van
 
 	logrus.Infof("start watching directory %s to produce DDR scans", dir)
 
-	p := producer.NewWatchDirectoryProducer(newScan, sp)
-	err = p.WatchAndProduce(ctx, dir, topic, vantagePoint)
+	p := producer.NewWatchDirectoryProducer(newScans, sp)
+	err = p.WatchAndProduce(ctx, dir)
 	if err != nil {
 		logrus.Fatalf("failed to watch and produce: %v", err)
 	}
@@ -261,7 +220,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_COLLECTION, mongoServer)
@@ -282,7 +241,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOH_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_DOH_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOH_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOH_COLLECTION, mongoServer)
@@ -303,7 +262,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOQ_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_DOQ_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOQ_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOQ_COLLECTION, mongoServer)
@@ -324,7 +283,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DOT_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_DOT_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DOT_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DOT_COLLECTION, mongoServer)
@@ -345,7 +304,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_PTR_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_PTR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_PTR_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_PTR_COLLECTION, mongoServer)
@@ -366,7 +325,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_EDSR_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_EDSR_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_EDSR_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_EDSR_COLLECTION, mongoServer)
@@ -387,7 +346,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_CERTIFICATE_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_CERTIFICATE_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_CERTIFICATE_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CERTIFICATE_COLLECTION, mongoServer)
@@ -408,7 +367,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_FINGERPRINT_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_FINGERPRINT_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_FINGERPRINT_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_FINGERPRINT_COLLECTION, mongoServer)
@@ -429,13 +388,34 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		}
 
 		consumerConfig.Threads = threads
-		consumerConfig.Topic = fmt.Sprintf("%s-%s", kafka.DEFAULT_DDR_DNSSEC_TOPIC, vp)
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_DNSSEC_TOPIC, vp)
 		consumerConfig.ConsumerGroup = consumer.DEFAULT_DDR_DNSSEC_CONSUMER_GROUP
 
 		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_DDR_DNSSEC_COLLECTION, mongoServer)
 
 		//nolint:contextcheck
 		pc, err := consumer.NewKafkaDDRDNSSECEventConsumer(consumerConfig, sh, queryConfig)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
+		}
+		_ = pc.Consume(ctx)
+	case "canary":
+		threads, err := helper.GetThreads(helper.THREADS_CANARY_ENV)
+		if err != nil {
+			return
+		}
+
+		consumerConfig.Threads = threads
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_CANARY_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_CANARAY_COLLECTION, mongoServer)
+
+		//nolint:contextcheck
+		pc, err := consumer.NewKafkaDDREventConsumer(consumerConfig, prod, sh, queryConfig)
 		if err != nil {
 			logrus.Fatalf("failed to create parallel consumer: %v", err)
 			return
