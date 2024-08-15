@@ -47,11 +47,6 @@ func main() {
 		return
 	}
 
-	ipVersion, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
-	if err != nil {
-		return
-	}
-
 	// load blocklist
 	err = helper.InitBlocklist()
 	if err != nil {
@@ -71,6 +66,11 @@ func main() {
 			startConsumer(ctx, protocolToRun, vp)
 		}
 	} else {
+		ipVersion, err := helper.GetEnvVar(helper.IP_VERSION_ENV, true)
+		if err != nil {
+			return
+		}
+
 		dirToWatch, _ := helper.GetEnvVar(helper.PRODUCER_WATCH_DIRECTORY, false)
 		produceFromFile, _ := helper.GetEnvVar(helper.PRODUCER_FROM_FILE, false)
 
