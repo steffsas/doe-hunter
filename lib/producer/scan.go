@@ -18,8 +18,6 @@ type ScanProducer interface {
 }
 
 type KafkaScanProducer struct {
-	ScanProducer
-
 	Producer EventProducer
 }
 
@@ -58,6 +56,10 @@ func (sp *KafkaScanProducer) Events() chan kafka.Event {
 	}
 
 	return sp.Producer.Events()
+}
+
+func (sp *KafkaScanProducer) WatchEvents() {
+	sp.Producer.WatchEvents()
 }
 
 func NewScanProducer(eventProducer EventProducer) (sp ScanProducer, err error) {

@@ -21,6 +21,7 @@ type EventProducer interface {
 	Close()
 	Events() chan kafka.Event
 	Flush(timeout int) int
+	WatchEvents()
 }
 
 type KafkaProducerConfig struct {
@@ -41,8 +42,6 @@ type KafkaProducer interface {
 }
 
 type KafkaEventProducer struct {
-	EventProducer
-
 	producedMsgs int
 	closed       bool
 	Config       *KafkaProducerConfig

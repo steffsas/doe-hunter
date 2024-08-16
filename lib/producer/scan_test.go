@@ -57,6 +57,10 @@ func (mkp *mockedKafkaEventProducer) Events() chan kafka.Event {
 	return args.Get(0).(chan kafka.Event)
 }
 
+func (mkp *mockedKafkaEventProducer) WatchEvents() {
+	mkp.Called()
+}
+
 func TestScanProducer_Produce(t *testing.T) {
 	t.Parallel()
 
@@ -65,6 +69,7 @@ func TestScanProducer_Produce(t *testing.T) {
 
 		p := &mockedKafkaEventProducer{}
 		p.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		p.On("WatchEvents").Return()
 		p.On("Close").Return(nil)
 
 		sp := &producer.KafkaScanProducer{
@@ -96,6 +101,7 @@ func TestScanProducer_Produce(t *testing.T) {
 
 		mp := &mockedKafkaEventProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mp.On("WatchEvents").Return()
 
 		sp := &producer.KafkaScanProducer{
 			Producer: mp,
@@ -114,6 +120,7 @@ func TestScanProducer_Close(t *testing.T) {
 		t.Parallel()
 
 		mp := &mockedKafkaEventProducer{}
+		mp.On("WatchEvents").Return()
 		mp.On("Close").Return()
 
 		sp := &producer.KafkaScanProducer{
@@ -151,6 +158,7 @@ func TestScanProducer_Flush(t *testing.T) {
 		t.Parallel()
 
 		mp := &mockedKafkaEventProducer{}
+		mp.On("WatchEvents").Return()
 		mp.On("Flush", mock.Anything).Return(1)
 
 		sp := &producer.KafkaScanProducer{
