@@ -87,7 +87,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_NUM_PARTITIONS: "100"
       KAFKA_LOG_CLEANUP_POLICY: delete
-      KAFKA_LOG_RETENTION_MS: "86400000" # 1 day
+      KAFKA_LOG_RETENTION_MS: "43200000" # 12 hours
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - /db/kafka/data/:/var/lib/kafka/data
