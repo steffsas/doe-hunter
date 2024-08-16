@@ -36,11 +36,11 @@ services:
     environment:
       - RUN=consumer
       - PROTOCOL=ddr
-      - THREADS=5000
+      - THREADS=10000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -53,11 +53,11 @@ services:
     environment:
       - RUN=consumer
       - PROTOCOL=canary
-      - THREADS=5000
+      - THREADS=15000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -74,7 +74,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -91,7 +91,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -108,7 +108,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -121,11 +121,11 @@ services:
     environment:
       - RUN=consumer
       - PROTOCOL=ptr
-      - THREADS=100
+      - THREADS=5000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -142,7 +142,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -159,7 +159,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -172,11 +172,11 @@ services:
     environment:
       - RUN=consumer
       - PROTOCOL=fingerprint
-      - THREADS=1000
+      - THREADS=10000
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -193,7 +193,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
