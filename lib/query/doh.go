@@ -193,22 +193,18 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 
 	switch query.HTTPVersion {
 	case HTTP_VERSION_1:
+		// see https://pkg.go.dev/net/http#hdr-HTTP_2
+		tlsConfig.NextProtos = []string{"http/1.1"}
 		transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
-			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
-			MaxConnsPerHost:   1,
-			MaxIdleConns:      1,
+			TLSClientConfig:   tlsConfig,
 			DisableKeepAlives: true,
 			ForceAttemptHTTP2: false,
 		}
 	case HTTP_VERSION_2:
+		// see https://pkg.go.dev/net/http#hdr-HTTP_2
+		tlsConfig.NextProtos = []string{"h2"}
 		transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-			// we enforce http1, see https://pkg.go.dev/net/http#hdr-HTTP_2
-			TLSNextProto:      map[string]func(authority string, c *tls.Conn) http.RoundTripper{},
-			MaxConnsPerHost:   1,
-			MaxIdleConns:      1,
+			TLSClientConfig:   tlsConfig,
 			DisableKeepAlives: true,
 			ForceAttemptHTTP2: true,
 		}
