@@ -3,6 +3,7 @@ package producer_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
@@ -129,28 +130,82 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 
 		assert.NotNil(t, err, "expected error on produce")
 	})
+}
 
-	t.Run("partition error", func(t *testing.T) {
+func TestKafkaEventProducer_WatchEvents(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid watch events", func(t *testing.T) {
+		t.Parallel()
+
+		eventChannel := make(chan kafka.Event, 1)
+
 		mp := &mockedKafkaProducer{}
-		mp.On("Produce", mock.Anything, mock.Anything).Return(errors.New("got some error"))
+		mp.On("Events").Return(eventChannel)
+
+		kep := &producer.KafkaEventProducer{
+			Producer: mp,
+		}
+
+		eventChannel <- eventMsg
+		assert.Len(t, eventChannel, 1, "expected one event")
+
+		// test
+		kep.WatchEvents()
+
+		time.Sleep(100 * time.Millisecond)
+
+		assert.Len(t, eventChannel, 0, "expected no events")
+	})
+
+	t.Run("no watch on close", func(t *testing.T) {
+		t.Parallel()
+
+		eventChannel := make(chan kafka.Event, 1)
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Events").Return(eventChannel)
 		mp.On("Close").Return()
 
 		kep := &producer.KafkaEventProducer{
 			Producer: mp,
-			Config:   producer.GetDefaultKafkaProducerConfig(),
 		}
 
-		eventMsg = &kafka.Message{
-			TopicPartition: kafka.TopicPartition{Error: errors.New("test")},
+		kep.Close()
+
+		eventChannel <- eventMsg
+		assert.Len(t, eventChannel, 1, "expected one event")
+
+		// test
+		kep.WatchEvents()
+
+		time.Sleep(100 * time.Millisecond)
+
+		assert.Len(t, eventChannel, 1, "expected no events")
+	})
+
+	t.Run("no watch after close", func(t *testing.T) {
+		t.Parallel()
+
+		eventChannel := make(chan kafka.Event, 1)
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Events").Return(eventChannel)
+		mp.On("Close").Return()
+
+		kep := &producer.KafkaEventProducer{
+			Producer: mp,
 		}
 
 		// test
-		err := kep.Produce([]byte("test"), "test-topic")
+		kep.WatchEvents()
+		kep.Close()
 
-		eventMsg = &kafka.Message{}
+		time.Sleep(100 * time.Millisecond)
 
-		assert.NotNil(t, err, "expected error on produce")
-		assert.Equal(t, "test", err.Error(), "expected error message")
+		eventChannel <- eventMsg
+
+		assert.Len(t, eventChannel, 1, "expected one event")
 	})
 }
 

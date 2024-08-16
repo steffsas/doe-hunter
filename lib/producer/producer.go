@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
@@ -27,8 +28,9 @@ type KafkaProducerConfig struct {
 	Timeout time.Duration
 	Acks    string
 
-	MaxPartitions     int32
-	ReplicationFactor int
+	ProducerChannelSize int
+	MaxPartitions       int32
+	ReplicationFactor   int
 }
 
 type KafkaProducer interface {
@@ -41,8 +43,58 @@ type KafkaProducer interface {
 type KafkaEventProducer struct {
 	EventProducer
 
-	Config   *KafkaProducerConfig
-	Producer KafkaProducer
+	producedMsgs int
+	closed       bool
+	Config       *KafkaProducerConfig
+	Producer     KafkaProducer
+}
+
+func (kep *KafkaEventProducer) WatchEvents() {
+	if kep.Producer == nil {
+		logrus.Warn("producer not initialized")
+		return
+	}
+
+	if kep.closed {
+		return
+	}
+
+	go func() {
+		for {
+			select {
+			case ev := <-kep.Producer.Events():
+				if m, ok := ev.(*kafka.Message); ok {
+					if m.TopicPartition.Error != nil {
+						logrus.Errorf("error producing message: %v", m.TopicPartition.Error)
+					}
+				}
+			default:
+				if kep.closed {
+					return
+				}
+			}
+		}
+	}()
+}
+
+func (kep *KafkaEventProducer) Flush(timeout int) int {
+	if kep.Producer == nil {
+		logrus.Warn("producer not initialized")
+		return 0
+	}
+
+	if timeout <= 0 {
+		timeout = DEFAULT_FLUSH_TIMEOUT_MS
+
+		nonFlushedItems := kep.Producer.Flush(timeout)
+		for nonFlushedItems > 0 {
+			nonFlushedItems = kep.Producer.Flush(timeout)
+		}
+
+		return 0
+	}
+
+	return kep.Producer.Flush(timeout)
 }
 
 // blocking call to produce a message
@@ -61,27 +113,20 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 
 	partition := rand.Int31() % kep.Config.MaxPartitions
 
-	kafkaEvent := make(chan kafka.Event)
-
 	err = kep.Producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: partition},
 		Value:          msg,
-	}, kafkaEvent)
+	}, nil)
 
-	ev := <-kafkaEvent
+	kep.producedMsgs++
 
-	// cast to message
-	if m, ok := ev.(*kafka.Message); ok {
-		if m.TopicPartition.Error != nil {
-			return m.TopicPartition.Error
-		}
+	// regularly flush the producer's queue from preventing overlfows
+	if kep.producedMsgs >= 100000 {
+		kep.Flush(0)
+		kep.producedMsgs = 0
 	}
 
 	return
-}
-
-func (kep *KafkaEventProducer) Flush(timeout int) int {
-	return kep.Producer.Flush(timeout)
 }
 
 func (kep *KafkaEventProducer) Events() chan kafka.Event {
@@ -89,6 +134,7 @@ func (kep *KafkaEventProducer) Events() chan kafka.Event {
 }
 
 func (kep *KafkaEventProducer) Close() {
+	kep.closed = true
 	if kep.Producer != nil {
 		kep.Producer.Close()
 	}
@@ -110,6 +156,7 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers":  config.Server,
 		"message.timeout.ms": int(config.Timeout.Milliseconds()),
+		"go.batch.producer":  true,
 	})
 
 	if err != nil {
@@ -117,8 +164,10 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 	}
 
 	return &KafkaEventProducer{
-		Config:   config,
-		Producer: p,
+		producedMsgs: 0,
+		closed:       false,
+		Config:       config,
+		Producer:     p,
 	}, nil
 }
 

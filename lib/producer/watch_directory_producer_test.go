@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	k "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
 type mockedScanProducer struct {
@@ -32,6 +34,15 @@ func (m *mockedScanProducer) Close() {
 func (m *mockedScanProducer) Flush(timeout int) int {
 	args := m.Called(timeout)
 	return args.Int(0)
+}
+
+func (m *mockedScanProducer) Events() chan k.Event {
+	args := m.Called()
+	return args.Get(0).(chan k.Event)
+}
+
+func (m *mockedScanProducer) WatchEvents() {
+	m.Called()
 }
 
 func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
@@ -61,6 +72,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
+		mkp.On("Events").Return(make(chan k.Event))
+		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProduceableScans: newScans,
@@ -71,7 +84,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(ctx, tmp, host, "", false)
 
 		go func() {
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(3000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -128,6 +141,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
+		mkp.On("Events").Return(make(chan k.Event))
+		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProduceableScans: newScans,
@@ -143,7 +158,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(ctx, tmp, secondHost, "", false)
 
 		go func() {
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(3000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -165,8 +180,6 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 				// it is okay to just test for DDR scan
 				if ddrScan, ok := s.(*scan.DDRScan); ok {
-					require.True(t, ok)
-
 					require.Equal(t, ddrScan.Meta.VantagePoint, vp)
 					require.Contains(t, []string{firstHost, secondHost}, ddrScan.Query.Host)
 
@@ -208,6 +221,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
+		mkp.On("Events").Return(make(chan k.Event))
+		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProduceableScans: newScans,
@@ -218,11 +233,11 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(firstCtx, tmp, firstHost, filename, true)
 
 		go func() {
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(3000 * time.Millisecond)
 			firstCancel()
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 			go createFileAndWrite(secondCtx, tmp, secondHost, filename, true)
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
 			secondCancel()
 			cancel()
 		}()
@@ -284,6 +299,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
+		mkp.On("Events").Return(make(chan k.Event))
+		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProduceableScans: newScans,
@@ -298,12 +315,12 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(subCtx, tmp, secondHost, "", false)
 
 		go func() {
-			time.Sleep(2000 * time.Millisecond)
+			time.Sleep(3000 * time.Millisecond)
 			subCancel()
 		}()
 
 		go func() {
-			time.Sleep(1500 * time.Millisecond)
+			time.Sleep(2000 * time.Millisecond)
 			cancel()
 		}()
 

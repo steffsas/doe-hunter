@@ -22,6 +22,9 @@ func (dp *FileProducer) Produce(file string) error {
 
 	runId := uuid.New().String()
 
+	// watch for events
+	dp.Producer.WatchEvents()
+
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -37,6 +40,7 @@ func (dp *FileProducer) Produce(file string) error {
 		}
 	}
 
+	dp.Producer.Flush(0)
 	dp.Producer.Close()
 
 	return nil

@@ -55,6 +55,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ddrph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -88,6 +89,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -116,6 +118,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -154,6 +157,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -192,6 +196,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -230,6 +235,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := &consumer.DDRProcessEventHandler{
 			Producer:     mpf,
@@ -278,6 +284,15 @@ func (mpf *mockedProducerFactory) Flush(timeout int) int {
 	return args.Int(0)
 }
 
+func (mpf *mockedProducerFactory) Events() chan kafka.Event {
+	args := mpf.Called()
+	return args.Get(0).(chan kafka.Event)
+}
+
+func (mpf *mockedProducerFactory) WatchEvents() {
+	mpf.Called()
+}
+
 func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 	const vantagePoint = "test"
 
@@ -286,6 +301,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mpf.On("Events").Return(make(chan kafka.Event))
 		mpf.On("Flush", mock.Anything).Return(0)
 
 		ph := consumer.DDRProcessEventHandler{
@@ -336,6 +352,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -436,6 +453,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -465,6 +483,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_DOH_TOPIC, vantagePoint)).Return(produceError)
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -514,6 +533,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -566,6 +586,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -619,6 +640,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -667,6 +689,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_PTR_TOPIC, vantagePoint)).Return(produceError)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -699,6 +722,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -749,6 +773,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf := &mockedProducerFactory{}
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,
@@ -800,6 +825,7 @@ func TestDDRProcessEventHandler_ScheduleScans(t *testing.T) {
 		mpf.On("Produce", mock.Anything, consumer.GetKafkaVPTopic(k.DEFAULT_FINGERPRINT_TOPIC, vantagePoint)).Return(errors.New("some error"))
 		mpf.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mpf.On("Flush", mock.Anything).Return(0)
+		mpf.On("Events").Return(make(chan kafka.Event))
 
 		ph := consumer.DDRProcessEventHandler{
 			Producer: mpf,

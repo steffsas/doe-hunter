@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/consumer"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/query"
@@ -34,6 +35,7 @@ func TestRedoDoEScanOnCertError(t *testing.T) {
 		p := &mockedProducerFactory{}
 		p.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		p.On("Flush", mock.Anything).Return(0)
+		p.On("Events").Return(make(chan kafka.Event))
 
 		consumer.RedoDoEScanOnCertError(err, oldScan, newScan, p)
 
@@ -60,6 +62,7 @@ func TestRedoDoEScanOnCertError(t *testing.T) {
 		p := &mockedProducerFactory{}
 		p.On("Produce", mock.Anything, mock.Anything).Return(errors.New("error"))
 		p.On("Flush", mock.Anything).Return(0)
+		p.On("Events").Return(make(chan kafka.Event))
 
 		consumer.RedoDoEScanOnCertError(err, oldScan, newScan, p)
 
@@ -86,6 +89,7 @@ func TestRedoDoEScanOnCertError(t *testing.T) {
 		p := &mockedProducerFactory{}
 		p.On("Produce", mock.Anything, mock.Anything).Return(errors.New("error"))
 		p.On("Flush", mock.Anything).Return(0)
+		p.On("Events").Return(make(chan kafka.Event))
 
 		consumer.RedoDoEScanOnCertError(err, oldScan, newScan, p)
 

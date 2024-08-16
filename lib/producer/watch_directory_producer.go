@@ -94,13 +94,13 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 					watchedFiles[event.Name] = cancel
 					wg.Add(1)
 
-					var err error
 					go func() {
-						err = dp.produceFromFile(childCtx, &wg, event.Name, dp.WaitUntilExit)
+						defer wg.Done()
+						errProducer := dp.produceFromFile(childCtx, event.Name, dp.WaitUntilExit)
+						if errProducer != nil {
+							logrus.Errorf("failed to tail file: %v", err)
+						}
 					}()
-					if err != nil {
-						logrus.Errorf("failed to tail file: %v", err)
-					}
 				case fsnotify.Remove, fsnotify.Rename:
 					if cancel, ok := watchedFiles[event.Name]; ok {
 						logrus.Infof("tailed file got removed or renamed, will stop tailing now: %s", event.Name)
@@ -110,11 +110,11 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 				default:
 					logrus.Debugf("got event in directory %s, will ignore: %s", dir, event)
 				}
-			case err, ok := <-watcher.Errors:
+			case errWatcher, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				logrus.Errorf("error watching directory: %v", err)
+				logrus.Errorf("error watching directory: %v", errWatcher)
 			}
 		}
 	}()
@@ -127,9 +127,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 }
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
-func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *sync.WaitGroup, filepath string, timeAfterExit time.Duration) error {
-	defer outerWg.Done()
-
+func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath string, timeAfterExit time.Duration) error {
 	// create runId to group scans for this file
 	runId := uuid.New().String()
 
@@ -171,17 +169,20 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 		logrus.Errorf("failed to tail (watch) output file: %v", err)
 		return err
 	}
-	defer func() {
+	defer tailChannel.Cleanup()
+
+	stopTailing := func() {
 		if err := tailChannel.Stop(); err != nil {
 			logrus.Errorf("failed to stop tailing file %s: %v", filepath, err)
 		}
-	}()
-	defer tailChannel.Cleanup()
+	}
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	// tail line worker
+	// this is done in a separate go routine to avoid blocking the producer (ZMAP)
+	// it reads the lines from the named pipe/file as fast as possible
 	go func() {
 		defer wg.Done()
 		defer close(producerChannel)
@@ -198,12 +199,14 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				switch {
 				case line == nil:
 					logrus.Infof("line nil in %s, exit tailing", filepath)
+					stopTailing()
 					return
 				case line.Err != nil && errors.Is(line.Err, tail.ErrStop):
 					logrus.Debugf("tail of %s stopped, exit tailing", filepath)
 					return
 				case line.Err != nil && errors.Is(line.Err, io.EOF):
 					logrus.Debugf("tail of %s reached EOF, exit tailing", filepath)
+					stopTailing()
 					return
 				case line.Text == "":
 					logrus.Debugf("empty line in %s, ignore", filepath)
@@ -211,8 +214,8 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 				default:
 					counter++
 
-					// log every 1000 lines
-					if counter%1000 == 0 {
+					// log every 100000 lines
+					if counter%100000 == 0 {
 						logrus.Debugf("read %d lines from %s", counter, filepath)
 						// update last read line
 						lastReadLine = time.Now()
@@ -237,6 +240,8 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 	go func() {
 		defer wg.Done()
 
+		// so errors are going to be logged asynchronously
+		dp.Producer.WatchEvents()
 		// quits when producerChannel is closed and drained
 		for ip := range producerChannel {
 			scans := dp.GetProduceableScans(ip, runId)
@@ -248,22 +253,16 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, outerWg *
 			}
 		}
 
-		logrus.Debugf("producer channel for file %s closed", filepath)
+		// wait until queue is flushed
+		dp.Producer.Flush(0)
+		dp.Producer.Close()
 
-		flushCounter := 0
-		for dp.Producer.Flush(1000) > 0 {
-			flushCounter++
-			logrus.Info("still waiting for events to be flushed")
-			if flushCounter > 10 {
-				logrus.Warn("flushing takes too long, exiting")
-				break
-			}
-		}
+		logrus.Debugf("producer channel for file %s closed", filepath)
 	}()
 
 	wg.Wait()
 
-	logrus.Debugf("stopped tailing file %s", filepath)
+	logrus.Infof("stopped tailing file %s", filepath)
 
 	return nil
 }

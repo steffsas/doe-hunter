@@ -46,6 +46,7 @@ func TestFileProducer_Produce(t *testing.T) {
 		mkp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mkp.On("Flush", mock.Anything).Return(0)
 		mkp.On("Close", mock.Anything).Return(nil)
+		mkp.On("WatchEvents").Return()
 
 		fp := &producer.FileProducer{
 			GetProduceableScans: newScans,
