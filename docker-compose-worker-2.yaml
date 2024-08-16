@@ -46,7 +46,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
     volumes:
       - /data/ipv6/:/data/ipv6/
     depends_on:
@@ -68,7 +68,7 @@ services:
       - KAFKA_SERVER=${KAFKA_SERVER}
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
-      - LOG_LEVEL=DEBUG
+      - LOG_LEVEL=INFO
     volumes:
       - /data/ipv4/:/data/ipv4/
     # needed to access db-1
