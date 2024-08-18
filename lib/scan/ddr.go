@@ -8,6 +8,7 @@ import (
 	"github.com/miekg/dns"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
+	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/svcb"
 )
@@ -54,8 +55,8 @@ func (scan *DDRScan) GetIdentifier() string {
 		scan.Query.Port)
 }
 
-func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEErrors) {
-	scans := []Scan{}
+func (scan *DDRScan) CreateKafkaScansFromResponse() ([]kafka.KafkaScan, []custom_errors.DoEErrors) {
+	scans := []kafka.KafkaScan{}
 	errorColl := []custom_errors.DoEErrors{}
 
 	if scan.Result == nil {
@@ -88,6 +89,8 @@ func (scan *DDRScan) CreateScansFromResponse() ([]Scan, []custom_errors.DoEError
 		}
 
 		// create DNSSEC scan for host targetName (note that this scan still might not be added since it is not unique)
+		dnssec := kafka.NewKafkaDNSSECScan(scan.Meta.RunId, scan.Meta.ScanId, scan.Meta.ScanId, svcb.Target, svcb.Target, false)
+
 		dnssec := NewDDRDNSSECScan(svcb.Target, svcb.Target, scan.Meta.ScanId, scan.Meta.ScanId, scan.Meta.RunId, scan.Meta.VantagePoint)
 		if !slices.Contains(dnssecOrigins, dnssec.GetIdentifier()) {
 			scans = append(scans, dnssec)

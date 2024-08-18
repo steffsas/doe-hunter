@@ -44,12 +44,13 @@ func (ph *DoQProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 		logrus.Errorf("error processing DoQ scan %s to %s:%d: %s", doqScan.Meta.ScanId, doqScan.Query.Host, doqScan.Query.Port, qErr.Error())
 	}
 
-	RedoDoEScanOnCertError(
+	if childScanId, scheduled := RedoDoEScanOnCertError(
 		qErr,
 		doqScan,
-		scan.NewDoQScan(doqScan.Query, doqScan.Meta.ScanId, doqScan.Meta.RootScanId, doqScan.Meta.RunId, doqScan.Meta.VantagePoint),
 		ph.Producer,
-	)
+	); scheduled {
+		doqScan.Meta.Children = append(doqScan.Meta.Children, childScanId)
+	}
 
 	// store
 	err = storage.Store(doqScan)

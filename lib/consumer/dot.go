@@ -44,13 +44,13 @@ func (ph *DoTProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 		logrus.Errorf("error processing DoT scan %s to %s:%d: %s", dotScan.Meta.ScanId, dotScan.Query.Host, dotScan.Query.Port, qErr.Error())
 	}
 
-	RedoDoEScanOnCertError(
+	if childScanId, scheduled := RedoDoEScanOnCertError(
 		qErr,
 		dotScan,
-		// TODO: just pass meta information
-		scan.NewDoTScan(dotScan.Query, dotScan.Meta.ScanId, dotScan.Meta.RootScanId, dotScan.Meta.RunId, dotScan.Meta.VantagePoint),
 		ph.Producer,
-	)
+	); scheduled {
+		dotScan.Meta.Children = append(dotScan.Meta.Children, childScanId)
+	}
 
 	// store
 	err = storage.Store(dotScan)

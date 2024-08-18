@@ -5,12 +5,12 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
-	"github.com/steffsas/doe-hunter/lib/scan"
+	k "github.com/steffsas/doe-hunter/lib/kafka"
 )
 
 // TODO rename interfaces to unofficial naming convention https://www.reddit.com/r/golang/comments/cjrk46/is_there_a_naming_convention_for_interface_struct/
 type ScanProducer interface {
-	Produce(scan scan.Scan, topic string) error
+	Produce(kafkaScan k.KafkaScan, topic string) error
 	Close()
 	Flush(timeout int) int
 	Events() chan kafka.Event
@@ -21,13 +21,13 @@ type KafkaScanProducer struct {
 	Producer EventProducer
 }
 
-func (sp *KafkaScanProducer) Produce(scan scan.Scan, topic string) (err error) {
+func (sp *KafkaScanProducer) Produce(kafkaScan k.KafkaScan, topic string) (err error) {
 	if sp.Producer == nil {
 		return errors.New("producer not initialized")
 	}
 
 	var scanMsg []byte
-	scanMsg, err = scan.Marshall()
+	scanMsg, err = kafkaScan.Marshall()
 	if err != nil {
 		logrus.Errorf("failed to marshal scan: %v", err)
 		return

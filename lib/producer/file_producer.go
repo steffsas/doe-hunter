@@ -8,8 +8,8 @@ import (
 )
 
 type FileProducer struct {
-	GetProduceableScans GetProduceableScans
-	Producer            ScanProducer
+	GetProducibleScans GetProducibleScans
+	Producer           ScanProducer
 }
 
 func (dp *FileProducer) Produce(file string) error {
@@ -30,9 +30,9 @@ func (dp *FileProducer) Produce(file string) error {
 		line := scanner.Text()
 
 		if len(line) > 0 {
-			scans := dp.GetProduceableScans(line, runId)
+			scans := dp.GetProducibleScans(line, runId)
 			for _, s := range scans {
-				err = dp.Producer.Produce(s.Scan, s.Topic)
+				err = dp.Producer.Produce(s.KafkaScan, s.Topic)
 				if err != nil {
 					return err
 				}
@@ -46,9 +46,9 @@ func (dp *FileProducer) Produce(file string) error {
 	return nil
 }
 
-func NewFileProducer(newScans GetProduceableScans, producer ScanProducer) *FileProducer {
+func NewFileProducer(newScans GetProducibleScans, producer ScanProducer) *FileProducer {
 	return &FileProducer{
-		GetProduceableScans: newScans,
-		Producer:            producer,
+		GetProducibleScans: newScans,
+		Producer:           producer,
 	}
 }

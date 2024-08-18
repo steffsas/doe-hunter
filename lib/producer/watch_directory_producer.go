@@ -16,23 +16,22 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 	"github.com/steffsas/doe-hunter/lib/kafka"
-	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"gopkg.in/fsnotify.v1"
 )
 
 const WAIT_UNTIL_EXIT_TAILING = 60 * time.Minute
 
-type ProducableScan struct {
-	Scan  scan.Scan
-	Topic string
+type ProducibleScan struct {
+	KafkaScan kafka.KafkaScan
+	Topic     string
 }
 
-type GetProduceableScans func(host, runId string) []ProducableScan
+type GetProducibleScans func(host, runId string) []ProducibleScan
 
 type WatchDirectoryProducer struct {
-	GetProduceableScans GetProduceableScans
-	Producer            ScanProducer
+	GetProducibleScans GetProducibleScans
+	Producer           ScanProducer
 
 	WaitUntilExit time.Duration
 }
@@ -244,9 +243,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 		dp.Producer.WatchEvents()
 		// quits when producerChannel is closed and drained
 		for ip := range producerChannel {
-			scans := dp.GetProduceableScans(ip, runId)
+			scans := dp.GetProducibleScans(ip, runId)
 			for _, s := range scans {
-				if err := dp.Producer.Produce(s.Scan, s.Topic); err != nil {
+				if err := dp.Producer.Produce(s.KafkaScan, s.Topic); err != nil {
 					logrus.Errorf("failed to produce scan in topic %s: %v", s.Topic, err)
 				}
 				logrus.Debugf("produced scan in topic %s", s.Topic)
@@ -267,9 +266,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 	return nil
 }
 
-func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) []ProducableScan {
-	return func(host, runId string) []ProducableScan {
-		scans := []ProducableScan{}
+func GetProducibleScansFactory(vp, ipVersion string) func(host, runId string) []ProducibleScan {
+	return func(host, runId string) []ProducibleScan {
+		scans := []ProducibleScan{}
 
 		// check if host is on blocklist
 		isOnBlocklist := false
@@ -279,29 +278,20 @@ func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) [
 			}
 		}
 
-		// ddr scan
-		q := query.NewDDRQuery()
-		q.Host = host
+		// ddr scan without rootScanId and parentScanId since it is a root scan
+		ddr := kafka.NewBasicKafkaScan(runId, "", "", host, isOnBlocklist)
 
-		s := scan.NewDDRScan(q, true, runId, vp)
-		s.Meta.IpVersion = ipVersion
-		s.Meta.IsOnBlocklist = isOnBlocklist
-
-		scans = append(scans, ProducableScan{
-			Scan:  s,
-			Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp),
+		scans = append(scans, ProducibleScan{
+			KafkaScan: ddr,
+			Topic:     helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp),
 		})
 
-		// canary scans
 		for _, domain := range scan.CANARY_DOMAINS {
-			q := query.NewCanaryQuery(domain, host)
-			s := scan.NewCanaryScan(q, runId, vp)
-			s.Meta.IpVersion = ipVersion
-			s.Meta.IsOnBlocklist = isOnBlocklist
-
-			scans = append(scans, ProducableScan{
-				Scan:  s,
-				Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp),
+			// canary scan without rootScanId and parentScanId since it is a root scan
+			canaryScan := kafka.NewCanaryKafkaScan(runId, "", "", host, domain, isOnBlocklist)
+			scans = append(scans, ProducibleScan{
+				KafkaScan: canaryScan,
+				Topic:     helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp),
 			})
 		}
 
@@ -309,10 +299,10 @@ func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) [
 	}
 }
 
-func NewWatchDirectoryProducer(newScans GetProduceableScans, producer ScanProducer) *WatchDirectoryProducer {
+func NewWatchDirectoryProducer(newScans GetProducibleScans, producer ScanProducer) *WatchDirectoryProducer {
 	return &WatchDirectoryProducer{
-		GetProduceableScans: newScans,
-		Producer:            producer,
-		WaitUntilExit:       WAIT_UNTIL_EXIT_TAILING,
+		GetProducibleScans: newScans,
+		Producer:           producer,
+		WaitUntilExit:      WAIT_UNTIL_EXIT_TAILING,
 	}
 }

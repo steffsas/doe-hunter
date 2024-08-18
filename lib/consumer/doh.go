@@ -44,12 +44,13 @@ func (ph *DoHProcessEventHandler) Process(msg *kafka.Message, storage storage.St
 		logrus.Errorf("error processing DoH scan %s to %s:%d with URI %s: %s", dohScan.Meta.ScanId, dohScan.Query.Host, dohScan.Query.Port, dohScan.Query.URI, qErr.Error())
 	}
 
-	RedoDoEScanOnCertError(
+	if childScanId, scheduled := RedoDoEScanOnCertError(
 		qErr,
 		dohScan,
-		scan.NewDoHScan(dohScan.Query, dohScan.Meta.ScanId, dohScan.Meta.RootScanId, dohScan.Meta.RunId, dohScan.Meta.VantagePoint),
 		ph.Producer,
-	)
+	); scheduled {
+		dohScan.Meta.Children = append(dohScan.Meta.Children, childScanId)
+	}
 
 	// store
 	err = storage.Store(dohScan)

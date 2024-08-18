@@ -8,21 +8,28 @@ import (
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
 
-func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, newScan scan.DoEScan, producer producer.ScanProducer) {
+func RedoDoEScanOnCertError(err custom_errors.DoEErrors, oldScan scan.DoEScan, producer producer.ScanProducer) (newScanId string, scheduled bool) {
 	if err != nil {
 		if err.IsCertificateError() {
-			newScan.GetDoEQuery().SkipCertificateVerify = true
+			metaInfo := oldScan.GetMetaInformation()
+			newKafkaDoEScan := k.NewDoEKafkaScan(metaInfo.RunId, metaInfo.RootScanId, metaInfo.ParentScanId, oldScan.GetDoEQuery().Host, oldScan.GetMetaInformation().IsOnBlocklist, true)
 
-			err := producer.Produce(newScan, GetKafkaTopicFromScan(newScan))
+			topic := GetKafkaTopicFromScan(oldScan)
+
+			err := producer.Produce(newKafkaDoEScan, topic)
 			if err != nil {
-				logrus.Errorf("error rescheduling DoE scan %s: %s", newScan.GetMetaInformation().ScanId, err)
+				logrus.Errorf("error rescheduling DoE scan %s on topic %s: %s", newKafkaDoEScan.Host, topic, err)
 				genericErr := custom_errors.NewGenericError(err, true)
 				oldScan.GetMetaInformation().AddError(genericErr)
 			} else {
 				producer.Flush(1000)
 			}
+
+			return newKafkaDoEScan.GetScanId(), true
 		}
 	}
+
+	return "", false
 }
 
 func GetKafkaVPTopic(topic string, vantagePoint string) string {

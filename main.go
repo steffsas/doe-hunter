@@ -76,12 +76,12 @@ func main() {
 
 		if dirToWatch != "" {
 			// let's start a producer that watches a directory for file creations and tailing
-			startWatchDirectoryProducer(ctx, producer.GetProduceableScansFactory(vp, ipVersion), dirToWatch)
+			startWatchDirectoryProducer(ctx, producer.GetProducibleScansFactory(vp, ipVersion), dirToWatch)
 			return
 		}
 		if produceFromFile != "" {
 			// let's start a producer that reads from a file
-			startProducerFromFile(producer.GetProduceableScansFactory(vp, ipVersion), produceFromFile)
+			startProducerFromFile(producer.GetProducibleScansFactory(vp, ipVersion), produceFromFile)
 			return
 		}
 
