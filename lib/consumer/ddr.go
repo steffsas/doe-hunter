@@ -110,6 +110,7 @@ func (ddr *DDRProcessEventHandler) ScheduleScans(ddrScan *scan.DDRScan) {
 	}
 
 	// let's flush the producer
+	// TODO: remove flush here since we do batch producing
 	ddr.Producer.Flush(1000)
 }
 

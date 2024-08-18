@@ -205,6 +205,7 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 		logrus.Fatalf("failed to create producer: %v", err)
 		return
 	}
+	prod.WatchEvents()
 	defer prod.Close()
 
 	consumerConfig := &consumer.KafkaConsumerConfig{
