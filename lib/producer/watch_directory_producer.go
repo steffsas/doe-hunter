@@ -292,18 +292,19 @@ func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) [
 			Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp),
 		})
 
-		// canary scans
-		for _, domain := range scan.CANARY_DOMAINS {
-			q := query.NewCanaryQuery(domain, host)
-			s := scan.NewCanaryScan(q, runId, vp)
-			s.Meta.IpVersion = ipVersion
-			s.Meta.IsOnBlocklist = isOnBlocklist
+		// disable canary scans
+		// // canary scans
+		// for _, domain := range scan.CANARY_DOMAINS {
+		// 	q := query.NewCanaryQuery(domain, host)
+		// 	s := scan.NewCanaryScan(q, runId, vp)
+		// 	s.Meta.IpVersion = ipVersion
+		// 	s.Meta.IsOnBlocklist = isOnBlocklist
 
-			scans = append(scans, ProducableScan{
-				Scan:  s,
-				Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp),
-			})
-		}
+		// 	scans = append(scans, ProducableScan{
+		// 		Scan:  s,
+		// 		Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp),
+		// 	})
+		// }
 
 		return scans
 	}
