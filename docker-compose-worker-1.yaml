@@ -46,22 +46,23 @@ services:
     # needed to access db-1
     network_mode: host
 
-  canary-scanner:
-    image: ghcr.io/steffsas/doe-hunter:latest
-    container_name: canary-scanner
-    restart: always
-    environment:
-      - RUN=consumer
-      - PROTOCOL=canary
-      - THREADS=15000
-      - KAFKA_SERVER=${KAFKA_SERVER}
-      - MONGO_SERVER=${MONGO_SERVER}
-      - VANTAGE_POINT=hpi
-      - LOG_LEVEL=INFO
-      # this is the default blocklist
-      - BLOCKLIST_FILE_PATH=blocklist.conf
-    # needed to access db-1
-    network_mode: host
+  # disable canary scanner
+  # canary-scanner:
+  #   image: ghcr.io/steffsas/doe-hunter:latest
+  #   container_name: canary-scanner
+  #   restart: always
+  #   environment:
+  #     - RUN=consumer
+  #     - PROTOCOL=canary
+  #     - THREADS=15000
+  #     - KAFKA_SERVER=${KAFKA_SERVER}
+  #     - MONGO_SERVER=${MONGO_SERVER}
+  #     - VANTAGE_POINT=hpi
+  #     - LOG_LEVEL=INFO
+  #     # this is the default blocklist
+  #     - BLOCKLIST_FILE_PATH=blocklist.conf
+  #   # needed to access db-1
+  #   network_mode: host
 
   doh-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest

@@ -57,7 +57,7 @@ func TestFileProducer_Produce(t *testing.T) {
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
-		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
+		// mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 
 		produceCounter := 0
