@@ -1,7 +1,7 @@
 # see https://docs.docker.com/language/golang/build-images/
 
 ### BUILDER IMAGE
-FROM golang:1.22.3-bullseye as builder
+FROM golang:1.22.3-bullseye AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN go build -o /app/scanner .
 
 ### RUNTIME IMAGE
 
-FROM golang:1.22.3-bullseye as runner
+FROM golang:1.22.3-bullseye AS runner
 
 WORKDIR /app
 
