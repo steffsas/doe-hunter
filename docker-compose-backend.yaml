@@ -4,12 +4,12 @@ services:
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
+    restart: unless-stopped
     command:
       - '--path.rootfs=/host'
       - '--web.listen-address=:9090'
     network_mode: host
     pid: host
-    restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
 
@@ -17,6 +17,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    restart: unless-stopped
     network_mode: host
     environment:
       - CADVISOR_HEALTHCHECK_URL=http://localhost:9080/metrics
@@ -31,7 +32,7 @@ services:
   # message broker
   kafka-ui:
     image: provectuslabs/kafka-ui
-    restart: always
+    restart: unless-stopped
     container_name: kafka-ui
     ports:
       - "8082:8080"
@@ -47,7 +48,7 @@ services:
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    restart: always
+    restart: unless-stopped
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -63,7 +64,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:latest
-    restart: always
+    restart: unless-stopped
     container_name: kafka
     depends_on:
       - zookeeper
@@ -98,7 +99,7 @@ services:
   mongo:
     image: mongo
     container_name: mongo
-    restart: always
+    restart: unless-stopped
     environment:
       - MONGO_INITDB_ROOT_USERNAME
       - MONGO_INITDB_ROOT_PASSWORD
@@ -113,7 +114,7 @@ services:
   mongo-express:
     image: mongo-express
     container_name: mongo-express
-    restart: always
+    restart: unless-stopped
     ports:
       - 8081:8081
     environment:
