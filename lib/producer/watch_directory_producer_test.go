@@ -51,7 +51,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	vp := "test-vp"
 	ipVersion := "ipv4"
 
-	newScans := producer.GetProduceableScansFactory(vp, ipVersion)
+	newScans := producer.GetProducibleScansFactory(vp, ipVersion)
 
 	t.Run("valid watch and produce on single file", func(t *testing.T) {
 		t.Parallel()
@@ -76,9 +76,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
-			GetProduceableScans: newScans,
-			Producer:            mkp,
-			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProducibleScans: newScans,
+			Producer:           mkp,
+			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		go createFileAndWrite(ctx, tmp, host, "", false)
@@ -145,9 +145,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
-			GetProduceableScans: newScans,
-			Producer:            mkp,
-			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProducibleScans: newScans,
+			Producer:           mkp,
+			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		firstHost := "8.8.8.8"
@@ -225,9 +225,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
-			GetProduceableScans: newScans,
-			Producer:            mkp,
-			WaitUntilExit:       producer.WAIT_UNTIL_EXIT_TAILING,
+			GetProducibleScans: newScans,
+			Producer:           mkp,
+			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		go createFileAndWrite(firstCtx, tmp, firstHost, filename, true)
@@ -303,9 +303,9 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		mkp.On("WatchEvents").Return()
 
 		dp := &producer.WatchDirectoryProducer{
-			GetProduceableScans: newScans,
-			Producer:            mkp,
-			WaitUntilExit:       500 * time.Millisecond,
+			GetProducibleScans: newScans,
+			Producer:           mkp,
+			WaitUntilExit:      500 * time.Millisecond,
 		}
 
 		firstHost := "8.8.8.8"

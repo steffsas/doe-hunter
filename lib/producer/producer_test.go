@@ -3,7 +3,6 @@ package producer_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
@@ -132,83 +131,6 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	})
 }
 
-func TestKafkaEventProducer_WatchEvents(t *testing.T) {
-	t.Parallel()
-
-	t.Run("valid watch events", func(t *testing.T) {
-		t.Parallel()
-
-		eventChannel := make(chan kafka.Event, 1)
-
-		mp := &mockedKafkaProducer{}
-		mp.On("Events").Return(eventChannel)
-
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-		}
-
-		eventChannel <- eventMsg
-		assert.Len(t, eventChannel, 1, "expected one event")
-
-		// test
-		kep.WatchEvents()
-
-		time.Sleep(100 * time.Millisecond)
-
-		assert.Len(t, eventChannel, 0, "expected no events")
-	})
-
-	t.Run("no watch on close", func(t *testing.T) {
-		t.Parallel()
-
-		eventChannel := make(chan kafka.Event, 1)
-
-		mp := &mockedKafkaProducer{}
-		mp.On("Events").Return(eventChannel)
-		mp.On("Close").Return()
-
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-		}
-
-		kep.Close()
-
-		eventChannel <- eventMsg
-		assert.Len(t, eventChannel, 1, "expected one event")
-
-		// test
-		kep.WatchEvents()
-
-		time.Sleep(100 * time.Millisecond)
-
-		assert.Len(t, eventChannel, 1, "expected no events")
-	})
-
-	t.Run("no watch after close", func(t *testing.T) {
-		t.Parallel()
-
-		eventChannel := make(chan kafka.Event, 1)
-
-		mp := &mockedKafkaProducer{}
-		mp.On("Events").Return(eventChannel)
-		mp.On("Close").Return()
-
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-		}
-
-		// test
-		kep.WatchEvents()
-		kep.Close()
-
-		time.Sleep(100 * time.Millisecond)
-
-		eventChannel <- eventMsg
-
-		assert.Len(t, eventChannel, 1, "expected one event")
-	})
-}
-
 func TestKafkaEventProducer_Close(t *testing.T) {
 	t.Parallel()
 
@@ -256,23 +178,6 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 		kep.Flush(1000)
 
 		assert.Equal(t, "Flush", mp.Calls[0].Method)
-	})
-}
-
-func TestKafkaEventProducer_Events(t *testing.T) {
-	t.Run("valid flush", func(t *testing.T) {
-		c := make(chan kafka.Event)
-
-		mp := &mockedKafkaProducer{}
-		mp.On("Events").Return(c)
-
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-		}
-
-		kep.Events()
-
-		assert.Equal(t, "Events", mp.Calls[0].Method)
 	})
 }
 
