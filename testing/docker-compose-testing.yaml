@@ -1,0 +1,191 @@
+services:
+  # monitoring
+  # node exporter for basic metrics about the host itself
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--web.listen-address=:9095'
+    network_mode: host
+    pid: host
+    volumes:
+      - '/:/host:ro,rslave'
+
+  # cadvisor for container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - CADVISOR_HEALTHCHECK_URL=http://localhost:9080/metrics
+    command:
+      - '-port=9080'
+    volumes:
+    - /:/rootfs:ro
+    - /var/run:/var/run:rw
+    - /sys:/sys:ro
+    - /var/lib/docker/:/var/lib/docker:ro
+
+  # monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ../monitoring/prometheus-local.yml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus/
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    network_mode: host
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana:/var/lib/grafana/
+    network_mode: host
+
+  # message broker
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    restart: unless-stopped
+    container_name: kafka-ui
+    ports:
+      - "8082:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+      - DYNAMIC_CONFIG_ENABLED=true
+    depends_on:
+      - kafka
+    networks:
+      - kafka
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    restart: unless-stopped
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 2181:2181
+    networks:
+      - kafka
+
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    restart: unless-stopped
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 9991:9991 # JMX
+      - 9092:9092 # Kafka
+      - 29092:29092 # Kafka Host
+      - 29094:29094 # Kafka Host
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_JMX_PORT: 9991
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,LOCALHOST://localhost:29092,NETWORK_HOST://${KAFKA_EXTERNAL_IP}:29094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,LOCALHOST:PLAINTEXT,NETWORK_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFESTS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      # offsets.topic.replication.factor
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # transaction.state.log.replication.factor
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: "100"
+      KAFKA_LOG_CLEANUP_POLICY: delete
+      KAFKA_LOG_RETENTION_MS: "7200000" # 2 hours (MAX LAG!)
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - kafka
+
+  # database
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD
+    ports:
+      - 27017:27017
+    networks:
+      - mongo
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: unless-stopped
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_SERVER: mongo
+      #ME_CONFIG_MONGODB_URL: mongodb://root:${MONGO_ROOT_PASSWORD}@mongo:27017/
+      ME_CONFIG_BASICAUTH: false
+    depends_on:
+      - mongo
+    networks:
+      - mongo
+
+  ## scanner/consumer
+  ddr-scanner:
+    image: ghcr.io/steffsas/doe-hunter:test
+    container_name: ddr-scanner
+    restart: unless-stopped
+    environment:
+      - RUN=consumer
+      - PROTOCOL=ddr
+      - THREADS=10000
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
+      - VANTAGE_POINT=hpi
+      - LOG_LEVEL=INFO
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
+    # needed to access db-1
+    network_mode: host
+
+  ## producer
+  ipv4-producer:
+    image: ghcr.io/steffsas/doe-hunter:test
+    container_name: ipv4-producer
+    restart: unless-stopped
+    environment:
+      - RUN=producer
+      - IP_VERSION=ipv4
+      - THREADS=1
+      - PRODUCER_WATCH_DIRECTORY=/data/ipv4
+      # this is the default blocklist
+      - BLOCKLIST_FILE_PATH=blocklist.conf
+      - KAFKA_SERVER=${KAFKA_SERVER}
+      - MONGO_SERVER=${MONGO_SERVER}
+      - VANTAGE_POINT=hpi
+      - LOG_LEVEL=INFO
+    volumes:
+      - /data/ipv4/:/data/ipv4/
+    network_mode: host
+
+networks:
+  kafka:
+  mongo:
+
+volumes:
+  prometheus:
+  grafana:
