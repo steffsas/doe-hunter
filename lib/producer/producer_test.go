@@ -3,11 +3,13 @@ package producer_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type mockedKafkaProducer struct {
@@ -45,21 +47,15 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 	t.Run("valid produce", func(t *testing.T) {
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
 		mp.On("Close").Return()
 
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-			Config: &producer.KafkaProducerConfig{
-				Server:            "localhost:9092",
-				MaxPartitions:     100,
-				Timeout:           1000,
-				Acks:              "1",
-				ReplicationFactor: 1,
-			},
-		}
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		require.NoError(t, err, "expected no error on producer creation")
 
 		// test
-		err := kep.Produce([]byte("test"), "test-topic")
+		err = kep.Produce([]byte("test"), "test-topic")
 
 		assert.NoError(t, err, "expected no error")
 	})
@@ -82,16 +78,14 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mp.On("Close").Return()
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
 
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-			Config: &producer.KafkaProducerConfig{
-				Server: "localhost:9092",
-			},
-		}
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		require.NoError(t, err, "expected no error on producer creation")
 
 		// test
-		err := kep.Produce([]byte(""), "test-topic")
+		err = kep.Produce([]byte(""), "test-topic")
 
 		assert.NotNil(t, err, "expected error on empty message")
 	})
@@ -100,16 +94,14 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
 		mp.On("Close").Return()
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
 
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-			Config: &producer.KafkaProducerConfig{
-				Server: "localhost:9092",
-			},
-		}
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		require.NoError(t, err, "expected no error on producer creation")
 
 		// test
-		err := kep.Produce([]byte("test"), "")
+		err = kep.Produce([]byte("test"), "")
 
 		assert.Error(t, err, "expected error on empty topic")
 	})
@@ -118,16 +110,95 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 		mp := &mockedKafkaProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(errors.New("got some error"))
 		mp.On("Close").Return()
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
 
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-			Config:   producer.GetDefaultKafkaProducerConfig(),
-		}
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		require.NoError(t, err, "expected no error on producer creation")
 
 		// test
-		err := kep.Produce([]byte("test"), "test-topic")
+		err = kep.Produce([]byte("test"), "test-topic")
 
 		assert.NotNil(t, err, "expected error on produce")
+	})
+
+	t.Run("flush regularly", func(t *testing.T) {
+		mp := &mockedKafkaProducer{}
+		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)
+		mp.On("Close").Return()
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
+		mp.On("Flush", mock.Anything).Return(0)
+
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		require.NoError(t, err, "expected no error on producer creation")
+
+		// test
+		for i := 0; i < producer.DEFAULT_MSG_UNTIL_FLUSH; i++ {
+			err = kep.Produce([]byte("test"), "test-topic")
+
+			assert.NoError(t, err, "expected no error")
+		}
+
+		mp.AssertCalled(t, "Flush", mock.Anything)
+	})
+}
+
+func TestKafkaEventProducer_WatchEvents(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid", func(t *testing.T) {
+		t.Parallel()
+
+		eventChan := make(chan kafka.Event)
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Events", mock.Anything).Return(eventChan)
+		mp.On("Close").Return()
+
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		assert.NoError(t, err, "expected no error on producer creation")
+
+		// test
+		kep.WatchEvents()
+
+		eventChan <- &kafka.Message{}
+
+		time.Sleep(100 * time.Millisecond)
+
+		kep.Close()
+
+		mp.AssertExpectations(t)
+	})
+
+	t.Run("partition error", func(t *testing.T) {
+		t.Parallel()
+
+		eventChan := make(chan kafka.Event)
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Events", mock.Anything).Return(eventChan)
+		mp.On("Close").Return()
+
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		assert.NoError(t, err, "expected no error on producer creation")
+
+		// test
+		kep.WatchEvents()
+
+		eventChan <- &kafka.Message{
+			TopicPartition: kafka.TopicPartition{
+				Error: errors.New("some error"),
+			},
+		}
+
+		time.Sleep(100 * time.Millisecond)
+
+		kep.Close()
+
+		mp.AssertExpectations(t)
 	})
 }
 
@@ -139,13 +210,16 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 
 		mp := &mockedKafkaProducer{}
 		mp.On("Close").Return()
+		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
 
-		kep := &producer.KafkaEventProducer{
-			Producer: mp,
-		}
+		kep, err := producer.NewKafkaProducer(nil, mp)
+
+		assert.NoError(t, err, "expected no error on producer creation")
 
 		// test
 		kep.Close()
+
+		time.Sleep(100 * time.Millisecond)
 
 		mp.AssertExpectations(t)
 	})
@@ -156,6 +230,8 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 		kep := &producer.KafkaEventProducer{
 			Producer: nil,
 		}
+
+		kep.WatchEvents()
 
 		// test
 		kep.Close()
@@ -179,6 +255,37 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 
 		assert.Equal(t, "Flush", mp.Calls[0].Method)
 	})
+
+	t.Run("flush until everything is processed", func(t *testing.T) {
+		t.Parallel()
+
+		mp := &mockedKafkaProducer{}
+		mp.On("Flush", mock.Anything).Return(10).Once()
+		mp.On("Flush", mock.Anything).Return(0)
+
+		kep := &producer.KafkaEventProducer{
+			Producer: mp,
+		}
+
+		// test
+		kep.Flush(0)
+
+		require.Len(t, mp.Calls, 2)
+
+		assert.Equal(t, "Flush", mp.Calls[0].Method)
+		assert.Equal(t, "Flush", mp.Calls[1].Method)
+	})
+
+	t.Run("nil producer", func(t *testing.T) {
+		t.Parallel()
+
+		kep := &producer.KafkaEventProducer{
+			Producer: nil,
+		}
+
+		// test
+		assert.Equal(t, 0, kep.Flush(0))
+	})
 }
 
 func TestNewKafkaProducer(t *testing.T) {
@@ -192,7 +299,7 @@ func TestNewKafkaProducer(t *testing.T) {
 			Timeout: 1000,
 		}
 
-		p, err := producer.NewKafkaProducer(config)
+		p, err := producer.NewKafkaProducer(config, nil)
 
 		assert.NotNil(t, err, "expected error on invalid server")
 		assert.Nil(t, p, "expected no producer")
@@ -206,7 +313,7 @@ func TestNewKafkaProducer(t *testing.T) {
 			Timeout: 0,
 		}
 
-		p, err := producer.NewKafkaProducer(config)
+		p, err := producer.NewKafkaProducer(config, nil)
 
 		assert.NotNil(t, err, "expected error on invalid timeout")
 		assert.Nil(t, p, "expected no producer")

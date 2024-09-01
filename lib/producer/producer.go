@@ -49,7 +49,7 @@ type KafkaEventProducer struct {
 	Producer     KafkaProducer
 }
 
-func (kep *KafkaEventProducer) watchEvents() {
+func (kep *KafkaEventProducer) WatchEvents() {
 	if kep.Producer == nil {
 		logrus.Warn("producer not initialized")
 		return
@@ -124,13 +124,13 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 }
 
 func (kep *KafkaEventProducer) Close() {
-	kep.closed <- true
 	if kep.Producer != nil {
+		kep.closed <- true
 		kep.Producer.Close()
 	}
 }
 
-func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
+func NewKafkaProducer(config *KafkaProducerConfig, p KafkaProducer) (kp *KafkaEventProducer, err error) {
 	if config == nil {
 		config = GetDefaultKafkaProducerConfig()
 	}
@@ -143,14 +143,16 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 		return nil, errors.New("invalid timeout")
 	}
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":  config.Server,
-		"message.timeout.ms": int(config.Timeout.Milliseconds()),
-		"go.batch.producer":  true,
-	})
+	if p == nil {
+		p, err = kafka.NewProducer(&kafka.ConfigMap{
+			"bootstrap.servers":  config.Server,
+			"message.timeout.ms": int(config.Timeout.Milliseconds()),
+			"go.batch.producer":  true,
+		})
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	kep := &KafkaEventProducer{
@@ -161,7 +163,7 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 	}
 
 	// start watching for kafka events in a separate goroutine
-	kep.watchEvents()
+	kep.WatchEvents()
 
 	return kep, nil
 }

@@ -58,7 +58,7 @@ func NewKafkaScanProducer(config *KafkaProducerConfig) (sp ScanProducer, err err
 		return nil, errors.New("invalid kafka producer config")
 	}
 
-	ep, err := NewKafkaProducer(config)
+	ep, err := NewKafkaProducer(config, nil)
 	if err != nil {
 		return nil, err
 	}
