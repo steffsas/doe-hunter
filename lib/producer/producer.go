@@ -16,12 +16,13 @@ const DEFAULT_KAFKA_WRITE_TIMEOUT = 10000 * time.Millisecond
 const DEFAULT_FLUSH_TIMEOUT_MS = 5000
 const DEFAULT_MAX_PARTITIONS int32 = 100
 
+// this collects messages until it flushes, it boosts performance
+const DEFAULT_MSG_UNTIL_FLUSH = 10000
+
 type EventProducer interface {
 	Produce(msg []byte, topic string) (err error)
 	Close()
-	Events() chan kafka.Event
 	Flush(timeout int) int
-	WatchEvents()
 }
 
 type KafkaProducerConfig struct {
@@ -43,7 +44,7 @@ type KafkaProducer interface {
 
 type KafkaEventProducer struct {
 	producedMsgs int
-	closed       bool
+	closed       chan bool
 	Config       *KafkaProducerConfig
 	Producer     KafkaProducer
 }
@@ -51,10 +52,6 @@ type KafkaEventProducer struct {
 func (kep *KafkaEventProducer) WatchEvents() {
 	if kep.Producer == nil {
 		logrus.Warn("producer not initialized")
-		return
-	}
-
-	if kep.closed {
 		return
 	}
 
@@ -67,10 +64,8 @@ func (kep *KafkaEventProducer) WatchEvents() {
 						logrus.Errorf("error producing message: %v", m.TopicPartition.Error)
 					}
 				}
-			default:
-				if kep.closed {
-					return
-				}
+			case <-kep.closed:
+				return
 			}
 		}
 	}()
@@ -119,8 +114,8 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 
 	kep.producedMsgs++
 
-	// regularly flush the producer's queue from preventing overlfows
-	if kep.producedMsgs >= 100000 {
+	// regularly flush the producer's queue from preventing overflows
+	if kep.producedMsgs >= DEFAULT_MSG_UNTIL_FLUSH {
 		kep.Flush(0)
 		kep.producedMsgs = 0
 	}
@@ -128,18 +123,14 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 	return
 }
 
-func (kep *KafkaEventProducer) Events() chan kafka.Event {
-	return kep.Producer.Events()
-}
-
 func (kep *KafkaEventProducer) Close() {
-	kep.closed = true
 	if kep.Producer != nil {
+		kep.closed <- true
 		kep.Producer.Close()
 	}
 }
 
-func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err error) {
+func NewKafkaProducer(config *KafkaProducerConfig, p KafkaProducer) (kp *KafkaEventProducer, err error) {
 	if config == nil {
 		config = GetDefaultKafkaProducerConfig()
 	}
@@ -152,22 +143,29 @@ func NewKafkaProducer(config *KafkaProducerConfig) (kp *KafkaEventProducer, err 
 		return nil, errors.New("invalid timeout")
 	}
 
-	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":  config.Server,
-		"message.timeout.ms": int(config.Timeout.Milliseconds()),
-		"go.batch.producer":  true,
-	})
+	if p == nil {
+		p, err = kafka.NewProducer(&kafka.ConfigMap{
+			"bootstrap.servers":  config.Server,
+			"message.timeout.ms": int(config.Timeout.Milliseconds()),
+			"go.batch.producer":  true,
+		})
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &KafkaEventProducer{
+	kep := &KafkaEventProducer{
 		producedMsgs: 0,
-		closed:       false,
+		closed:       make(chan bool, 1),
 		Config:       config,
 		Producer:     p,
-	}, nil
+	}
+
+	// start watching for kafka events in a separate goroutine
+	kep.WatchEvents()
+
+	return kep, nil
 }
 
 func GetDefaultKafkaProducerConfig() *KafkaProducerConfig {

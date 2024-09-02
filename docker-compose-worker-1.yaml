@@ -4,12 +4,12 @@ services:
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
+    restart: unless-stopped
     command:
       - '--path.rootfs=/host'
       - '--web.listen-address=:9090'
     network_mode: host
     pid: host
-    restart: unless-stopped
     volumes:
       - '/:/host:ro,rslave'
 
@@ -17,6 +17,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    restart: unless-stopped
     network_mode: host
     environment:
       - CADVISOR_HEALTHCHECK_URL=http://localhost:9080/metrics
@@ -32,7 +33,7 @@ services:
   ddr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: ddr-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=ddr
@@ -50,7 +51,7 @@ services:
   # canary-scanner:
   #   image: ghcr.io/steffsas/doe-hunter:latest
   #   container_name: canary-scanner
-  #   restart: always
+  #   restart: unless-stopped
   #   environment:
   #     - RUN=consumer
   #     - PROTOCOL=canary
@@ -67,7 +68,7 @@ services:
   doh-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: doh-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=doh
@@ -84,7 +85,7 @@ services:
   dot-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: dot-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=dot
@@ -101,7 +102,7 @@ services:
   doq-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: doq-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=doq
@@ -118,7 +119,7 @@ services:
   ptr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: ptr-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=ptr
@@ -135,7 +136,7 @@ services:
   edsr-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: edsr-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=edsr
@@ -152,7 +153,7 @@ services:
   certificate-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: certificate-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=certificate
@@ -169,7 +170,7 @@ services:
   fingerprint-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: fingerprint-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=fingerprint
@@ -186,7 +187,7 @@ services:
   ddr-dnssec-scanner:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: ddr-dnssec-scanner
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=consumer
       - PROTOCOL=ddr-dnssec

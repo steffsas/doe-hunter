@@ -8,8 +8,8 @@ import (
 )
 
 type FileProducer struct {
-	GetProduceableScans GetProduceableScans
-	Producer            ScanProducer
+	GetProducibleScans GetProducibleScans
+	Producer           ScanProducer
 }
 
 func (dp *FileProducer) Produce(file string) error {
@@ -22,15 +22,12 @@ func (dp *FileProducer) Produce(file string) error {
 
 	runId := uuid.New().String()
 
-	// watch for events
-	dp.Producer.WatchEvents()
-
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
 
 		if len(line) > 0 {
-			scans := dp.GetProduceableScans(line, runId)
+			scans := dp.GetProducibleScans(line, runId)
 			for _, s := range scans {
 				err = dp.Producer.Produce(s.Scan, s.Topic)
 				if err != nil {
@@ -46,9 +43,9 @@ func (dp *FileProducer) Produce(file string) error {
 	return nil
 }
 
-func NewFileProducer(newScans GetProduceableScans, producer ScanProducer) *FileProducer {
+func NewFileProducer(newScans GetProducibleScans, producer ScanProducer) *FileProducer {
 	return &FileProducer{
-		GetProduceableScans: newScans,
-		Producer:            producer,
+		GetProducibleScans: newScans,
+		Producer:           producer,
 	}
 }

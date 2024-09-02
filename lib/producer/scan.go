@@ -3,7 +3,6 @@ package producer
 import (
 	"errors"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/scan"
 )
@@ -13,8 +12,6 @@ type ScanProducer interface {
 	Produce(scan scan.Scan, topic string) error
 	Close()
 	Flush(timeout int) int
-	Events() chan kafka.Event
-	WatchEvents()
 }
 
 type KafkaScanProducer struct {
@@ -50,18 +47,6 @@ func (sp *KafkaScanProducer) Flush(timeout int) int {
 	return sp.Producer.Flush(timeout)
 }
 
-func (sp *KafkaScanProducer) Events() chan kafka.Event {
-	if sp.Producer == nil {
-		return nil
-	}
-
-	return sp.Producer.Events()
-}
-
-func (sp *KafkaScanProducer) WatchEvents() {
-	sp.Producer.WatchEvents()
-}
-
 func NewScanProducer(eventProducer EventProducer) (sp ScanProducer, err error) {
 	return &KafkaScanProducer{
 		Producer: eventProducer,
@@ -73,7 +58,7 @@ func NewKafkaScanProducer(config *KafkaProducerConfig) (sp ScanProducer, err err
 		return nil, errors.New("invalid kafka producer config")
 	}
 
-	ep, err := NewKafkaProducer(config)
+	ep, err := NewKafkaProducer(config, nil)
 	if err != nil {
 		return nil, err
 	}

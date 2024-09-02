@@ -2,6 +2,8 @@
 data/
 img/
 pprof/
+.vscode/
+doe_infocom25.gzip
 
 kafka.config
 LICENSE

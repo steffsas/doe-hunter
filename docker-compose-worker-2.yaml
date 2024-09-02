@@ -20,6 +20,7 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
+    restart: unless-stopped
     network_mode: host
     environment:
       - CADVISOR_HEALTHCHECK_URL=http://localhost:9080/metrics
@@ -35,7 +36,7 @@ services:
   ipv6-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: ipv6-producer
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=producer
       - IP_VERSION=ipv6
@@ -57,7 +58,7 @@ services:
   ipv4-producer:
     image: ghcr.io/steffsas/doe-hunter:latest
     container_name: ipv4-producer
-    restart: always
+    restart: unless-stopped
     environment:
       - RUN=producer
       - IP_VERSION=ipv4
@@ -78,7 +79,7 @@ services:
   hitlist-downloader:
     image: ghcr.io/steffsas/hitlist-downloader:latest
     container_name: hitlist-downloader
-    restart: always
+    restart: unless-stopped
     environment:
       - URL=${IPV6_HITLIST_URL}
       - DOWNLOAD_FOLDER=/data/hitlist/downloads/

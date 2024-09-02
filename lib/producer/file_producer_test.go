@@ -19,7 +19,7 @@ func TestFileProducer_Produce(t *testing.T) {
 	vp := "test-vp"
 	ipVersion := "ipv4"
 
-	newScans := producer.GetProduceableScansFactory(vp, ipVersion)
+	newScans := producer.GetProducibleScansFactory(vp, ipVersion)
 
 	t.Run("test valid produce on single file", func(t *testing.T) {
 		t.Parallel()
@@ -49,8 +49,8 @@ func TestFileProducer_Produce(t *testing.T) {
 		mkp.On("WatchEvents").Return()
 
 		fp := &producer.FileProducer{
-			GetProduceableScans: newScans,
-			Producer:            mkp,
+			GetProducibleScans: newScans,
+			Producer:           mkp,
 		}
 
 		err = fp.Produce(f.Name())

@@ -76,12 +76,12 @@ func main() {
 
 		if dirToWatch != "" {
 			// let's start a producer that watches a directory for file creations and tailing
-			startWatchDirectoryProducer(ctx, producer.GetProduceableScansFactory(vp, ipVersion), dirToWatch)
+			startWatchDirectoryProducer(ctx, producer.GetProducibleScansFactory(vp, ipVersion), dirToWatch)
 			return
 		}
 		if produceFromFile != "" {
 			// let's start a producer that reads from a file
-			startProducerFromFile(producer.GetProduceableScansFactory(vp, ipVersion), produceFromFile)
+			startProducerFromFile(producer.GetProducibleScansFactory(vp, ipVersion), produceFromFile)
 			return
 		}
 
@@ -123,7 +123,7 @@ func setLogger() {
 	logrus.SetOutput(os.Stdout)
 }
 
-func startProducerFromFile(newScans producer.GetProduceableScans, file string) {
+func startProducerFromFile(newScans producer.GetProducibleScans, file string) {
 	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)
@@ -137,7 +137,7 @@ func startProducerFromFile(newScans producer.GetProduceableScans, file string) {
 	}
 }
 
-func startWatchDirectoryProducer(ctx context.Context, newScans producer.GetProduceableScans, dir string) {
+func startWatchDirectoryProducer(ctx context.Context, newScans producer.GetProducibleScans, dir string) {
 	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)

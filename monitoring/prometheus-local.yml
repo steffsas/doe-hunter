@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 10s
+
+scrape_configs:
+
+  # monitoring server
+  - job_name: 'local'
+    static_configs:
+      - targets:
+          # node_exporter
+          - 'localhost:9095'
+          # cadvisor
+          - 'localhost:9080'
+          # docker daemon
+          - 'localhost:9070'

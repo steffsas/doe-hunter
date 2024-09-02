@@ -23,16 +23,16 @@ import (
 
 const WAIT_UNTIL_EXIT_TAILING = 60 * time.Minute
 
-type ProducableScan struct {
+type ProducibleScan struct {
 	Scan  scan.Scan
 	Topic string
 }
 
-type GetProduceableScans func(host, runId string) []ProducableScan
+type GetProducibleScans func(host, runId string) []ProducibleScan
 
 type WatchDirectoryProducer struct {
-	GetProduceableScans GetProduceableScans
-	Producer            ScanProducer
+	GetProducibleScans GetProducibleScans
+	Producer           ScanProducer
 
 	WaitUntilExit time.Duration
 }
@@ -240,11 +240,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 	go func() {
 		defer wg.Done()
 
-		// so errors are going to be logged asynchronously
-		dp.Producer.WatchEvents()
 		// quits when producerChannel is closed and drained
 		for ip := range producerChannel {
-			scans := dp.GetProduceableScans(ip, runId)
+			scans := dp.GetProducibleScans(ip, runId)
 			for _, s := range scans {
 				if err := dp.Producer.Produce(s.Scan, s.Topic); err != nil {
 					logrus.Errorf("failed to produce scan in topic %s: %v", s.Topic, err)
@@ -267,9 +265,9 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 	return nil
 }
 
-func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) []ProducableScan {
-	return func(host, runId string) []ProducableScan {
-		scans := []ProducableScan{}
+func GetProducibleScansFactory(vp, ipVersion string) func(host, runId string) []ProducibleScan {
+	return func(host, runId string) []ProducibleScan {
+		scans := []ProducibleScan{}
 
 		// check if host is on blocklist
 		isOnBlocklist := false
@@ -287,7 +285,7 @@ func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) [
 		s.Meta.IpVersion = ipVersion
 		s.Meta.IsOnBlocklist = isOnBlocklist
 
-		scans = append(scans, ProducableScan{
+		scans = append(scans, ProducibleScan{
 			Scan:  s,
 			Topic: helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp),
 		})
@@ -310,10 +308,10 @@ func GetProduceableScansFactory(vp, ipVersion string) func(host, runId string) [
 	}
 }
 
-func NewWatchDirectoryProducer(newScans GetProduceableScans, producer ScanProducer) *WatchDirectoryProducer {
+func NewWatchDirectoryProducer(newScans GetProducibleScans, producer ScanProducer) *WatchDirectoryProducer {
 	return &WatchDirectoryProducer{
-		GetProduceableScans: newScans,
-		Producer:            producer,
-		WaitUntilExit:       WAIT_UNTIL_EXIT_TAILING,
+		GetProducibleScans: newScans,
+		Producer:           producer,
+		WaitUntilExit:      WAIT_UNTIL_EXIT_TAILING,
 	}
 }
