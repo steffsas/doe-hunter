@@ -51,6 +51,48 @@ func TestScanRunCache_Timer(t *testing.T) {
 
 		assert.False(t, found, "scan should not be found after timer expired and cleared the cache")
 	})
+
+	t.Run("should still have scan within timer time", func(t *testing.T) {
+		t.Parallel()
+
+		src := scan.NewScanRunContainer("test-run")
+		src.CacheTime = 500 * time.Millisecond
+
+		q := query.NewDoHQuery()
+		q.Host = "dns.google."
+
+		time.Sleep(200 * time.Millisecond)
+
+		s := scan.NewDoHScan(q, "someParentScanId", "someRootScanId", "someRunId", "someVantagePoint")
+		src.AddScan(s)
+
+		time.Sleep(400 * time.Millisecond)
+
+		_, found := src.ContainsScan(s)
+
+		assert.True(t, found, "scan should not be found after timer expired and cleared the cache")
+	})
+
+	t.Run("should still have removed scan after timer time", func(t *testing.T) {
+		t.Parallel()
+
+		src := scan.NewScanRunContainer("test-run")
+		src.CacheTime = 500 * time.Millisecond
+
+		q := query.NewDoHQuery()
+		q.Host = "dns.google."
+
+		time.Sleep(200 * time.Millisecond)
+
+		s := scan.NewDoHScan(q, "someParentScanId", "someRootScanId", "someRunId", "someVantagePoint")
+		src.AddScan(s)
+
+		time.Sleep(600 * time.Millisecond)
+
+		_, found := src.ContainsScan(s)
+
+		assert.False(t, found, "scan should not be found after timer expired and cleared the cache")
+	})
 }
 
 func TestScanCache_AddScan(t *testing.T) {

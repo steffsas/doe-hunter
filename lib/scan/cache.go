@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const SCAN_CACHE_TIME = 2 * time.Hour
+const SCAN_CACHE_TIME = 36 * time.Hour
 
 // ScanRunCache is a cache for scans of a single run, cleared after SCAN_CACHE_TIME if no new scans are added
 type ScanRunCache struct {
