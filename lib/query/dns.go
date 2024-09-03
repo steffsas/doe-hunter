@@ -41,15 +41,15 @@ type ConventionalDNSQuery struct {
 	AutoFallbackTCP bool `json:"auto_fallback_tcp"`
 	// maximum number of TCP retries (default: 1)
 	MaxTCPRetries int `json:"max_tcp_retries"`
-	// timeout in ms for UDP (default: 2500)
+	// timeout in ms for UDP (default: 5000)
 	//
 	// if Timeout is set, it will overwrite this value
 	TimeoutUDP time.Duration `json:"timeout_udp"`
-	// timeout in ms for TCP (default: 2500)
+	// timeout in ms for TCP (default: 5000)
 	//
 	// if Timeout is set, it will overwrite this value
 	TimeoutTCP time.Duration `json:"timeout_tcp"`
-	// maximum backoff time in ms (default: 2500)
+	// maximum backoff time in ms (default: 5000)
 	MaxBackoffTime time.Duration `json:"max_backoff_time"`
 }
 
