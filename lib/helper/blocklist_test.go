@@ -86,4 +86,14 @@ func TestBlocklist_Contains(t *testing.T) {
 
 		assert.True(t, contains, "localhost should be blocked")
 	})
+
+	t.Run("invalid ip should not be blocked", func(t *testing.T) {
+		t.Parallel()
+
+		ip := "100.127.138.136"
+
+		contains := b.Contains(net.ParseIP(ip))
+
+		assert.False(t, contains, "invalid ip should not be blocked")
+	})
 }
