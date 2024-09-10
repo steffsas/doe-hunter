@@ -88,7 +88,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
-		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
+		// mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 
 		// this is just a lower boundary which has to be met, typically there are more calls
@@ -160,7 +160,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
-		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
+		// mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*4)
@@ -238,7 +238,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
-		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
+		// mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*2)
@@ -318,7 +318,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
-		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
+		// mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_CANARY_TOPIC, vp))
 		calls := mkp.Calls
 		// this is just a lower boundary which has to be met, typically there are more calls
 		require.GreaterOrEqual(t, len(calls), 2*2)

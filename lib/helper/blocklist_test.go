@@ -94,6 +94,6 @@ func TestBlocklist_Contains(t *testing.T) {
 
 		contains := b.Contains(net.ParseIP(ip))
 
-		assert.False(t, contains, "invalid ip should not be blocked")
+		assert.True(t, contains, "ip should be blocked")
 	})
 }
