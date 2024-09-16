@@ -145,16 +145,13 @@ func TestKafkaEventProducer_Produce(t *testing.T) {
 }
 
 func TestKafkaEventProducer_WatchEvents(t *testing.T) {
-	t.Parallel()
-
 	t.Run("valid", func(t *testing.T) {
-		t.Parallel()
-
 		eventChan := make(chan kafka.Event)
 
 		mp := &mockedKafkaProducer{}
 		mp.On("Events", mock.Anything).Return(eventChan)
 		mp.On("Close").Return()
+		mp.On("Flush", mock.Anything).Return(0)
 
 		kep, err := producer.NewKafkaProducer(nil, mp)
 
@@ -173,13 +170,13 @@ func TestKafkaEventProducer_WatchEvents(t *testing.T) {
 	})
 
 	t.Run("partition error", func(t *testing.T) {
-		t.Parallel()
 
 		eventChan := make(chan kafka.Event)
 
 		mp := &mockedKafkaProducer{}
 		mp.On("Events", mock.Anything).Return(eventChan)
 		mp.On("Close").Return()
+		mp.On("Flush", mock.Anything).Return(0)
 
 		kep, err := producer.NewKafkaProducer(nil, mp)
 
@@ -203,14 +200,12 @@ func TestKafkaEventProducer_WatchEvents(t *testing.T) {
 }
 
 func TestKafkaEventProducer_Close(t *testing.T) {
-	t.Parallel()
-
 	t.Run("valid", func(t *testing.T) {
-		t.Parallel()
 
 		mp := &mockedKafkaProducer{}
 		mp.On("Close").Return()
 		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
+		mp.On("Flush", mock.Anything).Return(0)
 
 		kep, err := producer.NewKafkaProducer(nil, mp)
 
@@ -225,7 +220,6 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 	})
 
 	t.Run("nil producer", func(t *testing.T) {
-		t.Parallel()
 
 		kep := &producer.KafkaEventProducer{
 			Producer: nil,
@@ -239,10 +233,7 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 }
 
 func TestKafkaEventProducer_Flush(t *testing.T) {
-	t.Parallel()
-
 	t.Run("valid flush", func(t *testing.T) {
-		t.Parallel()
 
 		mp := &mockedKafkaProducer{}
 		mp.On("Flush", mock.Anything).Return(0)
@@ -257,8 +248,6 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 	})
 
 	t.Run("flush until everything is processed", func(t *testing.T) {
-		t.Parallel()
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Flush", mock.Anything).Return(10).Once()
 		mp.On("Flush", mock.Anything).Return(0)
@@ -266,6 +255,8 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 		kep := &producer.KafkaEventProducer{
 			Producer: mp,
 		}
+
+		kep.ProducedMsgs.Swap(producer.DEFAULT_MSG_UNTIL_FLUSH + 1)
 
 		// test
 		kep.Flush(0)
@@ -277,8 +268,6 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 	})
 
 	t.Run("nil producer", func(t *testing.T) {
-		t.Parallel()
-
 		kep := &producer.KafkaEventProducer{
 			Producer: nil,
 		}
@@ -289,11 +278,7 @@ func TestKafkaEventProducer_Flush(t *testing.T) {
 }
 
 func TestNewKafkaProducer(t *testing.T) {
-	t.Parallel()
-
 	t.Run("invalid server", func(t *testing.T) {
-		t.Parallel()
-
 		config := &producer.KafkaProducerConfig{
 			Server:  "",
 			Timeout: 1000,
@@ -306,8 +291,6 @@ func TestNewKafkaProducer(t *testing.T) {
 	})
 
 	t.Run("invalid timeout", func(t *testing.T) {
-		t.Parallel()
-
 		config := &producer.KafkaProducerConfig{
 			Server:  "test",
 			Timeout: 0,
@@ -321,8 +304,6 @@ func TestNewKafkaProducer(t *testing.T) {
 }
 
 func TestGetDefaultKafkaProducerConfig(t *testing.T) {
-	t.Parallel()
-
 	// test
 	cfg := producer.GetDefaultKafkaProducerConfig()
 

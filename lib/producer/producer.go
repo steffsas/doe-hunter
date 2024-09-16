@@ -46,7 +46,7 @@ type KafkaProducer interface {
 
 type KafkaEventProducer struct {
 	flushLock    sync.Mutex
-	producedMsgs atomic.Int32
+	ProducedMsgs atomic.Int32
 	closed       chan bool
 	Config       *KafkaProducerConfig
 	Producer     KafkaProducer
@@ -84,7 +84,7 @@ func (kep *KafkaEventProducer) Flush(timeout int) int {
 	defer kep.flushLock.Unlock()
 
 	if timeout <= 0 {
-		pmsg := kep.producedMsgs.Load()
+		pmsg := kep.ProducedMsgs.Load()
 
 		if pmsg >= DEFAULT_MSG_UNTIL_FLUSH {
 			timeout = DEFAULT_FLUSH_TIMEOUT_MS
@@ -94,7 +94,7 @@ func (kep *KafkaEventProducer) Flush(timeout int) int {
 				nonFlushedItems = kep.Producer.Flush(timeout)
 			}
 
-			kep.producedMsgs.Swap(0)
+			kep.ProducedMsgs.Swap(0)
 		}
 
 		return 0
@@ -124,7 +124,7 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 		Value:          msg,
 	}, nil)
 
-	kep.producedMsgs.Add(1)
+	kep.ProducedMsgs.Add(1)
 	kep.Flush(0)
 
 	return
@@ -165,7 +165,7 @@ func NewKafkaProducer(config *KafkaProducerConfig, p KafkaProducer) (kp *KafkaEv
 
 	kep := &KafkaEventProducer{
 		flushLock:    sync.Mutex{},
-		producedMsgs: atomic.Int32{},
+		ProducedMsgs: atomic.Int32{},
 		closed:       make(chan bool, 1),
 		Config:       config,
 		Producer:     p,
