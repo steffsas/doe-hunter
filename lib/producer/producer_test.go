@@ -170,7 +170,6 @@ func TestKafkaEventProducer_WatchEvents(t *testing.T) {
 	})
 
 	t.Run("partition error", func(t *testing.T) {
-
 		eventChan := make(chan kafka.Event)
 
 		mp := &mockedKafkaProducer{}
@@ -201,7 +200,6 @@ func TestKafkaEventProducer_WatchEvents(t *testing.T) {
 
 func TestKafkaEventProducer_Close(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Close").Return()
 		mp.On("Events", mock.Anything).Return(make(chan kafka.Event))
@@ -220,7 +218,6 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 	})
 
 	t.Run("nil producer", func(t *testing.T) {
-
 		kep := &producer.KafkaEventProducer{
 			Producer: nil,
 		}
@@ -234,7 +231,6 @@ func TestKafkaEventProducer_Close(t *testing.T) {
 
 func TestKafkaEventProducer_Flush(t *testing.T) {
 	t.Run("valid flush", func(t *testing.T) {
-
 		mp := &mockedKafkaProducer{}
 		mp.On("Flush", mock.Anything).Return(0)
 
