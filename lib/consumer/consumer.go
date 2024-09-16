@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -16,6 +17,9 @@ import (
 )
 
 const DEFAULT_CONCURRENT_THREADS = 100
+
+// see https://pkg.go.dev/runtime/debug#SetMaxThreads
+const GOLANG_MAX_THREADS = 10000
 
 type KafkaConsumerConfig struct {
 	Server        string
@@ -107,6 +111,12 @@ func (keh *KafkaEventConsumer) Consume(ctx context.Context) error {
 	// we want to gracefully shutdown the workers
 	termChan := make(chan os.Signal, 1)
 	signal.Notify(termChan, os.Interrupt, syscall.SIGTERM) // Handle SIGTERM and Ctrl+C
+
+	// lift the limit of threads
+	if keh.Config.Threads*2 > GOLANG_MAX_THREADS {
+		logrus.Warnf("threads %d is higher than GOLANG_MAX_THREADS %d, we limit it to the double to prevent crashes", keh.Config.Threads, GOLANG_MAX_THREADS)
+		debug.SetMaxThreads(keh.Config.Threads * 2)
+	}
 
 	// create first all handler before consuming messages
 	handler := []EventProcessHandler{}
