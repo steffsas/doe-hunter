@@ -3,6 +3,8 @@ package producer
 import (
 	"errors"
 	"math/rand"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -43,7 +45,8 @@ type KafkaProducer interface {
 }
 
 type KafkaEventProducer struct {
-	producedMsgs int
+	flushLock    sync.Mutex
+	producedMsgs atomic.Int32
 	closed       chan bool
 	Config       *KafkaProducerConfig
 	Producer     KafkaProducer
@@ -77,12 +80,21 @@ func (kep *KafkaEventProducer) Flush(timeout int) int {
 		return 0
 	}
 
-	if timeout <= 0 {
-		timeout = DEFAULT_FLUSH_TIMEOUT_MS
+	kep.flushLock.Lock()
+	defer kep.flushLock.Unlock()
 
-		nonFlushedItems := kep.Producer.Flush(timeout)
-		for nonFlushedItems > 0 {
-			nonFlushedItems = kep.Producer.Flush(timeout)
+	if timeout <= 0 {
+		pmsg := kep.producedMsgs.Load()
+
+		if pmsg >= DEFAULT_MSG_UNTIL_FLUSH {
+			timeout = DEFAULT_FLUSH_TIMEOUT_MS
+			nonFlushedItems := kep.Producer.Flush(timeout)
+			for nonFlushedItems > 0 {
+				logrus.Warnf("could not flush all items to Kafka, non-flushed items: {%d}, retry...", nonFlushedItems)
+				nonFlushedItems = kep.Producer.Flush(timeout)
+			}
+
+			kep.producedMsgs.Swap(0)
 		}
 
 		return 0
@@ -112,19 +124,15 @@ func (kep *KafkaEventProducer) Produce(msg []byte, topic string) (err error) {
 		Value:          msg,
 	}, nil)
 
-	kep.producedMsgs++
-
-	// regularly flush the producer's queue from preventing overflows
-	if kep.producedMsgs >= DEFAULT_MSG_UNTIL_FLUSH {
-		kep.Flush(0)
-		kep.producedMsgs = 0
-	}
+	kep.producedMsgs.Add(1)
+	kep.Flush(0)
 
 	return
 }
 
 func (kep *KafkaEventProducer) Close() {
 	if kep.Producer != nil {
+		kep.Flush(DEFAULT_MSG_UNTIL_FLUSH)
 		kep.closed <- true
 		kep.Producer.Close()
 	}
@@ -156,7 +164,8 @@ func NewKafkaProducer(config *KafkaProducerConfig, p KafkaProducer) (kp *KafkaEv
 	}
 
 	kep := &KafkaEventProducer{
-		producedMsgs: 0,
+		flushLock:    sync.Mutex{},
+		producedMsgs: atomic.Int32{},
 		closed:       make(chan bool, 1),
 		Config:       config,
 		Producer:     p,
