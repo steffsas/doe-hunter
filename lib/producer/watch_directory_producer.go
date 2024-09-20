@@ -40,9 +40,9 @@ type WatchDirectoryProducer struct {
 }
 
 func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir string) error {
-	prod, err := dp.NewProducer()
-	if err != nil {
-		logrus.Errorf("failed to create producer: %v", err)
+	// test producer
+	if _, err := dp.NewProducer(); err != nil {
+		logrus.Errorf("failed to test producer connectivity: %v", err)
 		return err
 	}
 
@@ -104,7 +104,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 
 					go func() {
 						defer wg.Done()
-						errProducer := dp.produceFromFile(childCtx, prod, event.Name, dp.WaitUntilExit)
+						errProducer := dp.produceFromFile(childCtx, event.Name, dp.WaitUntilExit)
 						if errProducer != nil {
 							logrus.Errorf("failed to tail file: %v", err)
 						}
@@ -129,13 +129,18 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 
 	wg.Wait()
 
-	prod.Close()
-
 	return nil
 }
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
-func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, producer ScanProducer, filepath string, timeAfterExit time.Duration) error {
+func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath string, timeAfterExit time.Duration) error {
+	// create producer
+	prod, err := dp.NewProducer()
+	if err != nil {
+		logrus.Errorf("failed to create producer: %v", err)
+		return err
+	}
+
 	// create runId to group scans for this file
 	runId := uuid.New().String()
 
@@ -252,7 +257,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, producer 
 		for ip := range producerChannel {
 			scans := dp.GetProducibleScans(ip, runId)
 			for _, s := range scans {
-				if err := producer.Produce(s.Scan, s.Topic); err != nil {
+				if err := prod.Produce(s.Scan, s.Topic); err != nil {
 					logrus.Errorf("failed to produce scan in topic %s: %v", s.Topic, err)
 				}
 				logrus.Debugf("produced scan in topic %s", s.Topic)
@@ -260,14 +265,17 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, producer 
 		}
 
 		// wait until queue is flushed
-		producer.Flush(0)
+		prod.Flush(0)
 
 		logrus.Debugf("producer channel for file %s closed", filepath)
 	}()
 
 	wg.Wait()
 
-	logrus.Infof("stopped tailing file %s", filepath)
+	// close producer
+	prod.Close()
+
+	logrus.Infof("stopped tailing file %s, producer closed", filepath)
 
 	return nil
 }

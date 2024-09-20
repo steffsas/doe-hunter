@@ -205,6 +205,24 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		require.True(t, gotSecondHost, "should have produced a scan for second host")
 	})
 
+	t.Run("abort on invalid producer connectivity", func(t *testing.T) {
+		t.Parallel()
+
+		np := func() (producer.ScanProducer, error) {
+			return nil, fmt.Errorf("failed to create producer")
+		}
+
+		dp := &producer.WatchDirectoryProducer{
+			GetProducibleScans: newScans,
+			NewProducer:        np,
+			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
+		}
+
+		err := dp.WatchAndProduce(context.Background(), "")
+
+		assert.Error(t, err)
+	})
+
 	t.Run("remove and recreate file", func(t *testing.T) {
 		t.Parallel()
 
