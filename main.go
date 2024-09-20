@@ -139,15 +139,23 @@ func startProducerFromFile(newScans producer.GetProducibleScans, file string) {
 }
 
 func startWatchDirectoryProducer(ctx context.Context, newScans producer.GetProducibleScans, dir string) {
-	sp, err := producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
+	// test kafka connection
+	newProducer := func() (producer.ScanProducer, error) {
+		return producer.NewKafkaScanProducer(producer.GetDefaultKafkaProducerConfig())
+	}
+
+	// test kafka connection
+	prod, err := newProducer()
 	if err != nil {
 		logrus.Fatalf("failed to create producer: %v", err)
 		return
+	} else {
+		prod.Close()
 	}
 
 	logrus.Infof("start watching directory %s to produce DDR scans", dir)
 
-	p := producer.NewWatchDirectoryProducer(newScans, sp)
+	p := producer.NewWatchDirectoryProducer(newScans, newProducer)
 	err = p.WatchAndProduce(ctx, dir)
 	if err != nil {
 		logrus.Fatalf("failed to watch and produce: %v", err)

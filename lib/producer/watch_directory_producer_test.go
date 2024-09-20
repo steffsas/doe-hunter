@@ -45,13 +45,23 @@ func (m *mockedScanProducer) WatchEvents() {
 	m.Called()
 }
 
+func newKafkaProducerFactory(prod producer.ScanProducer) func() (producer.ScanProducer, error) {
+	return func() (producer.ScanProducer, error) {
+		return prod, nil
+	}
+}
+
 func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
+	t.Parallel()
+
 	vp := "test-vp"
 	ipVersion := "ipv4"
 
 	newScans := producer.GetProducibleScansFactory(vp, ipVersion)
 
 	t.Run("valid watch and produce on single file", func(t *testing.T) {
+		t.Parallel()
+
 		host := "8.8.8.8"
 
 		tmp, err := os.MkdirTemp("", "tests-*")
@@ -73,14 +83,14 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProducibleScans: newScans,
-			Producer:           mkp,
+			NewProducer:        newKafkaProducerFactory(mkp),
 			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
 		go createFileAndWrite(ctx, tmp, host, "", false)
 
 		go func() {
-			time.Sleep(2500 * time.Millisecond)
+			time.Sleep(5000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -121,6 +131,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	})
 
 	t.Run("valid watch and produce on multiple files", func(t *testing.T) {
+		t.Parallel()
+
 		tmp, err := os.MkdirTemp("", "tests-*")
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
@@ -140,7 +152,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProducibleScans: newScans,
-			Producer:           mkp,
+			NewProducer:        newKafkaProducerFactory(mkp),
 			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
@@ -152,7 +164,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 		go createFileAndWrite(ctx, tmp, secondHost, "", false)
 
 		go func() {
-			time.Sleep(2500 * time.Millisecond)
+			time.Sleep(5000 * time.Millisecond)
 			cancel()
 		}()
 
@@ -193,6 +205,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	})
 
 	t.Run("remove and recreate file", func(t *testing.T) {
+		t.Parallel()
+
 		tmp, err := os.MkdirTemp("", "tests-*")
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
@@ -218,7 +232,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProducibleScans: newScans,
-			Producer:           mkp,
+			NewProducer:        newKafkaProducerFactory(mkp),
 			WaitUntilExit:      producer.WAIT_UNTIL_EXIT_TAILING,
 		}
 
@@ -273,6 +287,8 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	})
 
 	t.Run("quit exiting", func(t *testing.T) {
+		t.Parallel()
+
 		tmp, err := os.MkdirTemp("", "tests-*")
 		if err != nil {
 			t.Fatalf("failed to create temp dir: %v", err)
@@ -294,7 +310,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		dp := &producer.WatchDirectoryProducer{
 			GetProducibleScans: newScans,
-			Producer:           mkp,
+			NewProducer:        newKafkaProducerFactory(mkp),
 			WaitUntilExit:      500 * time.Millisecond,
 		}
 
@@ -376,6 +392,9 @@ func createFileAndWrite(ctx context.Context, tmpFolder string, lineContent strin
 			if err != nil {
 				return
 			}
+			// flush to disk
+			f.Sync()
+			// simulate waiting for new data
 			time.Sleep(100 * time.Millisecond)
 		}
 	}

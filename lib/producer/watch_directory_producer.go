@@ -23,6 +23,8 @@ import (
 
 const WAIT_UNTIL_EXIT_TAILING = 60 * time.Minute
 
+type NewProducer func() (ScanProducer, error)
+
 type ProducibleScan struct {
 	Scan  scan.Scan
 	Topic string
@@ -32,12 +34,18 @@ type GetProducibleScans func(host, runId string) []ProducibleScan
 
 type WatchDirectoryProducer struct {
 	GetProducibleScans GetProducibleScans
-	Producer           ScanProducer
 
+	NewProducer   NewProducer
 	WaitUntilExit time.Duration
 }
 
 func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir string) error {
+	prod, err := dp.NewProducer()
+	if err != nil {
+		logrus.Errorf("failed to create producer: %v", err)
+		return err
+	}
+
 	// watch the folder and spawn new producer for each file
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -96,7 +104,7 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 
 					go func() {
 						defer wg.Done()
-						errProducer := dp.produceFromFile(childCtx, event.Name, dp.WaitUntilExit)
+						errProducer := dp.produceFromFile(childCtx, prod, event.Name, dp.WaitUntilExit)
 						if errProducer != nil {
 							logrus.Errorf("failed to tail file: %v", err)
 						}
@@ -121,13 +129,14 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 
 	wg.Wait()
 
-	dp.Producer.Close()
+	prod.Close()
 
 	return nil
 }
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
-func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath string, timeAfterExit time.Duration) error {
+func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, producer ScanProducer, filepath string, timeAfterExit time.Duration) error {
+
 	// create runId to group scans for this file
 	runId := uuid.New().String()
 
@@ -244,7 +253,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 		for ip := range producerChannel {
 			scans := dp.GetProducibleScans(ip, runId)
 			for _, s := range scans {
-				if err := dp.Producer.Produce(s.Scan, s.Topic); err != nil {
+				if err := producer.Produce(s.Scan, s.Topic); err != nil {
 					logrus.Errorf("failed to produce scan in topic %s: %v", s.Topic, err)
 				}
 				logrus.Debugf("produced scan in topic %s", s.Topic)
@@ -252,8 +261,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 		}
 
 		// wait until queue is flushed
-		dp.Producer.Flush(0)
-		dp.Producer.Close()
+		producer.Flush(0)
 
 		logrus.Debugf("producer channel for file %s closed", filepath)
 	}()
@@ -308,10 +316,10 @@ func GetProducibleScansFactory(vp, ipVersion string) func(host, runId string) []
 	}
 }
 
-func NewWatchDirectoryProducer(newScans GetProducibleScans, producer ScanProducer) *WatchDirectoryProducer {
+func NewWatchDirectoryProducer(newScans GetProducibleScans, newProducer NewProducer) *WatchDirectoryProducer {
 	return &WatchDirectoryProducer{
 		GetProducibleScans: newScans,
-		Producer:           producer,
+		NewProducer:        newProducer,
 		WaitUntilExit:      WAIT_UNTIL_EXIT_TAILING,
 	}
 }
