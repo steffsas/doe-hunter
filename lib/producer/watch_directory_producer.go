@@ -136,7 +136,6 @@ func (dp *WatchDirectoryProducer) WatchAndProduce(ctx context.Context, dir strin
 
 // timeAfterExit is a timer that exits this process if no new data is written to the file
 func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, producer ScanProducer, filepath string, timeAfterExit time.Duration) error {
-
 	// create runId to group scans for this file
 	runId := uuid.New().String()
 

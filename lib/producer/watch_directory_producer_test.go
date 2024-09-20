@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/steffsas/doe-hunter/lib/helper"
 	"github.com/steffsas/doe-hunter/lib/kafka"
 	"github.com/steffsas/doe-hunter/lib/producer"
@@ -393,7 +394,10 @@ func createFileAndWrite(ctx context.Context, tmpFolder string, lineContent strin
 				return
 			}
 			// flush to disk
-			f.Sync()
+			if err := f.Sync(); err != nil {
+				logrus.Fatalf("could not write content to disk: %v", err)
+				return
+			}
 			// simulate waiting for new data
 			time.Sleep(100 * time.Millisecond)
 		}
