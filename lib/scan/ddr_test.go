@@ -1,6 +1,7 @@
 package scan_test
 
 import (
+	"encoding/json"
 	"net"
 	"slices"
 	"testing"
@@ -52,12 +53,67 @@ func TestDDRScan_Constructor(t *testing.T) {
 
 func TestDDRScan_Marshall(t *testing.T) {
 	t.Parallel()
-	scan := scan.NewDDRScan(nil, false, "test", "runid")
-	bytes, err := scan.Marshall()
 
-	// test
-	assert.Nil(t, err, "should not have returned an error")
-	assert.NotNil(t, bytes, "should have returned bytes")
+	t.Run("marshal DDR scan", func(t *testing.T) {
+		t.Parallel()
+		scan := scan.NewDDRScan(nil, false, "test", "runid")
+		bytes, err := scan.Marshall()
+
+		// test
+		assert.Nil(t, err, "should not have returned an error")
+		assert.NotNil(t, bytes, "should have returned bytes")
+	})
+
+	t.Run("marshal DoH scan created by DDR discovery", func(t *testing.T) {
+		t.Parallel()
+
+		q := query.NewDDRQuery()
+		s := scan.NewDDRScan(q, false, "test", "runid")
+
+		s.Result = &query.ConventionalDNSResponse{}
+		s.Result.Response = &query.DNSResponse{
+			ResponseMsg: &dns.Msg{
+				Answer: []dns.RR{
+					&dns.SVCB{
+						Priority: 1,
+						Target:   SAMPLE_TARGET,
+						Value: []dns.SVCBKeyValue{
+							// no DoH path given
+							&dns.SVCBAlpn{
+								Alpn: []string{"h2"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		scans, errors := s.CreateScansFromResponse()
+
+		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
+		require.NotNil(t, errors, "should have returned the missing dohpath error")
+
+		// marshall
+		var dohScan *scan.DoHScan
+		for _, s := range scans {
+			if s.GetType() == scan.DOH_SCAN_TYPE {
+				dohScan = s.(*scan.DoHScan)
+				break
+			}
+		}
+		require.NotNil(t, dohScan, "should have returned a DoH scan")
+
+		// marshall
+		b, err := dohScan.Marshall()
+
+		require.Nil(t, err, "should not have returned an error")
+		assert.NotNil(t, b, "should have returned bytes")
+
+		// unmarshall
+		dohScan = &scan.DoHScan{}
+		err = json.Unmarshal(b, dohScan)
+		require.Nil(t, err, "should not have returned an error")
+	})
 }
 
 func TestDDRScan_CreateScansFromResponse_EmptyResponse(t *testing.T) {

@@ -347,8 +347,6 @@ func createDoHScan(
 	} else {
 		logrus.Warnf("parsing DDR scan %s: ALPN doh requires DoH path but none is given, fallback to default", parentScanId)
 		pathErr := custom_errors.NewQueryError(custom_errors.ErrDoHPathNotProvided, false).AddInfoString("fallback to default path")
-		// let's add this information already
-		scan.Meta.AddError(pathErr)
 		return scan, pathErr
 	}
 
