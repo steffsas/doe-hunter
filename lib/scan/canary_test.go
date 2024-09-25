@@ -49,7 +49,7 @@ func TestCanaryScan_Constructor(t *testing.T) {
 func TestCanaryScan_Marshall(t *testing.T) {
 	t.Parallel()
 	scan := scan.NewCanaryScan(nil, "runId", "vantagePoint")
-	bytes, err := scan.Marshall()
+	bytes, err := scan.Marshal()
 
 	// test
 	assert.Nil(t, err, "should not have returned an error")

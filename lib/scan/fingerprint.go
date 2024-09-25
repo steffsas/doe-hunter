@@ -28,7 +28,7 @@ type FingerprintScan struct {
 	SSHResult           *query.SSHResponse             `json:"ssh_result"`
 }
 
-func (scan *FingerprintScan) Marshall() (bytes []byte, err error) {
+func (scan *FingerprintScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

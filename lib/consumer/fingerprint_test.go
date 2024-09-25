@@ -80,7 +80,7 @@ func TestFingerprintProcessEventHandler_Process(t *testing.T) {
 			VersionServerQuery: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		fingerprintScanBytes, _ := json.Marshal(fingerprintScan)
 		msg := &kafka.Message{
 			Value: fingerprintScanBytes,
@@ -116,7 +116,7 @@ func TestFingerprintProcessEventHandler_Process(t *testing.T) {
 			SSHQueryHandler: &sqh,
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		msg := &kafka.Message{
 			Value: []byte("invalid"),
 		}
@@ -153,7 +153,7 @@ func TestFingerprintProcessEventHandler_Process(t *testing.T) {
 			VersionServerQuery: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		fingerprintScanBytes, _ := json.Marshal(fingerprintScan)
 		msg := &kafka.Message{
 			Value: fingerprintScanBytes,
@@ -200,7 +200,7 @@ func TestFingerprintProcessEventHandler_Process(t *testing.T) {
 			VersionServerQuery: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		fingerprintScanBytes, _ := json.Marshal(fingerprintScan)
 		msg := &kafka.Message{
 			Value: fingerprintScanBytes,
@@ -245,7 +245,7 @@ func TestFingerprintProcessEventHandler_Process(t *testing.T) {
 			VersionServerQuery: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		fingerprintScanBytes, _ := json.Marshal(fingerprintScan)
 		msg := &kafka.Message{
 			Value: fingerprintScanBytes,

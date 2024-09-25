@@ -38,7 +38,7 @@ func TestDDRDNSSECProcessConsumer_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dnssecScanBytes, _ := json.Marshal(dnssecScan)
 		msg := &kafka.Message{
 			Value: dnssecScanBytes,
@@ -84,7 +84,7 @@ func TestDDRDNSSECProcessConsumer_Process(t *testing.T) {
 			QueryHandler: &cqh,
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		msg := &kafka.Message{
 			Value: []byte("invalid"),
 		}
@@ -117,7 +117,7 @@ func TestDDRDNSSECProcessConsumer_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dnssecScanBytes, _ := json.Marshal(dnssecScan)
 		msg := &kafka.Message{
 			Value: dnssecScanBytes,
@@ -154,7 +154,7 @@ func TestDDRDNSSECProcessConsumer_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dnssecScanBytes, _ := json.Marshal(dnssecScan)
 		msg := &kafka.Message{
 			Value: dnssecScanBytes,

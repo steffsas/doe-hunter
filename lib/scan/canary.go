@@ -34,7 +34,7 @@ type CanaryScan struct {
 	Result *query.ConventionalDNSResponse `json:"result"`
 }
 
-func (scan *CanaryScan) Marshall() (bytes []byte, err error) {
+func (scan *CanaryScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

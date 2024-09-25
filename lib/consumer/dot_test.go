@@ -55,7 +55,7 @@ func TestDoTProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoTQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dotScanBytes, _ := json.Marshal(dotScan)
 
 		// test
@@ -108,7 +108,7 @@ func TestDoTProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoTQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dotScanBytes, _ := json.Marshal(dotScan)
 
 		// test
@@ -138,7 +138,7 @@ func TestDoTProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoTQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dotScanBytes, _ := json.Marshal(dotScan)
 
 		// test

@@ -46,7 +46,7 @@ func TestCertificateScan_Constructor(t *testing.T) {
 func TestCertificateScan_Marshall(t *testing.T) {
 	t.Parallel()
 	scan := scan.NewCertificateScan(nil, "root", "parent", "runid", "vantagepoint")
-	bytes, err := scan.Marshall()
+	bytes, err := scan.Marshal()
 
 	// test
 	assert.Nil(t, err, "should not have returned an error")

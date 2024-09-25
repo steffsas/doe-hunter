@@ -46,7 +46,7 @@ func TestDoHScan_Constructor(t *testing.T) {
 func TestDoHScan_Marshall(t *testing.T) {
 	t.Parallel()
 	scan := scan.NewDoHScan(nil, "parent", "root", "run", "vantagepoint")
-	bytes, err := scan.Marshall()
+	bytes, err := scan.Marshal()
 
 	// test
 	assert.Nil(t, err, "should not have returned an error")

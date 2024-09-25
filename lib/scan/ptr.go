@@ -21,7 +21,7 @@ type PTRScan struct {
 	Result *query.ConventionalDNSResponse `json:"result"`
 }
 
-func (scan *PTRScan) Marshall() (bytes []byte, err error) {
+func (scan *PTRScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

@@ -22,7 +22,7 @@ type CertificateScan struct {
 	Result *query.CertificateResponse      `json:"result"`
 }
 
-func (scan *CertificateScan) Marshall() (bytes []byte, err error) {
+func (scan *CertificateScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

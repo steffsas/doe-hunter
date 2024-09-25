@@ -24,7 +24,7 @@ func (sp *KafkaScanProducer) Produce(scan scan.Scan, topic string) (err error) {
 	}
 
 	var scanMsg []byte
-	scanMsg, err = scan.Marshall()
+	scanMsg, err = scan.Marshal()
 	if err != nil {
 		logrus.Errorf("failed to marshal scan: %v", err)
 		return

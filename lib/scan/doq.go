@@ -21,7 +21,7 @@ type DoQScan struct {
 	Result *query.DoQResponse      `json:"result"`
 }
 
-func (scan *DoQScan) Marshall() (bytes []byte, err error) {
+func (scan *DoQScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

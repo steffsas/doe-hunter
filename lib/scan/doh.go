@@ -21,7 +21,7 @@ type DoHScan struct {
 	Result *query.DoHResponse      `json:"result"`
 }
 
-func (scan *DoHScan) Marshall() (bytes []byte, err error) {
+func (scan *DoHScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

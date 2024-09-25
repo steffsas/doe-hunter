@@ -80,7 +80,7 @@ func TestCertificate_Process(t *testing.T) {
 			},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		certScanBytes, _ := json.Marshal(certScan)
 
 		err := cc.Process(&kafka.Message{Value: certScanBytes}, msh)
@@ -134,7 +134,7 @@ func TestCertificate_Process(t *testing.T) {
 			},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		certScanBytes, _ := json.Marshal(certScan)
 
 		err := cc.Process(&kafka.Message{Value: certScanBytes}, msh)
@@ -169,7 +169,7 @@ func TestCertificate_Process(t *testing.T) {
 			},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		certScanBytes, _ := json.Marshal(certScan)
 
 		err := cc.Process(&kafka.Message{Value: certScanBytes}, msh)

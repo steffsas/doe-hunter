@@ -21,7 +21,7 @@ type DoTScan struct {
 	Result *query.DoTResponse      `json:"result"`
 }
 
-func (scan *DoTScan) Marshall() (bytes []byte, err error) {
+func (scan *DoTScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

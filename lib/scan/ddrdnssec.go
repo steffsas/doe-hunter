@@ -23,7 +23,7 @@ type DDRDNSSECScan struct {
 	Result *query.ConventionalDNSResponse `json:"result"`
 }
 
-func (scan *DDRDNSSECScan) Marshall() (bytes []byte, err error) {
+func (scan *DDRDNSSECScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 

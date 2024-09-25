@@ -55,7 +55,7 @@ func TestPTR_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		ptrScanBytes, _ := json.Marshal(ptrScan)
 
 		// test
@@ -105,7 +105,7 @@ func TestPTR_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		ptrScanBytes, _ := json.Marshal(ptrScan)
 
 		// test
@@ -135,7 +135,7 @@ func TestPTR_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		ptrScanBytes, _ := json.Marshal(ptrScan)
 
 		// test

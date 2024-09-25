@@ -37,7 +37,7 @@ func TestCanaryProcessEventHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		canaryScanBytes, _ := json.Marshal(canaryScan)
 
 		// create message
@@ -97,7 +97,7 @@ func TestCanaryProcessEventHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		canaryScanBytes, _ := json.Marshal(canaryScan)
 
 		// create message
@@ -132,7 +132,7 @@ func TestCanaryProcessEventHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		canaryScanBytes, _ := json.Marshal(canaryScan)
 
 		// create message

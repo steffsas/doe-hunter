@@ -100,7 +100,7 @@ func TestEDSRProcessConsumer_Process(t *testing.T) {
 			Host:       "8.8.8.8",
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		edsrScanBytes, _ := json.Marshal(edsrScan)
 		msg := &kafka.Message{
 			Value: edsrScanBytes,
@@ -171,7 +171,7 @@ func TestEDSRProcessConsumer_Process(t *testing.T) {
 			Host:       "8.8.8.8",
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		edsrScanBytes, _ := json.Marshal(edsrScan)
 		msg := &kafka.Message{
 			Value: edsrScanBytes,

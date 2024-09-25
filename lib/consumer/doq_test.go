@@ -55,7 +55,7 @@ func TestDoQProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoQQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		doqScanBytes, _ := json.Marshal(doqScan)
 
 		// create kafka message
@@ -114,7 +114,7 @@ func TestDoQProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoQQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		doqScanBytes, _ := json.Marshal(doqScan)
 
 		// create kafka message
@@ -149,7 +149,7 @@ func TestDoQProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoQQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		doqScanBytes, _ := json.Marshal(doqScan)
 
 		// create kafka message

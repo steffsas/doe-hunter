@@ -75,7 +75,7 @@ func (smi *ScanMetaInformation) Schedule() {
 type Scan interface {
 	GetType() string
 	GetMetaInformation() *ScanMetaInformation
-	Marshall() ([]byte, error)
+	Marshal() ([]byte, error)
 	GetIdentifier() string
 }
 

@@ -24,7 +24,7 @@ func TestDDRDNSSEC_New(t *testing.T) {
 func TestDDRDNSSEC_Marshall(t *testing.T) {
 	t.Parallel()
 	s := scan.NewDDRDNSSECScan("target", "host", "parent", "root", "run", "vantagepoint")
-	bytes, err := s.Marshall()
+	bytes, err := s.Marshal()
 
 	// test
 	assert.Nil(t, err, "should not have returned an error")

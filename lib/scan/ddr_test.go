@@ -57,7 +57,7 @@ func TestDDRScan_Marshall(t *testing.T) {
 	t.Run("marshal DDR scan", func(t *testing.T) {
 		t.Parallel()
 		scan := scan.NewDDRScan(nil, false, "test", "runid")
-		bytes, err := scan.Marshall()
+		bytes, err := scan.Marshal()
 
 		// test
 		assert.Nil(t, err, "should not have returned an error")
@@ -93,7 +93,7 @@ func TestDDRScan_Marshall(t *testing.T) {
 		require.GreaterOrEqual(t, len(scans), 1, "should have returned at least one scan")
 		require.NotNil(t, errors, "should have returned the missing dohpath error")
 
-		// marshall
+		// marshal
 		var dohScan *scan.DoHScan
 		for _, s := range scans {
 			if s.GetType() == scan.DOH_SCAN_TYPE {
@@ -103,8 +103,8 @@ func TestDDRScan_Marshall(t *testing.T) {
 		}
 		require.NotNil(t, dohScan, "should have returned a DoH scan")
 
-		// marshall
-		b, err := dohScan.Marshall()
+		// marshal
+		b, err := dohScan.Marshal()
 
 		require.Nil(t, err, "should not have returned an error")
 		assert.NotNil(t, b, "should have returned bytes")

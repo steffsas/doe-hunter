@@ -46,7 +46,7 @@ func TestDoTScan_Constructor(t *testing.T) {
 func TestDoTScan_Marshall(t *testing.T) {
 	t.Parallel()
 	scan := scan.NewDoTScan(nil, "parent", "root", "run", "vantagepoint")
-	bytes, err := scan.Marshall()
+	bytes, err := scan.Marshal()
 
 	// test
 	assert.Nil(t, err, "should not have returned an error")

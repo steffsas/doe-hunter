@@ -55,7 +55,7 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoHQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dohScanBytes, _ := json.Marshal(dohScan)
 		msg := &kafka.Message{
 			Value: dohScanBytes,
@@ -81,7 +81,7 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 			QueryHandler: &dqh,
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		msg := &kafka.Message{
 			Value: []byte("invalid message"),
 		}
@@ -113,7 +113,7 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoHQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dohScanBytes, _ := json.Marshal(dohScan)
 		msg := &kafka.Message{
 			Value: dohScanBytes,
@@ -146,7 +146,7 @@ func TestDoHProcessEventHandler_Process(t *testing.T) {
 			Query: &query.DoHQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		dohScanBytes, _ := json.Marshal(dohScan)
 		msg := &kafka.Message{
 			Value: dohScanBytes,

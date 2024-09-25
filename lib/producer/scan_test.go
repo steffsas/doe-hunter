@@ -24,7 +24,7 @@ func (ms *mockedScan) GetMetaInformation() *scan.ScanMetaInformation {
 	return args.Get(0).(*scan.ScanMetaInformation)
 }
 
-func (ms *mockedScan) Marshall() ([]byte, error) {
+func (ms *mockedScan) Marshal() ([]byte, error) {
 	args := ms.Called()
 	return args.Get(0).([]byte), args.Error(1)
 }
@@ -97,7 +97,7 @@ func TestScanProducer_Produce(t *testing.T) {
 		t.Parallel()
 
 		ms := &mockedScan{}
-		ms.On("Marshall").Return([]byte{}, assert.AnError)
+		ms.On("Marshal").Return([]byte{}, assert.AnError)
 
 		mp := &mockedKafkaEventProducer{}
 		mp.On("Produce", mock.Anything, mock.Anything).Return(nil)

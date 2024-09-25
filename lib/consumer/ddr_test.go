@@ -62,7 +62,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			QueryHandler: mqh,
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		scanBytes, _ := json.Marshal(scan)
 
 		msg := kafka.Message{
@@ -132,7 +132,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		scanBytes, _ := json.Marshal(scan)
 
 		msg := kafka.Message{
@@ -171,7 +171,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		scanBytes, _ := json.Marshal(scan)
 
 		msg := kafka.Message{
@@ -210,7 +210,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		scanBytes, _ := json.Marshal(scan)
 
 		msg := kafka.Message{
@@ -251,7 +251,7 @@ func TestDDRScanConsumeHandler_Process(t *testing.T) {
 			Query: &query.ConventionalDNSQuery{},
 		}
 
-		// marshall to bytes
+		// marshal to bytes
 		scanBytes, _ := json.Marshal(scan)
 
 		msg := kafka.Message{

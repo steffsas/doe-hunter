@@ -70,7 +70,7 @@ type EDSRScan struct {
 	Result *EDSRResult `json:"result"`
 }
 
-func (scan *EDSRScan) Marshall() (bytes []byte, err error) {
+func (scan *EDSRScan) Marshal() (bytes []byte, err error) {
 	return json.Marshal(scan)
 }
 
