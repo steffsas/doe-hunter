@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v5
       - name: generate test coverage
         run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
       # see for badges: https://github.com/vladopajic/go-test-coverage/blob/main/docs/badge.md
