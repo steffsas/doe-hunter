@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20240517152333-2c6ad0a3f4fd
+	github.com/steffsas/doe-hunter/lib v0.0.0-20240521161905-74176d53c19d
 )
 
 require (
