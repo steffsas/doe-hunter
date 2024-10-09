@@ -14,7 +14,7 @@ scrape_configs:
           # docker daemon
           - 'vm-dnsscan-monitoring-1:9070'
 
-  # db server
+  # db server (old)
   - job_name: 'backend'
     static_configs:
       - targets:
@@ -24,6 +24,17 @@ scrape_configs:
           - 'vm-dnsscan-db-1:9080'
           # docker daemon
           - 'vm-dnsscan-db-1:9070'
+
+  # db server
+  - job_name: 'backend'
+    static_configs:
+      - targets:
+          # node_exporter
+          - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9090'
+          # cadvisor
+          - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9080'
+          # docker daemon
+          - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9070'
 
   # worker 1
   - job_name: 'worker-1'
