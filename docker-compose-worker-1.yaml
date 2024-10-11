@@ -42,6 +42,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -77,6 +79,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -94,6 +98,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -111,6 +117,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -128,6 +136,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -145,6 +155,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -162,6 +174,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -179,6 +193,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
@@ -196,6 +212,8 @@ services:
       - MONGO_SERVER=${MONGO_SERVER}
       - VANTAGE_POINT=hpi
       - LOG_LEVEL=INFO
+      # the local address from which the scans are executed
+      - LOCAL_ADDRESS=${LOCAL_ADDRESS}
       # this is the default blocklist
       - BLOCKLIST_FILE_PATH=blocklist.conf
     # needed to access db-1
