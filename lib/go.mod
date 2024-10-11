@@ -44,7 +44,7 @@ require (
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/confluentinc/confluent-kafka-go/v2 v2.5.4
+	github.com/confluentinc/confluent-kafka-go/v2 v2.6.0
 	github.com/quic-go/quic-go v0.47.0
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/net v0.30.0
