@@ -4,6 +4,7 @@
 [![lint](https://github.com/steffsas/doe-hunter/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/steffsas/doe-hunter/actions/workflows/lint.yml)
 [![coverage](https://raw.githubusercontent.com/steffsas/doe-hunter/badges/.badges/main/coverage.svg)](/.github/.testcoverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/steffsas/doe-hunter/lib?cache=v1)](https://goreportcard.com/report/github.com/steffsas/doe-hunter/lib)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
 
 <img src="./img/icon.png" alt="drawing" width="100"/>
 
