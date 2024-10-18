@@ -3,7 +3,6 @@
 [![lint-and-test](https://img.shields.io/github/actions/workflow/status/steffsas/doe-hunter/release.yml)](https://github.com/steffsas/doe-hunter/actions/workflows/release.yml)
 [![coverage](https://raw.githubusercontent.com/steffsas/doe-hunter/badges/.badges/main/coverage.svg)](/.github/.testcoverage.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/steffsas/doe-hunter/lib?cache=v1)](https://goreportcard.com/report/github.com/steffsas/doe-hunter/lib)
-
 [![Docker](https://img.shields.io/badge/docker-enabled-blue.svg)](https://github.com/steffsas/doe-hunter/pkgs/container/doe-hunter)
 [![Renovate](https://img.shields.io/badge/renovate-enabled-blue.svg)](https://github.com/steffsas/doe-hunter/issues/5)
 
