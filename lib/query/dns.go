@@ -16,8 +16,8 @@ const DNS_TCP = "tcp"
 const DEFAULT_RECURSIVE_RESOLVER = "8.8.8.8"
 
 const DEFAULT_DNS_PORT = 53
-const DEFAULT_UDP_TIMEOUT time.Duration = 5000 * time.Millisecond
-const DEFAULT_TCP_TIMEOUT time.Duration = 5000 * time.Millisecond
+const DEFAULT_UDP_TIMEOUT time.Duration = 15000 * time.Millisecond
+const DEFAULT_TCP_TIMEOUT time.Duration = 15000 * time.Millisecond
 const DEFAULT_UDP_RETRIES = 3
 const DEFAULT_TCP_RETRIES = 1
 const DEFAULT_BACKOFF_TIME time.Duration = 5000 * time.Millisecond
@@ -219,8 +219,9 @@ func NewConventionalDNSQueryHandler(config *QueryConfig) *ConventionalDNSQueryHa
 
 func getBackOffHandler(maxBackoffTime time.Duration) *backoff.ExponentialBackOff {
 	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = maxBackoffTime
+	b.InitialInterval = 1000 * time.Millisecond
 	b.MaxInterval = maxBackoffTime
+	b.Multiplier = 2
 
 	return b
 }
