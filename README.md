@@ -1,4 +1,4 @@
-# doe-hunter
+# DoE-Hunter
 
 [![lint-and-test](https://img.shields.io/github/actions/workflow/status/steffsas/doe-hunter/release.yml)](https://github.com/steffsas/doe-hunter/actions/workflows/release.yml)
 [![coverage](https://raw.githubusercontent.com/steffsas/doe-hunter/badges/.badges/main/coverage.svg)](/.github/.testcoverage.yml)
