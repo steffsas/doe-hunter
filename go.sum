@@ -360,6 +360,8 @@ github.com/quic-go/quic-go v0.43.1 h1:fLiMNfQVe9q2JvSsiXo4fXOEguXHGGl9+6gLp4RPeZ
 github.com/quic-go/quic-go v0.43.1/go.mod h1:132kz4kL3F9vxhW3CtQJLDVwcFe5wdWeJXXijhsO57M=
 github.com/quic-go/quic-go v0.48.0 h1:2TCyvBrMu1Z25rvIAlnp2dPT4lgh/uTqLqiXVpp5AeU=
 github.com/quic-go/quic-go v0.48.0/go.mod h1:yBgs3rWBOADpga7F+jJsb6Ybg1LSYiQvwWlLX+/6HMs=
+github.com/quic-go/quic-go v0.48.1 h1:y/8xmfWI9qmGTc+lBr4jKRUWLGSlSigv847ULJ4hYXA=
+github.com/quic-go/quic-go v0.48.1/go.mod h1:yBgs3rWBOADpga7F+jJsb6Ybg1LSYiQvwWlLX+/6HMs=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rogpeppe/clock v0.0.0-20190514195947-2896927a307a/go.mod h1:4r5QyqhjIWCcK8DO4KMclc5Iknq5qVBAlbYYzAbUScQ=
@@ -393,6 +395,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20241018075956-851dcd367562 h1:+2qnA1G
 github.com/steffsas/doe-hunter/lib v0.0.0-20241018075956-851dcd367562/go.mod h1:hLBGRofcaP+iE33YHAxKN88cobKhWDLPeKnyH775y1g=
 github.com/steffsas/doe-hunter/lib v0.0.0-20241018114031-0bc03dcff41d h1:CfpFr4si6EQxWnkffzm3pWz+lj9rSCWDMSdoGYF5DBs=
 github.com/steffsas/doe-hunter/lib v0.0.0-20241018114031-0bc03dcff41d/go.mod h1:hLBGRofcaP+iE33YHAxKN88cobKhWDLPeKnyH775y1g=
+github.com/steffsas/doe-hunter/lib v0.0.0-20241022080243-9618fea83c42 h1:63pHO0TfhIhgIC8Rv7wq4MsrmpxYMKZ2pjaZ/4wjH00=
+github.com/steffsas/doe-hunter/lib v0.0.0-20241022080243-9618fea83c42/go.mod h1:Oj91hdarnhZocmDZmjKtcUG2kQcZnNe8C//CnQihjs8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
