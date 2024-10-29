@@ -5,7 +5,7 @@ go 1.22.3
 require (
 	github.com/google/uuid v1.6.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20241018114031-0bc03dcff41d
+	github.com/steffsas/doe-hunter/lib v0.0.0-20241022080243-9618fea83c42
 )
 
 require (
@@ -25,7 +25,7 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/quic-go/quic-go v0.48.0 // indirect
+	github.com/quic-go/quic-go v0.48.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
