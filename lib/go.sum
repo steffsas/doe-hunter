@@ -55,6 +55,8 @@ github.com/confluentinc/confluent-kafka-go/v2 v2.5.4 h1:wqTPWwIQYguGIBL8XOJv0txV
 github.com/confluentinc/confluent-kafka-go/v2 v2.5.4/go.mod h1:UupuBgPAYzqS+I2P0H9zEUCqoFei2JSkBjTTtpNN454=
 github.com/confluentinc/confluent-kafka-go/v2 v2.6.0 h1:VKnMT71Tl0dCp3lfGBp2D8eqQwc+amoDY5EeUgFHDDE=
 github.com/confluentinc/confluent-kafka-go/v2 v2.6.0/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
+github.com/confluentinc/confluent-kafka-go/v2 v2.6.1 h1:XFkytnGvk/ZcY2qU0ql4E4h+ftBaGqkLO7tlZ4kRbr4=
+github.com/confluentinc/confluent-kafka-go/v2 v2.6.1/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
 github.com/containerd/console v1.0.3 h1:lIr7SlA5PxZyMV30bDW0MGbiOPXwc63yRuCP0ARubLw=
 github.com/containerd/console v1.0.3/go.mod h1:7LqA/THxQ86k76b8c/EMSiaJ3h1eZkMkXar0TQ1gf3U=
 github.com/containerd/containerd v1.7.12 h1:+KQsnv4VnzyxWcfO9mlxxELaoztsDEjOuCMPAuPqgU0=
