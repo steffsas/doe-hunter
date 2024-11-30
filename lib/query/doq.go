@@ -26,6 +26,7 @@ var DOQ_TLS_PROTOCOLS = []string{"doq", "dq"}
 type QuicConn interface {
 	CloseWithError(quic.ApplicationErrorCode, string) error
 	OpenStream() (quic.Stream, error)
+	ConnectionState() quic.ConnectionState
 }
 
 type QuicQueryHandler interface {
@@ -140,6 +141,14 @@ func (qh *DoQQueryHandler) Query(query *DoQQuery) (*DoQResponse, custom_errors.D
 			&res.DoEResponse,
 			query.SkipCertificateVerify,
 		)
+	}
+
+	// tls connection state
+	connState := session.ConnectionState()
+
+	if connState.TLS.HandshakeComplete {
+		res.TLSVersion = tls.VersionName(connState.TLS.Version)
+		res.TLSCipherSuite = tls.CipherSuiteName(connState.TLS.CipherSuite)
 	}
 
 	// prepare message according to RFC9250

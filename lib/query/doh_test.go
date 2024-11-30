@@ -1,6 +1,7 @@
 package query_test
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -22,15 +23,26 @@ type mockedHttpQueryHandler struct {
 	mock.Mock
 }
 
-func (m *mockedHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error) {
+func (m *mockedHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, *tls.ConnectionState, error) {
 	args := m.Called(httpReq, httpVersion, timeout, transport)
-	if args.Get(0) == nil {
-		return nil, args.Get(1).(time.Duration), args.Error(2)
+
+	var res *dns.Msg
+	var tlsConnState *tls.ConnectionState
+	var err error
+
+	if args.Get(0) != nil {
+		res = args.Get(0).(*dns.Msg)
 	}
-	if args.Get(2) == nil {
-		return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), nil
+
+	if args.Get(2) != nil {
+		tlsConnState = args.Get(2).(*tls.ConnectionState)
 	}
-	return args.Get(0).(*dns.Msg), args.Get(1).(time.Duration), args.Error(2)
+
+	if args.Get(3) != nil {
+		err = args.Get(3).(error)
+	}
+
+	return res, args.Get(1).(time.Duration), tlsConnState, err
 }
 
 func getMockedHttpHandler() *mockedHttpQueryHandler {
@@ -82,6 +94,94 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 
 	queryMsg := new(dns.Msg)
 	queryMsg.SetQuestion("google.de.", dns.TypeA)
+
+	t.Run("retrieve ciphersuite from TLS connection (HTTP2)", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.Method = query.HTTP_GET
+		q.HTTPVersion = query.HTTP_VERSION_2
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+
+		assert.Contains(t, res.DoEResponse.TLSCipherSuite, "AES", "ciphersuite should be present")
+	})
+
+	t.Run("retrieve ciphersuite from TLS connection (HTTP3)", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.Method = query.HTTP_GET
+		q.HTTPVersion = query.HTTP_VERSION_3
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+
+		assert.Contains(t, res.DoEResponse.TLSCipherSuite, "AES", "ciphersuite should be present")
+	})
+
+	t.Run("retrieve version from TLS connection (HTTP2)", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.Method = query.HTTP_GET
+		q.HTTPVersion = query.HTTP_VERSION_2
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+
+		assert.Contains(t, res.DoEResponse.TLSVersion, "1.", "ciphersuite should be present")
+	})
+
+	t.Run("retrieve version from TLS connection (HTTP3)", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.Method = query.HTTP_GET
+		q.HTTPVersion = query.HTTP_VERSION_3
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+
+		assert.Contains(t, res.DoEResponse.TLSVersion, "1.", "ciphersuite should be present")
+	})
 
 	t.Run("http1 get", func(t *testing.T) {
 		t.Parallel()
@@ -436,7 +536,7 @@ func TestDoHQuery_HTTPMethod(t *testing.T) {
 			mock.Anything,
 			mock.Anything,
 			mock.Anything,
-			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
+			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil, nil)
 
 		qh, err := query.NewDoHQueryHandler(nil)
 		require.Nil(t, err, "error should be nil")
@@ -511,7 +611,7 @@ func TestDoHQuery_Port(t *testing.T) {
 			mock.Anything,
 			mock.Anything,
 			mock.Anything,
-			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
+			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil, nil)
 
 		qh, err := query.NewDoHQueryHandler(nil)
 		require.Nil(t, err, "error should be nil")
@@ -584,7 +684,7 @@ func TestDoHQuery_DefaultTimeoutFallback(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-		mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
+		mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil, nil)
 
 	qh, err := query.NewDoHQueryHandler(nil)
 	require.Nil(t, err, "error should be nil")
@@ -744,7 +844,7 @@ func TestDoHQuery_SNI(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
-		mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
+		mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil, nil)
 
 	qh, err := query.NewDoHQueryHandler(nil)
 	require.Nil(t, err, "error should be nil")
@@ -778,7 +878,7 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 			mock.Anything,
 			mock.Anything,
 			mock.Anything,
-			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil)
+			mock.Anything).Return(&dns.Msg{}, 1*time.Millisecond, nil, nil)
 
 		qh, err := query.NewDoHQueryHandler(nil)
 		require.Nil(t, err, "error should be nil")
@@ -808,7 +908,7 @@ func TestDoHQueryHandler_HttpRequest(t *testing.T) {
 			mock.Anything,
 			mock.Anything,
 			mock.Anything,
-			mock.Anything).Return(nil, 1*time.Millisecond, fmt.Errorf("error"))
+			mock.Anything).Return(nil, 1*time.Millisecond, nil, fmt.Errorf("error"))
 
 		qh, err := query.NewDoHQueryHandler(nil)
 		require.Nil(t, err, "error should be nil")

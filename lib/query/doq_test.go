@@ -39,6 +39,46 @@ func TestStreamMock(t *testing.T) {
 func TestDoQQuery_RealWorld(t *testing.T) {
 	t.Parallel()
 
+	t.Run("tls version", func(t *testing.T) {
+		t.Parallel()
+
+		qm := new(dns.Msg)
+		qm.SetQuestion(doqNameQuery, dns.TypeA)
+
+		qh, err := query.NewDoQQueryHandler(nil)
+		assert.NoError(t, err, "error should be nil")
+
+		q := query.NewDoQQuery()
+		q.Host = "unfiltered.adguard-dns.com."
+		q.QueryMsg = qm
+		q.Port = 853
+
+		res, err := qh.Query(q)
+
+		require.NotNil(t, res, "response should not be nil")
+		assert.Contains(t, res.DoEResponse.TLSVersion, "1.3", "TLS version should contain '1.3'")
+	})
+
+	t.Run("cipher suite", func(t *testing.T) {
+		t.Parallel()
+
+		qm := new(dns.Msg)
+		qm.SetQuestion(doqNameQuery, dns.TypeA)
+
+		qh, err := query.NewDoQQueryHandler(nil)
+		assert.NoError(t, err, "error should be nil")
+
+		q := query.NewDoQQuery()
+		q.Host = "unfiltered.adguard-dns.com."
+		q.QueryMsg = qm
+		q.Port = 853
+
+		res, err := qh.Query(q)
+
+		require.NotNil(t, res, "response should not be nil")
+		assert.Contains(t, res.DoEResponse.TLSCipherSuite, "AES", "TLS cipher suite should contain 'AES'")
+	})
+
 	t.Run("hostname", func(t *testing.T) {
 		t.Parallel()
 
@@ -418,6 +458,7 @@ func getMockedQuicConnection(response *dns.Msg, err error) (conn query.QuicConn)
 	qConn := new(mockedQuicConn)
 	qConn.On("OpenStream").Return(stream, err)
 	qConn.On("CloseWithError", mock.Anything, mock.Anything).Return(nil)
+	qConn.On("ConnectionState").Return(quic.ConnectionState{})
 
 	return qConn
 }
@@ -496,4 +537,9 @@ func (m *mockedQuicConn) CloseWithError(quic.ApplicationErrorCode, string) error
 func (m *mockedQuicConn) OpenStream() (quic.Stream, error) {
 	args := m.Called()
 	return args.Get(0).(quic.Stream), args.Error(1)
+}
+
+func (m *mockedQuicConn) ConnectionState() quic.ConnectionState {
+	args := m.Called()
+	return args.Get(0).(quic.ConnectionState)
 }

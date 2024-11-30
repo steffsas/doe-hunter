@@ -72,7 +72,7 @@ func NewKafkaDoTEventConsumer(
 	newPh := func() (EventProcessHandler, error) {
 		return &DoTProcessEventHandler{
 			Producer:     prod,
-			QueryHandler: query.NewDoTQueryHandler(queryConfig),
+			QueryHandler: query.NewDefaultDoTHandler(queryConfig),
 		}, nil
 	}
 

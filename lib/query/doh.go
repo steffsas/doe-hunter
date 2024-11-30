@@ -38,7 +38,7 @@ const DEFAULT_DOH_TIMEOUT = 10000 * time.Millisecond
 const DEFAULT_DOH_PORT = 443
 
 type HttpQueryHandler interface {
-	Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error)
+	Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, *tls.ConnectionState, error)
 }
 
 type defaultHttpQueryHandler struct {
@@ -46,14 +46,14 @@ type defaultHttpQueryHandler struct {
 	QuicTransport *quic.Transport
 }
 
-func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, error) {
+func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion string, timeout time.Duration, transport http.RoundTripper) (*dns.Msg, time.Duration, *tls.ConnectionState, error) {
 	// set dialer for http1/http2/http3
 	switch httpVersion {
 	case HTTP_VERSION_1, HTTP_VERSION_2:
 		transport.(*http.Transport).DialContext = h.Dialer.DialContext
 	case HTTP_VERSION_3:
 		// see https://quic-go.net/docs/http3/client/#using-a-quictransport
-		transport.(*http3.RoundTripper).Dial = func(ctx context.Context, addr string, tlsConf *tls.Config, quicConf *quic.Config) (quic.EarlyConnection, error) {
+		transport.(*http3.Transport).Dial = func(ctx context.Context, addr string, tlsConf *tls.Config, quicConf *quic.Config) (quic.EarlyConnection, error) {
 			a, err := net.ResolveUDPAddr("udp", addr)
 			if err != nil {
 				return nil, err
@@ -76,27 +76,31 @@ func (h *defaultHttpQueryHandler) Query(httpReq *http.Request, httpVersion strin
 	}
 
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
+
+	// obviously we have established a connection now
+	// le'ts retrieve the TLS connection state
+	connState := httpRes.TLS
 
 	rtt := time.Since(begin)
 
 	content, err := io.ReadAll(httpRes.Body)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, connState, err
 	}
 
 	if httpRes.StatusCode != http.StatusOK {
-		return nil, 0, fmt.Errorf("DoH query failed with status code %d: \n %s", httpRes.StatusCode, string(content))
+		return nil, 0, connState, fmt.Errorf("DoH query failed with status code %d: \n %s", httpRes.StatusCode, string(content))
 	}
 
 	r := &dns.Msg{}
 	err = r.Unpack(content)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, connState, err
 	}
 
-	return r, rtt, nil
+	return r, rtt, connState, nil
 }
 
 func GetPathParamFromDoHPath(uri string) (path string, param string, err *custom_errors.DoEError) {
@@ -212,7 +216,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		// we should set this, got it from error anlysis
 		// see https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml
 		tlsConfig.NextProtos = []string{"h3"}
-		transport = &http3.RoundTripper{
+		transport = &http3.Transport{
 			TLSClientConfig: tlsConfig,
 			QUICConfig: &quic.Config{
 				Allow0RTT:       true,
@@ -253,6 +257,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 	fullGetURI := fmt.Sprintf("%s?%s=%s", baseUri, param, string(b64))
 
 	var queryErr error
+	var tlsConnState *tls.ConnectionState
 	//nolint:gocritic
 	if query.Method == HTTP_GET && len(fullGetURI) <= MAX_URI_LENGTH {
 		// ready to try GET request
@@ -262,7 +267,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		}
 		httpReq.Header.Add("accept", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
+		res.ResponseMsg, res.RTT, tlsConnState, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
 	} else if query.POSTFallback || query.Method == HTTP_POST {
 		// let's try POST instead
 		fullPostURI := fmt.Sprintf("%s%s", endpoint, path)
@@ -275,9 +280,15 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 		// content-type is required on POST requests, see RFC8484
 		httpReq.Header.Add("content-type", DOH_MEDIA_TYPE)
 
-		res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
+		res.ResponseMsg, res.RTT, tlsConnState, queryErr = qh.QueryHandler.Query(httpReq, query.HTTPVersion, query.Timeout, transport)
 	} else {
 		return res, custom_errors.NewQueryConfigError(custom_errors.ErrURITooLong, true).AddInfo(fmt.Errorf("URI length is %d characters", len(fullGetURI)))
+	}
+
+	// let's retrieve ciphersuite and TLS version from the connection state
+	if tlsConnState != nil && tlsConnState.HandshakeComplete {
+		res.TLSVersion = tls.VersionName(tlsConnState.Version)
+		res.TLSCipherSuite = tls.CipherSuiteName(tlsConnState.CipherSuite)
 	}
 
 	return res, validateCertificateError(

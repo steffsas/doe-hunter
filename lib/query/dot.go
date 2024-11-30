@@ -2,8 +2,10 @@ package query
 
 import (
 	"crypto/tls"
+	"net"
 	"time"
 
+	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
@@ -20,11 +22,11 @@ type DoTResponse struct {
 	DoEResponse
 }
 
-type DoTQueryHandler struct {
-	QueryHandler QueryHandlerDNS
+type DefaultDoTQueryHandler struct {
+	QueryHandler DoTQueryHandler
 }
 
-func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.DoEErrors) {
+func (qh *DefaultDoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.DoEErrors) {
 	res := &DoTResponse{}
 
 	res.CertificateValid = false
@@ -53,12 +55,23 @@ func (qh *DoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_errors.D
 	query.SetDNSSEC()
 
 	var queryErr error
-	res.ResponseMsg, res.RTT, queryErr = qh.QueryHandler.Query(
+
+	tlsConnState := &tls.ConnectionState{}
+
+	res.ResponseMsg, res.RTT, tlsConnState, queryErr = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),
-		query.QueryMsg, DNS_DOT_PROTOCOL,
+		query.QueryMsg,
 		query.Timeout,
 		tlsConfig,
 	)
+
+	// check whether connection was ok
+	if tlsConnState != nil {
+		res.CertificateValid = true
+		res.CertificateVerified = tlsConnState.VerifiedChains != nil
+		res.TLSVersion = tls.VersionName(tlsConnState.Version)
+		res.TLSCipherSuite = tls.CipherSuiteName(tlsConnState.CipherSuite)
+	}
 
 	return res, validateCertificateError(
 		queryErr,
@@ -82,9 +95,63 @@ func NewDoTQuery() (q *DoTQuery) {
 	return
 }
 
-func NewDoTQueryHandler(config *QueryConfig) (h *DoTQueryHandler) {
-	h = &DoTQueryHandler{}
-	h.QueryHandler = NewDefaultQueryHandler(config)
+type DoTQueryHandler interface {
+	Query(host string, query *dns.Msg, timeout time.Duration, tlsConfig *tls.Config) (answer *dns.Msg, rtt time.Duration, tlsConnState *tls.ConnectionState, err error)
+}
 
-	return
+type defaultQueryHandlerDoT struct {
+	DialerTCP *net.Dialer
+}
+
+func (df *defaultQueryHandlerDoT) Query(host string, query *dns.Msg, timeout time.Duration, tlsConfig *tls.Config) (*dns.Msg, time.Duration, *tls.ConnectionState, error) {
+	c := &dns.Client{
+		Timeout: timeout,
+	}
+
+	tlsDialer := &tls.Dialer{
+		NetDialer: df.DialerTCP,
+		Config:    tlsConfig,
+	}
+
+	// create connection
+	conn, err := tlsDialer.Dial("tcp", host)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	// retrieve the tls version and cipher suite
+	// parse connection state to tls connection
+
+	tlsConn := conn.(*tls.Conn)
+
+	// handshake
+	if err := tlsConn.Handshake(); err != nil {
+		return nil, 0, nil, err
+	}
+
+	// get the negotiated tls version and cipher suite
+	tlsConnState := tlsConn.ConnectionState()
+
+	msg, rtt, err := c.ExchangeWithConn(query, &dns.Conn{Conn: conn})
+
+	return msg, rtt, &tlsConnState, err
+}
+
+func NewDefaultDoTHandler(config *QueryConfig) *DefaultDoTQueryHandler {
+	qh := &defaultQueryHandlerDoT{
+		DialerTCP: &net.Dialer{},
+	}
+
+	if config != nil {
+		qh.DialerTCP.LocalAddr = &net.TCPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
+	}
+
+	dqh := &DefaultDoTQueryHandler{
+		QueryHandler: qh,
+	}
+
+	return dqh
 }
