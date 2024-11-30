@@ -56,7 +56,7 @@ func (qh *DefaultDoTQueryHandler) Query(query *DoTQuery) (*DoTResponse, custom_e
 
 	var queryErr error
 
-	tlsConnState := &tls.ConnectionState{}
+	var tlsConnState *tls.ConnectionState
 
 	res.ResponseMsg, res.RTT, tlsConnState, queryErr = qh.QueryHandler.Query(
 		helper.GetFullHostFromHostPort(query.Host, query.Port),

@@ -55,6 +55,7 @@ func TestDoQQuery_RealWorld(t *testing.T) {
 
 		res, err := qh.Query(q)
 
+		require.NoError(t, err, "error should be nil")
 		require.NotNil(t, res, "response should not be nil")
 		assert.Contains(t, res.DoEResponse.TLSVersion, "1.3", "TLS version should contain '1.3'")
 	})
@@ -75,6 +76,7 @@ func TestDoQQuery_RealWorld(t *testing.T) {
 
 		res, err := qh.Query(q)
 
+		require.NoError(t, err, "error should be nil")
 		require.NotNil(t, res, "response should not be nil")
 		assert.Contains(t, res.DoEResponse.TLSCipherSuite, "AES", "TLS cipher suite should contain 'AES'")
 	})
