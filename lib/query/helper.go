@@ -1,6 +1,7 @@
 package query
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"time"
@@ -51,6 +52,19 @@ func setCertificateValidationToResponse(queryErr error, res *DoEResponse, skipCe
 		res.CertificateVerified = true
 		res.CertificateValid = true
 	}
+}
+
+func getAllTLSCipherSuites() []uint16 {
+	// Retrieve all cipher suites
+	allCipherSuites := tls.CipherSuites()
+
+	// List of all cipher suite IDs
+	cipherSuiteIDs := make([]uint16, len(allCipherSuites))
+	for i, cs := range allCipherSuites {
+		cipherSuiteIDs[i] = cs.ID
+	}
+
+	return cipherSuiteIDs
 }
 
 func checkForQueryParams(host string, port int, timeout time.Duration, checkForTimeout bool) (err custom_errors.DoEErrors) {

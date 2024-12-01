@@ -58,6 +58,25 @@ func TestDoTQuery_RealWorld(t *testing.T) {
 		assert.Contains(t, res.DoEResponse.TLSCipherSuite, "AES", "ciphersuite should be detected")
 	})
 
+	t.Run("TLS configuration advertising all ciphersuites and TLS versions", func(t *testing.T) {
+		t.Parallel()
+
+		qm := new(dns.Msg)
+		qm.SetQuestion(dotQueryName, dns.TypeA)
+
+		qh := query.NewDefaultDoTHandler(nil)
+
+		q := query.NewDoTQuery()
+		q.Host = "8.8.8.8"
+		q.QueryMsg = qm
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "response should not be nil")
+		assert.NotNil(t, res.ResponseMsg, "response DNS msg should not be nil")
+	})
+
 	t.Run("TLS version detected", func(t *testing.T) {
 		t.Parallel()
 

@@ -183,6 +183,29 @@ func TestDoHQuery_RealWorld(t *testing.T) {
 		assert.Contains(t, res.DoEResponse.TLSVersion, "1.", "ciphersuite should be present")
 	})
 
+	t.Run("advertising all TLS versions and all ciphersuites", func(t *testing.T) {
+		t.Parallel()
+
+		qh, err := query.NewDoHQueryHandler(nil)
+		require.Nil(t, err, "error should be nil")
+
+		q := query.NewDoHQuery()
+		q.Host = host
+		q.Port = port
+		q.URI = uri
+		q.Method = query.HTTP_GET
+		q.HTTPVersion = query.HTTP_VERSION_2
+		q.QueryMsg = queryMsg
+
+		res, err := qh.Query(q)
+
+		assert.Nil(t, err, "error should be nil")
+		require.NotNil(t, res, "result should not be nil")
+
+		assert.NotEmpty(t, res.DoEResponse.TLSCipherSuite, "ciphersuite should be present")
+		assert.NotEmpty(t, res.DoEResponse.TLSVersion, "ciphersuite should be present")
+	})
+
 	t.Run("http1 get", func(t *testing.T) {
 		t.Parallel()
 
