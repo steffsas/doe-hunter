@@ -1,17 +1,20 @@
 package query
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"net"
 	"time"
 
+	"github.com/quic-go/quic-go"
 	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/helper"
 )
 
 const TLS_PROTOCOL_TCP = "tcp"
 const TLS_PROTOCOL_UDP = "udp"
+
 const DEFAULT_TLS_PORT = 443
 const DEFAULT_TLS_TIMEOUT time.Duration = 5000 * time.Millisecond
 
@@ -21,16 +24,72 @@ type Conn interface {
 }
 
 type CertQueryHandler interface {
-	Query(port string, timeout time.Duration, tlsConf *tls.Config) (Conn, error)
+	Query(host string, port int, protocol string, timeout time.Duration, tlsConf *tls.Config) (*tls.ConnectionState, error)
 }
 
 type DefaultCertQueryHandler struct {
-	dialer *net.Dialer
+	dialerTCP *net.Dialer
+	udpConn   *net.UDPConn
 }
 
-func (d *DefaultCertQueryHandler) Query(host string, timeout time.Duration, tlsConf *tls.Config) (Conn, error) {
-	d.dialer.Timeout = timeout
-	return tls.DialWithDialer(d.dialer, "tcp", host, tlsConf)
+func (d *DefaultCertQueryHandler) Query(host string, port int, protocol string, timeout time.Duration, tlsConf *tls.Config) (*tls.ConnectionState, error) {
+	if protocol != TLS_PROTOCOL_TCP && protocol != TLS_PROTOCOL_UDP {
+		return nil, custom_errors.NewGenericError(custom_errors.ErrUnknownProtocolForTLS, true)
+	}
+
+	if protocol == TLS_PROTOCOL_UDP {
+		// we cannot use the crypto/tls library as it is specific for TCP
+		// dial a QUIC session instead
+
+		quicConfig := &quic.Config{
+			HandshakeIdleTimeout: timeout,
+		}
+
+		// resolve the target address if necessary
+		var udpAddr *net.UDPAddr
+		ipAddr := net.ParseIP(host)
+		if ipAddr == nil {
+			resolvedAddress, err := net.ResolveUDPAddr("udp", helper.GetFullHostFromHostPort(host, port))
+			if err != nil {
+				return nil, custom_errors.NewQueryError(custom_errors.ErrResolveHostFailed, true).AddInfo(err)
+			}
+
+			udpAddr = resolvedAddress
+		} else {
+			udpAddr = &net.UDPAddr{
+				IP:   ipAddr,
+				Port: port,
+			}
+		}
+
+		// establish session
+		session, err := quic.Dial(context.Background(), d.udpConn, udpAddr, tlsConf, quicConfig)
+		if err != nil {
+			return nil, custom_errors.NewQueryError(custom_errors.ErrSessionEstablishmentFailed, true).AddInfo(err)
+		}
+
+		// retrieve quic connection state including TLS connection state
+		connState := session.ConnectionState()
+
+		// close the session, do not check for errors
+		_ = session.CloseWithError(0, "")
+
+		return &connState.TLS, err
+	} else {
+		d.dialerTCP.Timeout = timeout
+		conn, err := tls.DialWithDialer(d.dialerTCP, "tcp", helper.GetFullHostFromHostPort(host, port), tlsConf)
+		if err != nil {
+			return nil, err
+		}
+
+		// retrieve connection information
+		connState := conn.ConnectionState()
+
+		// close the connection, do not check for errors
+		_ = conn.Close()
+
+		return &connState, err
+	}
 }
 
 type CertificateQuery struct {
@@ -88,13 +147,13 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 		tlsConfig.NextProtos = q.ALPN
 	}
 
-	conn, err := qh.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.Timeout, tlsConfig)
+	conn, err := qh.QueryHandler.Query(q.Host, q.Port, q.Protocol, q.Timeout, tlsConfig)
 
 	if err != nil {
 		if helper.IsCertificateError(err) {
 			// we will try to get the certificate without verification
 			res.RetryWithoutCertificateVerification, tlsConfig.InsecureSkipVerify = true, true
-			conn, err = qh.QueryHandler.Query(helper.GetFullHostFromHostPort(q.Host, q.Port), q.Timeout, tlsConfig)
+			conn, err = qh.QueryHandler.Query(q.Host, q.Port, q.Protocol, q.Timeout, tlsConfig)
 
 			if err != nil {
 				return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true).AddInfo(err)
@@ -103,9 +162,7 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 			return res, custom_errors.NewQueryError(custom_errors.ErrUnknownQuery, true).AddInfo(err)
 		}
 	}
-	defer conn.Close()
-
-	res.Certificates = conn.ConnectionState().PeerCertificates
+	res.Certificates = conn.PeerCertificates
 
 	return res, nil
 }
@@ -118,21 +175,35 @@ func NewCertificateQuery() (q *CertificateQuery) {
 	}
 }
 
-func NewCertificateQueryHandler(config *QueryConfig) *CertificateQueryHandler {
+func NewCertificateQueryHandler(config *QueryConfig) (*CertificateQueryHandler, error) {
 	qh := &CertificateQueryHandler{}
 
 	cqh := &DefaultCertQueryHandler{
-		dialer: &net.Dialer{},
+		dialerTCP: &net.Dialer{},
 	}
 
-	if config != nil {
-		cqh.dialer.LocalAddr = &net.TCPAddr{
+	// udp addr for quic
+	udpAddr := &net.UDPAddr{}
+
+	if config != nil && config.LocalAddr != nil {
+		cqh.dialerTCP.LocalAddr = &net.TCPAddr{
+			IP:   config.LocalAddr,
+			Port: 0,
+		}
+
+		udpAddr = &net.UDPAddr{
 			IP:   config.LocalAddr,
 			Port: 0,
 		}
 	}
 
+	var err error
+	cqh.udpConn, err = net.ListenUDP("udp", udpAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	qh.QueryHandler = cqh
 
-	return qh
+	return qh, nil
 }

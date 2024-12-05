@@ -72,6 +72,7 @@ var ErrInvalidSVCBRR = errors.New("invalid DNS RR")
 
 // specific certificate errors
 var ErrCertificateInvalid = errors.New("certificate is invalid")
+var ErrUnknownProtocolForTLS = errors.New("unknown protocol for TLS")
 
 // generic producer generation
 var ErrProducerCreationFailed = errors.New("failed to create producer")

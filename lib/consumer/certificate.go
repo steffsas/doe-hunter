@@ -56,8 +56,13 @@ func NewKafkaCertificateEventConsumer(config *KafkaConsumerConfig, storageHandle
 	}
 
 	newPh := func() (EventProcessHandler, error) {
+		qh, err := query.NewCertificateQueryHandler(queryConfig)
+		if err != nil {
+			return nil, err
+		}
+
 		return &CertificateProcessEventHandler{
-			QueryHandler: query.NewCertificateQueryHandler(queryConfig),
+			QueryHandler: qh,
 		}, nil
 	}
 
