@@ -12,7 +12,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.1
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 	gopkg.in/fsnotify.v1 v1.4.7
 )
 
