@@ -15,7 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.1
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	gopkg.in/fsnotify.v1 v1.4.7
 )
 
@@ -50,7 +50,7 @@ require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.6.1
 	github.com/quic-go/quic-go v0.48.2
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.33.0
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/net v0.34.0
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 )
