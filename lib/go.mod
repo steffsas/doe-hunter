@@ -46,7 +46,7 @@ require (
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.0
+	github.com/cenkalti/backoff/v5 v5.0.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/quic-go/quic-go v0.48.2
 	golang.org/x/mod v0.18.0 // indirect
