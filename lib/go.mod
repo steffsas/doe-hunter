@@ -6,6 +6,7 @@ toolchain go1.23.5
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.1
 	github.com/containerd/fifo v1.1.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/google/uuid v1.6.0
@@ -46,7 +47,6 @@ require (
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.1
 	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
 	github.com/quic-go/quic-go v0.48.2
 	golang.org/x/mod v0.18.0 // indirect
