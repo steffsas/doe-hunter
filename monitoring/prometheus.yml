@@ -35,6 +35,8 @@ scrape_configs:
           - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9080'
           # docker daemon
           - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9070'
+          # kafka exporter
+          - 'vm-dnsscan-db-1.cloud.dhclab.i.hpi.de:9308'
 
   # worker 1
   - job_name: 'worker-1'
