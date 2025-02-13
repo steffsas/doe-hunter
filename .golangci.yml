@@ -120,5 +120,5 @@ issues:
         - goconst
 
 run:
-  go: '1.22.3'
+  go: '1.24.0'
   timeout: 10m
