@@ -2,11 +2,11 @@ module github.com/steffsas/doe-hunter/lib
 
 go 1.23
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cenkalti/backoff/v5 v5.0.1
+	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/containerd/fifo v1.1.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/google/uuid v1.6.0
