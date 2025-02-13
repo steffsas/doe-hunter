@@ -24,12 +24,7 @@ func TestFileProducer_Produce(t *testing.T) {
 	t.Run("test valid produce on single file", func(t *testing.T) {
 		t.Parallel()
 
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-			return
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		f, err := os.CreateTemp(tmp, "test-*.csv")
 		if err != nil {
