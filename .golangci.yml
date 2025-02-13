@@ -22,7 +22,9 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
+    # deprecated
+    # - exportloopref
     - forbidigo
     # - forcetypeassert
     - gocheckcompilerdirectives
@@ -71,7 +73,9 @@ linters:
     # - stylecheck
     - tagalign
     # - tagliatelle
-    - tenv
+    - usetesting
+    # deprecated
+    # - tenv
     - testpackage
     - thelper
     - tparallel # same with parallel test
