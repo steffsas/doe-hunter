@@ -11,11 +11,7 @@ import (
 
 func TestLoadEnv(t *testing.T) {
 	t.Run("valid load env", func(t *testing.T) {
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		f, err := os.CreateTemp(tmp, "test-*.env")
 		if err != nil {

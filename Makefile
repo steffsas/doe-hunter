@@ -2,7 +2,7 @@ GO ?= go
 GOBIN ?= $$($(GO) env GOPATH)
 GOLANGCI_LINT ?= $(GOBIN)/bin/golangci-lint
 GOTESTCOVERAGE ?= $(GOBIN)/bin/go-test-coverage
-GOLANGCI_LINT_VERSION ?= v1.58.1
+GOLANGCI_LINT_VERSION ?= v1.64.4
 
 .PHONY: get-go-test-coverage
 get-go-test-coverage:

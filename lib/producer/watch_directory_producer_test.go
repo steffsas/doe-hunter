@@ -65,12 +65,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 
 		host := "8.8.8.8"
 
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-			return
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
@@ -95,7 +90,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp)
+		err := dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
@@ -134,12 +129,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	t.Run("valid watch and produce on multiple files", func(t *testing.T) {
 		t.Parallel()
 
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-			return
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
@@ -169,7 +159,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp)
+		err := dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
@@ -226,12 +216,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	t.Run("remove and recreate file", func(t *testing.T) {
 		t.Parallel()
 
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-			return
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		firstHost := "8.8.8.8"
 		secondHost := "1.1.1.1"
@@ -267,7 +252,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp)
+		err := dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
@@ -308,12 +293,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 	t.Run("quit exiting", func(t *testing.T) {
 		t.Parallel()
 
-		tmp, err := os.MkdirTemp("", "tests-*")
-		if err != nil {
-			t.Fatalf("failed to create temp dir: %v", err)
-			return
-		}
-		defer os.RemoveAll(tmp)
+		tmp := t.TempDir()
 
 		ctx := context.Background()
 		ctx, cancel := context.WithCancel(ctx)
@@ -349,7 +329,7 @@ func TestWatchDirectoryProducer_WatchAndProduce(t *testing.T) {
 			cancel()
 		}()
 
-		err = dp.WatchAndProduce(ctx, tmp)
+		err := dp.WatchAndProduce(ctx, tmp)
 
 		require.NoError(t, err)
 		mkp.AssertCalled(t, "Produce", mock.Anything, helper.GetTopicFromNameAndVP(kafka.DEFAULT_DDR_TOPIC, vp))
