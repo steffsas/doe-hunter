@@ -1,6 +1,6 @@
 module github.com/steffsas/doe-hunter/lib
 
-go 1.23
+go 1.23.0
 
 toolchain go1.24.0
 
@@ -16,7 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.2
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	gopkg.in/fsnotify.v1 v1.4.7
 )
 
