@@ -78,7 +78,7 @@ func TestBlocklist_Contains(t *testing.T) {
 		assert.False(t, contains, "google should not be blocked")
 	})
 
-	t.Run("google should not be blocked", func(t *testing.T) {
+	t.Run("localhost should be blocked", func(t *testing.T) {
 		t.Parallel()
 
 		ip := "127.0.0.1"

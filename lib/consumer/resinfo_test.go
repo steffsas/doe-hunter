@@ -136,25 +136,58 @@ func TestResInfoConsumer_ParseResponse(t *testing.T) {
 func TestResInfoConsumer_RealWorld(t *testing.T) {
 	t.Parallel()
 
-	target := "resolver.dns4all.eu."
-	host := "resolver.dns4all.eu"
+	t.Run("dns4all supports RESINFO", func(t *testing.T) {
+		t.Parallel()
 
-	scan := &scan.ResInfoScan{
-		Meta: &scan.ResInfoScanMetaInformation{
-			ScanMetaInformation: scan.ScanMetaInformation{},
-		},
-		TargetName: target,
-		Host:       host,
-	}
+		target := "resolver.dns4all.eu."
+		host := "resolver.dns4all.eu"
 
-	qh := query.NewResInfoQueryHandler(nil)
+		scan := &scan.ResInfoScan{
+			Meta: &scan.ResInfoScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			TargetName: target,
+			Host:       host,
+		}
 
-	c := &consumer.ResInfoProcessConsumer{
-		QueryHandler: qh,
-	}
+		qh := query.NewResInfoQueryHandler(nil)
 
-	c.StartResInfo(scan)
+		c := &consumer.ResInfoProcessConsumer{
+			QueryHandler: qh,
+		}
 
-	assert.Nil(t, scan.Meta.Errors, "should not have returned an error")
-	assert.NotNil(t, scan.Result, "should have returned a result")
+		c.StartResInfo(scan)
+
+		assert.Nil(t, scan.Meta.Errors, "should not have returned an error")
+		assert.NotNil(t, scan.Result, "should have returned a result")
+
+		assert.True(t, scan.Result.RFC9606Support, "should have returned true")
+	})
+
+	t.Run("dns.google does not support RESINFO", func(t *testing.T) {
+		t.Parallel()
+
+		target := "dns.google."
+		host := "dns.google"
+
+		scan := &scan.ResInfoScan{
+			Meta: &scan.ResInfoScanMetaInformation{
+				ScanMetaInformation: scan.ScanMetaInformation{},
+			},
+			TargetName: target,
+			Host:       host,
+		}
+
+		qh := query.NewResInfoQueryHandler(nil)
+
+		c := &consumer.ResInfoProcessConsumer{
+			QueryHandler: qh,
+		}
+
+		c.StartResInfo(scan)
+
+		assert.Nil(t, scan.Meta.Errors, "should not have returned an error")
+		assert.NotNil(t, scan.Result, "should have returned a result")
+		assert.False(t, scan.Result.RFC9606Support, "should have returned false")
+	})
 }
