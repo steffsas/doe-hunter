@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20250311094725-482cad8fd2e6
+	github.com/steffsas/doe-hunter/lib v0.0.0-20250313064548-60044c6125f6
 )
 
 require (
