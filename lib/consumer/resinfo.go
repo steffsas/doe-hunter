@@ -63,6 +63,7 @@ func ParseResInfoResponse(m *dns.Msg) (*scan.ResInfoResult, error) {
 			if resInfoRecordFound {
 				// RFC 9606: "If the resolver understands the RESINFO RR type, the RRset MUST have exactly one record"
 				logrus.Warnf("multiple RESINFO records found")
+				res.MultipleRecords = true
 			}
 
 			// RESINFO uses the same format as structured TXT record
@@ -76,6 +77,7 @@ func ParseResInfoResponse(m *dns.Msg) (*scan.ResInfoResult, error) {
 
 			data := n.Rdata
 
+			// The RFC3597 type encodes the data as hex string
 			dataBytes := make([]byte, len(data)/2)
 			for i := 0; i < len(data); i += 2 {
 				_, err := fmt.Sscanf(data[i:i+2], "%02x", &dataBytes[i/2])

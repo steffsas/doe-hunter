@@ -115,22 +115,73 @@ func TestResInfoConsumer_Process(t *testing.T) {
 func TestResInfoConsumer_ParseResponse(t *testing.T) {
 	t.Parallel()
 
-	msg := new(dns.Msg)
-	msg.Answer = []dns.RR{
-		&dns.RFC3597{
-			Hdr: dns.RR_Header{
-				Name:   "resolver.dns4all.eu.",
-				Rrtype: query.TypeRESINFO,
+	t.Run("correct data", func(t *testing.T) {
+		t.Parallel()
+
+		msg := new(dns.Msg)
+		msg.Answer = []dns.RR{
+			&dns.RFC3597{
+				Hdr: dns.RR_Header{
+					Name:   "resolver.dns4all.eu.",
+					Rrtype: query.TypeRESINFO,
+				},
+				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
 			},
-			Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
-		},
-	}
+		}
 
-	res, err := consumer.ParseResInfoResponse(msg)
+		res, err := consumer.ParseResInfoResponse(msg)
 
-	assert.Nil(t, err, "should not have returned an error")
-	require.NotNil(t, res, "should have returned a result")
-	assert.Equal(t, "qnamemin", res.Keys[0], "should have returned the correct key")
+		assert.Nil(t, err, "should not have returned an error")
+		require.NotNil(t, res, "should have returned a result")
+		assert.Equal(t, "qnamemin", res.Keys[0], "should have returned the correct key")
+	})
+
+	t.Run("multiple records", func(t *testing.T) {
+		t.Parallel()
+
+		msg := new(dns.Msg)
+		msg.Answer = []dns.RR{
+			&dns.RFC3597{
+				Hdr: dns.RR_Header{
+					Name:   "resolver.dns4all.eu.",
+					Rrtype: query.TypeRESINFO,
+				},
+				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+			},
+			&dns.RFC3597{
+				Hdr: dns.RR_Header{
+					Name:   "resolver.dns4all.eu.",
+					Rrtype: query.TypeRESINFO,
+				},
+				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+			},
+		}
+
+		res, err := consumer.ParseResInfoResponse(msg)
+
+		assert.Nil(t, err, "should not have returned an error")
+		require.NotNil(t, res, "should have returned a result")
+		assert.True(t, res.MultipleRecords, "should have returned true")
+	})
+
+	t.Run("invalid data", func(t *testing.T) {
+		t.Parallel()
+
+		msg := new(dns.Msg)
+		msg.Answer = []dns.RR{
+			&dns.RFC3597{
+				Hdr: dns.RR_Header{
+					Name:   "resolver.dns4all.eu.",
+					Rrtype: query.TypeRESINFO,
+				},
+				Rdata: "invalid",
+			},
+		}
+
+		_, err := consumer.ParseResInfoResponse(msg)
+
+		assert.Error(t, err, "should have returned an error")
+	})
 }
 
 func TestResInfoConsumer_RealWorld(t *testing.T) {
