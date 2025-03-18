@@ -1,12 +1,13 @@
 package query
 
-// RESINFO record type is currently not supported by miekg/dns
-const TypeRESINFO = uint16(261)
+import (
+	"github.com/miekg/dns"
+)
 
 func NewResInfoQuery(targetName string) *ConventionalDNSQuery {
 	q := NewConventionalQuery()
 
-	q.QueryMsg.SetQuestion(targetName, TypeRESINFO)
+	q.QueryMsg.SetQuestion(targetName, dns.TypeRESINFO)
 
 	return q
 }

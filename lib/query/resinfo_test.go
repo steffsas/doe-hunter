@@ -26,7 +26,7 @@ func TestNewResInfoQuery(t *testing.T) {
 	require.NotNil(t, res.Response.ResponseMsg.Answer, "should have returned at least one DNS answer")
 	for _, answer := range res.Response.ResponseMsg.Answer {
 		rrtype := answer.Header().Rrtype
-		rrtypeCorrect := rrtype == query.TypeRESINFO || rrtype == dns.TypeRRSIG
+		rrtypeCorrect := rrtype == dns.TypeRESINFO || rrtype == dns.TypeRRSIG
 		assert.True(t, rrtypeCorrect, "should only return RRSIG or RESINFO records")
 	}
 }

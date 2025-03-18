@@ -3,7 +3,6 @@ package consumer
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/miekg/dns"
@@ -50,7 +49,9 @@ func (resinfo *ResInfoProcessConsumer) Process(msg *kafka.Message, sh storage.St
 }
 
 func ParseResInfoResponse(m *dns.Msg) (*scan.ResInfoResult, error) {
-	res := &scan.ResInfoResult{}
+	res := &scan.ResInfoResult{
+		Keys: make([]string, 0),
+	}
 
 	if m == nil {
 		return res, nil
@@ -59,50 +60,19 @@ func ParseResInfoResponse(m *dns.Msg) (*scan.ResInfoResult, error) {
 	resInfoRecordFound := false
 
 	for _, a := range m.Answer {
-		if a.Header().Rrtype == query.TypeRESINFO {
+		if a.Header().Rrtype == dns.TypeRESINFO {
 			if resInfoRecordFound {
 				// RFC 9606: "If the resolver understands the RESINFO RR type, the RRset MUST have exactly one record"
 				logrus.Warnf("multiple RESINFO records found")
 				res.MultipleRecords = true
 			}
 
-			// RESINFO uses the same format as structured TXT record
-			// But we need to parse it as an unknown record (RFC3597)
-
-			n, ok := a.(*dns.RFC3597)
+			resinfo, ok := a.(*dns.RESINFO)
 			if !ok {
-				logrus.Warnf("could not cast to RFC3597")
+				logrus.Warnf("could not cast to RESINFO")
 				return res, custom_errors.ErrParsingResInfo
 			}
-
-			data := n.Rdata
-
-			// The RFC3597 type encodes the data as hex string
-			dataBytes := make([]byte, len(data)/2)
-			for i := 0; i < len(data); i += 2 {
-				_, err := fmt.Sscanf(data[i:i+2], "%02x", &dataBytes[i/2])
-				if err != nil {
-					logrus.Warnf("error parsing RESINFO record: %v", err)
-					return res, custom_errors.ErrParsingResInfo
-				}
-			}
-
-			for i := 0; i < len(dataBytes); {
-				// Parse key
-				if i >= len(dataBytes) {
-					logrus.Warnf("invalid key length in RESINFO record")
-					return res, custom_errors.ErrParsingResInfo
-				}
-				keyLen := int(dataBytes[i])
-				if i+keyLen > len(dataBytes) {
-					logrus.Warnf("invalid key length in RESINFO record")
-					return res, custom_errors.ErrParsingResInfo
-				}
-				key := string(dataBytes[i+1 : i+1+keyLen])
-				i += 1 + keyLen
-
-				res.Keys = append(res.Keys, key)
-			}
+			res.Keys = append(res.Keys, resinfo.Txt...)
 
 			res.RFC9606Support = true
 			resInfoRecordFound = true

@@ -28,12 +28,12 @@ func TestResInfoConsumer_Process(t *testing.T) {
 			Response: &query.DNSResponse{
 				ResponseMsg: &dns.Msg{
 					Answer: []dns.RR{
-						&dns.RFC3597{
+						&dns.RESINFO{
 							Hdr: dns.RR_Header{
 								Name:   "resolver.dns4all.eu.",
-								Rrtype: query.TypeRESINFO,
+								Rrtype: dns.TypeRESINFO,
 							},
-							Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+							Txt: []string{"qnamemin", "temp-testkey-0"},
 						},
 					},
 				},
@@ -74,12 +74,12 @@ func TestResInfoConsumer_Process(t *testing.T) {
 			Response: &query.DNSResponse{
 				ResponseMsg: &dns.Msg{
 					Answer: []dns.RR{
-						&dns.RFC3597{
+						&dns.RESINFO{
 							Hdr: dns.RR_Header{
 								Name:   "resolver.dns4all.eu.",
-								Rrtype: query.TypeRESINFO,
+								Rrtype: dns.TypeRESINFO,
 							},
-							Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+							Txt: []string{"qnamemin", "temp-testkey"},
 						},
 					},
 				},
@@ -120,12 +120,12 @@ func TestResInfoConsumer_ParseResponse(t *testing.T) {
 
 		msg := new(dns.Msg)
 		msg.Answer = []dns.RR{
-			&dns.RFC3597{
+			&dns.RESINFO{
 				Hdr: dns.RR_Header{
 					Name:   "resolver.dns4all.eu.",
-					Rrtype: query.TypeRESINFO,
+					Rrtype: dns.TypeRESINFO,
 				},
-				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+				Txt: []string{"qnamemin", "temp-testkey"},
 			},
 		}
 
@@ -141,19 +141,19 @@ func TestResInfoConsumer_ParseResponse(t *testing.T) {
 
 		msg := new(dns.Msg)
 		msg.Answer = []dns.RR{
-			&dns.RFC3597{
+			&dns.RESINFO{
 				Hdr: dns.RR_Header{
 					Name:   "resolver.dns4all.eu.",
-					Rrtype: query.TypeRESINFO,
+					Rrtype: dns.TypeRESINFO,
 				},
-				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+				Txt: []string{"qnamemin", "temp-testkey-1"},
 			},
-			&dns.RFC3597{
+			&dns.RESINFO{
 				Hdr: dns.RR_Header{
 					Name:   "resolver.dns4all.eu.",
-					Rrtype: query.TypeRESINFO,
+					Rrtype: dns.TypeRESINFO,
 				},
-				Rdata: "08716e616d656d696e0e74656d702d646e7373656376616c1a696e666f75726c3d68747470733a2f2f646e7334616c6c2e6575",
+				Txt: []string{"qnamemin", "temp-testkey-2"},
 			},
 		}
 
@@ -162,25 +162,6 @@ func TestResInfoConsumer_ParseResponse(t *testing.T) {
 		assert.Nil(t, err, "should not have returned an error")
 		require.NotNil(t, res, "should have returned a result")
 		assert.True(t, res.MultipleRecords, "should have returned true")
-	})
-
-	t.Run("invalid data", func(t *testing.T) {
-		t.Parallel()
-
-		msg := new(dns.Msg)
-		msg.Answer = []dns.RR{
-			&dns.RFC3597{
-				Hdr: dns.RR_Header{
-					Name:   "resolver.dns4all.eu.",
-					Rrtype: query.TypeRESINFO,
-				},
-				Rdata: "invalid",
-			},
-		}
-
-		_, err := consumer.ParseResInfoResponse(msg)
-
-		assert.Error(t, err, "should have returned an error")
 	})
 }
 
