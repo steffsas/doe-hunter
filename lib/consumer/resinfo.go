@@ -63,8 +63,7 @@ func ParseResInfoResponse(m *dns.Msg) (*scan.ResInfoResult, error) {
 		if a.Header().Rrtype == dns.TypeRESINFO {
 			if resInfoRecordFound {
 				// RFC 9606: "If the resolver understands the RESINFO RR type, the RRset MUST have exactly one record"
-				logrus.Warnf("multiple RESINFO records found")
-				res.MultipleRecords = true
+				return res, custom_errors.ErrMultipleResInfoRecords
 			}
 
 			resinfo, ok := a.(*dns.RESINFO)

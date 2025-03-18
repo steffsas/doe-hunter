@@ -16,9 +16,6 @@ type ResInfoScanMetaInformation struct {
 type ResInfoResult struct {
 	RFC9606Support bool `json:"rfc9606_support"`
 
-	// Indicates whether the resolver has multiple RESINFO records
-	MultipleRecords bool `json:"multiple_records"`
-
 	Keys []string `json:"keys"`
 }
 

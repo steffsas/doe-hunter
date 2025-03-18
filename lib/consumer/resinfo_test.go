@@ -8,6 +8,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/miekg/dns"
 	"github.com/steffsas/doe-hunter/lib/consumer"
+	"github.com/steffsas/doe-hunter/lib/custom_errors"
 	"github.com/steffsas/doe-hunter/lib/query"
 	"github.com/steffsas/doe-hunter/lib/scan"
 	"github.com/stretchr/testify/assert"
@@ -157,11 +158,11 @@ func TestResInfoConsumer_ParseResponse(t *testing.T) {
 			},
 		}
 
-		res, err := consumer.ParseResInfoResponse(msg)
+		_, err := consumer.ParseResInfoResponse(msg)
 
-		assert.Nil(t, err, "should not have returned an error")
-		require.NotNil(t, res, "should have returned a result")
-		assert.True(t, res.MultipleRecords, "should have returned true")
+		assert.NotNil(t, err, "should have returned an error")
+
+		assert.True(t, errors.Is(err, custom_errors.ErrMultipleResInfoRecords), "should have returned the correct error")
 	})
 }
 
