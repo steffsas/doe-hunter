@@ -105,3 +105,23 @@ func (resinfo *ResInfoProcessConsumer) StartResInfo(s *scan.ResInfoScan) {
 		s.Result = result
 	}
 }
+
+func NewKafkaResInfoEventConsumer(
+	config *KafkaConsumerConfig,
+	storageHandler storage.StorageHandler,
+	queryConfig *query.QueryConfig,
+) (kec *KafkaEventConsumer, err error) {
+	if config != nil && config.ConsumerGroup == "" {
+		config.ConsumerGroup = DEFAULT_RESINFO_CONSUMER_GROUP
+	}
+
+	newPh := func() (EventProcessHandler, error) {
+		return &ResInfoProcessConsumer{
+			QueryHandler: query.NewConventionalDNSQueryHandler(queryConfig),
+		}, nil
+	}
+
+	kec, err = NewKafkaEventConsumer(config, newPh, storageHandler)
+
+	return
+}

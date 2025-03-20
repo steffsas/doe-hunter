@@ -96,6 +96,9 @@ var THREADS_DDR_DNSSEC_ENV = "THREADS_DDR_DNSSEC"
 var THREADS_CANARY_ENV = "THREADS_CANARY"
 
 // nolint: gochecknoglobals
+var THREADS_RESINFO_ENV = "THREADS_RESINFO"
+
+// nolint: gochecknoglobals
 var BLOCKLIST_FILE_PATH_ENV = "BLOCKLIST_FILE_PATH"
 
 func LoadEnv(filepath string) error {

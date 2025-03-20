@@ -17,6 +17,7 @@ const DEFAULT_EDSR_TOPIC = "edsr-scan"
 const DEFAULT_FINGERPRINT_TOPIC = "fingerprint-scan"
 const DEFAULT_DDR_DNSSEC_TOPIC = "ddr-dnssec-scan"
 const DEFAULT_CANARY_TOPIC = "canary-scan"
+const DEFAULT_RESINFO_TOPIC = "resinfo-scan"
 
 const DEFAULT_CONCURRENT_CONSUMER = 10
 const DEFAULT_PARTITIONS = 100

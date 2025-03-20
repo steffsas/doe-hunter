@@ -25,6 +25,7 @@ const DEFAULT_CERTIFICATE_COLLECTION = "certificate-scans"
 const DEFAULT_FINGERPRINT_COLLECTION = "fingerprint-scans"
 const DEFAULT_DDR_DNSSEC_COLLECTION = "ddr-dnssec-scans"
 const DEFAULT_CANARAY_COLLECTION = "canary-scans"
+const DEFAULT_RESINFO_COLLECTION = "resinfo-scans"
 
 type MongoCollection interface {
 	InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error)

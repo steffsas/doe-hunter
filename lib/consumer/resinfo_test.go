@@ -49,13 +49,7 @@ func TestResInfoConsumer_Process(t *testing.T) {
 			QueryHandler: qh,
 		}
 
-		scan := &scan.ResInfoScan{
-			Meta: &scan.ResInfoScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-			},
-			TargetName: targetName,
-			Host:       targetName,
-		}
+		scan := scan.NewResInfoScan(targetName, targetName, "", "", "", "")
 
 		resInfoScanBytes, _ := json.Marshal(scan)
 		msg := &kafka.Message{
@@ -95,13 +89,7 @@ func TestResInfoConsumer_Process(t *testing.T) {
 			QueryHandler: qh,
 		}
 
-		scan := &scan.ResInfoScan{
-			Meta: &scan.ResInfoScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-			},
-			TargetName: targetName,
-			Host:       targetName,
-		}
+		scan := scan.NewResInfoScan(targetName, targetName, "", "", "", "")
 
 		resInfoScanBytes, _ := json.Marshal(scan)
 		msg := &kafka.Message{
@@ -175,13 +163,7 @@ func TestResInfoConsumer_RealWorld(t *testing.T) {
 		target := "resolver.dns4all.eu."
 		host := "resolver.dns4all.eu"
 
-		scan := &scan.ResInfoScan{
-			Meta: &scan.ResInfoScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-			},
-			TargetName: target,
-			Host:       host,
-		}
+		scan := scan.NewResInfoScan(target, host, "", "", "", "")
 
 		qh := query.NewResInfoQueryHandler(nil)
 
@@ -191,7 +173,7 @@ func TestResInfoConsumer_RealWorld(t *testing.T) {
 
 		c.StartResInfo(scan)
 
-		assert.Nil(t, scan.Meta.Errors, "should not have returned an error")
+		assert.Empty(t, scan.Meta.Errors, "should not have returned an error")
 		assert.NotNil(t, scan.Result, "should have returned a result")
 
 		assert.True(t, scan.Result.RFC9606Support, "should have returned true")
@@ -203,13 +185,7 @@ func TestResInfoConsumer_RealWorld(t *testing.T) {
 		target := "dns.google."
 		host := "dns.google"
 
-		scan := &scan.ResInfoScan{
-			Meta: &scan.ResInfoScanMetaInformation{
-				ScanMetaInformation: scan.ScanMetaInformation{},
-			},
-			TargetName: target,
-			Host:       host,
-		}
+		scan := scan.NewResInfoScan(target, host, "", "", "", "")
 
 		qh := query.NewResInfoQueryHandler(nil)
 
@@ -219,7 +195,7 @@ func TestResInfoConsumer_RealWorld(t *testing.T) {
 
 		c.StartResInfo(scan)
 
-		assert.Nil(t, scan.Meta.Errors, "should not have returned an error")
+		assert.Empty(t, scan.Meta.Errors, "should not have returned an error")
 		assert.NotNil(t, scan.Result, "should have returned a result")
 		assert.False(t, scan.Result.RFC9606Support, "should have returned false")
 	})
