@@ -309,6 +309,10 @@ func produceScansFromAlpn(
 		edsrScan := NewEDSRScan(targetName, host, alpn, doeScan.GetMetaInformation().ScanId, parentScanId, runId, vantagePoint)
 		scans = append(scans, edsrScan)
 
+		// Resinfo scan
+		resInfoScan := NewResInfoScan(targetName, host, doeScan.GetMetaInformation().ScanId, parentScanId, runId, vantagePoint)
+		scans = append(scans, resInfoScan)
+
 		// create certificate scan
 		certScan := NewCertificateScan(certQuery, parentScanId, doeScan.GetMetaInformation().ScanId, runId, vantagePoint)
 		certScan.Meta.Children = []string{doeScan.GetMetaInformation().ScanId}

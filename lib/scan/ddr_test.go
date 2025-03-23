@@ -208,7 +208,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -234,10 +234,17 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.Host, "should have returned SAMPLE_TARGET as host")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Query.Host)
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Meta.OriginTargetName)
@@ -290,7 +297,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -316,10 +323,17 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.Host, "should have returned SAMPLE_TARGET as host")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Query.Host)
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Meta.OriginTargetName)
@@ -374,7 +388,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -400,10 +414,17 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.Host, "should have returned SAMPLE_TARGET as host")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.Host, "should have returned SAMPLE_TARGET as host")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned n DNSSEC scan")
 
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Query.Host)
 				assert.Equal(t, SAMPLE_TARGET, dnssecScan.Meta.OriginTargetName)
@@ -472,7 +493,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -515,10 +536,16 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				dnssecConsidered = true
 
@@ -596,7 +623,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -641,10 +668,16 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				dnssecConsidered = false
 
@@ -724,7 +757,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -767,10 +800,16 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 				}
 
 				assert.True(t, edsrConsidered, "should have considered target for edsr")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				dnssecConsidered = false
 
@@ -852,7 +891,7 @@ func TestDDRScan_CreateScansFromResponse_DoH(t *testing.T) {
 		dnssecConsidered := false
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOH_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -962,7 +1001,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -986,10 +1025,16 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				assert.Equal(t, dnssecScan.Meta.OriginTargetName, SAMPLE_TARGET)
 			}
@@ -1041,7 +1086,7 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOT_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -1065,10 +1110,16 @@ func TestDDRScan_CreateScansFromResponse_DoT(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				assert.Equal(t, dnssecScan.Meta.OriginTargetName, SAMPLE_TARGET)
 			}
@@ -1119,7 +1170,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 		}
 
 		for _, ss := range scans {
-			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+			assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 			switch ss.GetType() {
 			case scan.CERTIFICATE_SCAN_TYPE:
@@ -1143,10 +1194,16 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 				require.True(t, ok, "should have returned an EDSR scan")
 
 				assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+			case scan.RESINFO_SCAN_TYPE:
+				// cast to RESINFO scan
+				resinfoScan, ok := ss.(*scan.ResInfoScan)
+				require.True(t, ok, "should have returned a RESINFO scan")
+
+				assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 			case scan.DDR_DNSSEC_SCAN_TYPE:
 				// cast to DNSSEC scan
 				dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-				require.True(t, ok, "should have returned an DNSSEC scan")
+				require.True(t, ok, "should have returned a DNSSEC scan")
 
 				assert.Equal(t, dnssecScan.Meta.OriginTargetName, SAMPLE_TARGET)
 			}
@@ -1199,7 +1256,7 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 			}
 
 			for _, ss := range scans {
-				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
+				assert.Contains(t, []string{scan.CERTIFICATE_SCAN_TYPE, scan.DOQ_SCAN_TYPE, scan.EDSR_SCAN_TYPE, scan.RESINFO_SCAN_TYPE, scan.DDR_DNSSEC_SCAN_TYPE}, ss.GetType(), "should have returned DoH or certificate scan types")
 
 				switch ss.GetType() {
 				case scan.CERTIFICATE_SCAN_TYPE:
@@ -1223,10 +1280,16 @@ func TestDDRScan_CreateScansFromResponse_DoQ(t *testing.T) {
 					require.True(t, ok, "should have returned an EDSR scan")
 
 					assert.Equal(t, SAMPLE_TARGET, edsrScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
+				case scan.RESINFO_SCAN_TYPE:
+					// cast to RESINFO scan
+					resinfoScan, ok := ss.(*scan.ResInfoScan)
+					require.True(t, ok, "should have returned a RESINFO scan")
+
+					assert.Equal(t, SAMPLE_TARGET, resinfoScan.TargetName, "should have returned SAMPLE_TARGET as targetName")
 				case scan.DDR_DNSSEC_SCAN_TYPE:
 					// cast to DNSSEC scan
 					dnssecScan, ok := ss.(*scan.DDRDNSSECScan)
-					require.True(t, ok, "should have returned an DNSSEC scan")
+					require.True(t, ok, "should have returned a DNSSEC scan")
 
 					assert.Equal(t, dnssecScan.Meta.OriginTargetName, SAMPLE_TARGET)
 				}

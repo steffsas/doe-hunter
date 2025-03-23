@@ -84,6 +84,10 @@ var ErrQueryDial = errors.New("failed to dial SSH server")
 // generic consumer errors
 var ErrQueryBlockList = errors.New("query host is on blocklist")
 
+// RESINFO errors
+var ErrParsingResInfo = errors.New("failed to parse RESINFO record")
+var ErrMultipleResInfoRecords = errors.New("multiple RESINFO records found")
+
 type DoEErrors interface {
 	Error() string
 	IsError(errId string) bool

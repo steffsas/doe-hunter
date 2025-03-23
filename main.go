@@ -422,6 +422,27 @@ func startConsumer(ctx context.Context, protocol, vp string) {
 			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
 		}
 		_ = pc.Consume(ctx)
+	case "resinfo":
+		threads, err := helper.GetThreads(helper.THREADS_RESINFO_ENV)
+		if err != nil {
+			return
+		}
+
+		consumerConfig.Threads = threads
+		consumerConfig.Topic = helper.GetTopicFromNameAndVP(kafka.DEFAULT_RESINFO_TOPIC, vp)
+		consumerConfig.ConsumerGroup = consumer.DEFAULT_RESINFO_CONSUMER_GROUP
+
+		sh := storage.NewDefaultMongoStorageHandler(ctx, storage.DEFAULT_RESINFO_COLLECTION, mongoServer)
+
+		//nolint:contextcheck
+		pc, err := consumer.NewKafkaResInfoEventConsumer(consumerConfig, sh, queryConfig)
+		if err != nil {
+			logrus.Fatalf("failed to create parallel consumer: %v", err)
+			return
+		} else {
+			logrus.Infof("created parallel consumer %s with %d parallel consumers", protocol, pc.Config.Threads)
+		}
+		_ = pc.Consume(ctx)
 	default:
 		logrus.Fatalf("unsupported protocol type %s", protocol)
 	}
