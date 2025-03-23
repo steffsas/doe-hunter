@@ -175,6 +175,7 @@ func (qh *DoHQueryHandler) Query(query *DoHQuery) (*DoHResponse, custom_errors.D
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: query.SkipCertificateVerify,
 		// let's support all TLS versions, including TLS 1.0 and TLS 1.1
+		// codeql [go/insecure-tls]: This is intentional
 		MinVersion: tls.VersionTLS10,
 		MaxVersion: tls.VersionTLS13,
 		// let's support all ciphers
