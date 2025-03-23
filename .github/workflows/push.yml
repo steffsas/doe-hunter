@@ -1,4 +1,4 @@
-name: Lint and Test
+name: Push
 on:
   push:
     branches:
@@ -8,6 +8,11 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
+      # Optional: allow read access to pull request. Use with `only-new-issues` option.
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -22,8 +27,40 @@ jobs:
   test:
     name: test-and-coverage
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
       - name: generate test coverage
         run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
+
+  analyze:
+    name: analyze
+    runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+      # required to fetch internal or private CodeQL packs
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: go
+          build-mode: autobuild
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"

@@ -22,6 +22,9 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -37,6 +40,9 @@ jobs:
   test:
     name: test-and-coverage
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -54,10 +60,39 @@ jobs:
           ## ideally this should be orphan branch (see below how to create this branch)
           git-branch: badges
 
+  analyze:
+    name: analyze
+    runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+      # required to fetch internal or private CodeQL packs
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - language: actions
+          build-mode: none
+        - language: go
+          build-mode: autobuild
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+
   # build and push
   build-and-push-image:
     name: build-and-push
-    needs: [lint, test]
+    needs: [lint, test, analyze]
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -65,7 +100,6 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-      # 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

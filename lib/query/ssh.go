@@ -70,6 +70,7 @@ func (qh *SSHQueryHandler) Query(query *SSHQuery) (*SSHResponse, custom_errors.D
 
 	config := &ssh.ClientConfig{
 		// this function is called to check whether the pubkey is considered to be valid
+		/* codeql [go/insecure-hostkeycallback]:  This is intentional */
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			res.PubKeyFingerprint = base64.StdEncoding.EncodeToString(key.Marshal())
 			res.PubKeyType = key.Type()
