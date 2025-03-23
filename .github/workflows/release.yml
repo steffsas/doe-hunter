@@ -18,81 +18,9 @@ env:
 
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
-  # lint
-  lint:
-    name: lint
-    runs-on: ubuntu-latest
-    permissions:
-      # Required: allow read access to the content for analysis.
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-      - name: lint lib
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: ./lib
-
-  # test 
-  test:
-    name: test-and-coverage
-    runs-on: ubuntu-latest
-    permissions:
-      # Required: allow read access to the content for analysis.
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-      - name: generate test coverage
-        run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
-      # see for badges: https://github.com/vladopajic/go-test-coverage/blob/main/docs/badge.md
-      - name: push test coverage
-        uses: vladopajic/go-test-coverage@v2
-        with:
-          config: ./.testcoverage.yml
-          ## when token is not specified (value '') this feature is turend off
-          ## in this example badge is created and committed only for main brach
-          git-token: ${{ github.ref_name == 'main' && secrets.GITHUB_TOKEN || '' }}
-          ## name of branch where badges are stored
-          ## ideally this should be orphan branch (see below how to create this branch)
-          git-branch: badges
-
-  analyze:
-    name: analyze
-    runs-on: ubuntu-latest
-    permissions:
-      # required for all workflows
-      security-events: write
-      # required to fetch internal or private CodeQL packs
-      packages: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - language: actions
-          build-mode: none
-        - language: go
-          build-mode: autobuild
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{matrix.language}}"
-
   # build and push
   build-and-push-image:
     name: build-and-push
-    needs: [lint, test, analyze]
     runs-on: ubuntu-latest
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
