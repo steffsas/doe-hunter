@@ -22,6 +22,9 @@ jobs:
   lint:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -37,6 +40,9 @@ jobs:
   test:
     name: test-and-coverage
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -94,7 +100,6 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-      # 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

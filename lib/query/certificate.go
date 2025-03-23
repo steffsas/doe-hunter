@@ -152,6 +152,7 @@ func (qh *CertificateQueryHandler) Query(q *CertificateQuery) (*CertificateRespo
 	if err != nil {
 		if helper.IsCertificateError(err) {
 			// we will try to get the certificate without verification
+			// codeql [go/disabled-certificate-check]: This is intentional
 			res.RetryWithoutCertificateVerification, tlsConfig.InsecureSkipVerify = true, true
 			conn, err = qh.QueryHandler.Query(q.Host, q.Port, q.Protocol, q.Timeout, tlsConfig)
 
