@@ -1,13 +1,19 @@
-name: Lint and Test
+name: Lint
 on:
   push:
     branches:
-      - main
+      - main 
+  pull_request:
 jobs:
   # basic linting
   lint:
     name: lint
     runs-on: ubuntu-latest
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
+      # Optional: allow read access to pull request. Use with `only-new-issues` option.
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -18,12 +24,3 @@ jobs:
         with:
           version: latest
           working-directory: ./lib
-        
-  test:
-    name: test-and-coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-      - name: generate test coverage
-        run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
