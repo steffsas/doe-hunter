@@ -1,4 +1,4 @@
-name: Lint and Test
+name: PR
 on:
   pull_request:
     branches:
