@@ -12,7 +12,7 @@ import (
 
 // nolint: gochecknoglobals
 var SUPPORTED_PROTOCOL_TYPES = []string{
-	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "ddr-dnssec", "canary", "all",
+	"ddr", "doh", "doq", "dot", "certificate", "ptr", "edsr", "fingerprint", "ddr-dnssec", "canary", "all", "resinfo",
 }
 
 // nolint: gochecknoglobals
