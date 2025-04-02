@@ -337,6 +337,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20250323145752-8984ee97a25c h1:YG2wY/Q
 github.com/steffsas/doe-hunter/lib v0.0.0-20250323145752-8984ee97a25c/go.mod h1:koDQvhfjmLov3oRqgF2oNF+Sy+ktw3T+gRLepLfErsM=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250328092801-a0181506ef09 h1:rS1zkfeYTNO7s9SbypGZEwljL43VV4Q+hqHSU9E9aj0=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250328092801-a0181506ef09/go.mod h1:koDQvhfjmLov3oRqgF2oNF+Sy+ktw3T+gRLepLfErsM=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250402041259-6744f5478b92 h1:0jkAA16+6czMK3su9phNnno05uzCgbOIXvmMpNkzXIU=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250402041259-6744f5478b92/go.mod h1:A8PuNUkJ1b/rpqJjkR4+pRvWZBX0a92aW1lk2vIImsk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
@@ -450,6 +452,8 @@ golang.org/x/net v0.36.0 h1:vWF2fRbw4qslQsQzgFqZff+BItCvGFQqKzKIzx1rmoA=
 golang.org/x/net v0.36.0/go.mod h1:bFmbeoIPfrw4sMHNhb4J9f6+tPziuGjq7Jk/38fxi1I=
 golang.org/x/net v0.37.0 h1:1zLorHbz+LYj7MQlSf1+2tPIIgibq2eL5xkrGk6f+2c=
 golang.org/x/net v0.37.0/go.mod h1:ivrbrMbzFq5J41QOQh0siUuly180yBYtLp+CKbEaFx8=
+golang.org/x/net v0.38.0 h1:vRMAPTMaeGqVhG5QyLJHqNDwecKTomGeqbnfZyKlBI8=
+golang.org/x/net v0.38.0/go.mod h1:ivrbrMbzFq5J41QOQh0siUuly180yBYtLp+CKbEaFx8=
 golang.org/x/oauth2 v0.18.0 h1:09qnuIAgzdx1XplqJvW6CQqMCtGZykZWcXzPMPUusvI=
 golang.org/x/oauth2 v0.18.0/go.mod h1:Wf7knwG0MPoWIMMBgFlEaSUDaKskp0dCfrlJRJXbBi8=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
