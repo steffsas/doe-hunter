@@ -65,6 +65,7 @@ linters:
     staticcheck:
       checks:
         - -SA1019
+        - -ST1003
         - all
   exclusions:
     generated: lax
@@ -74,9 +75,6 @@ linters:
       - legacy
       - std-error-handling
     rules:
-      - linters:
-        - stylecheck
-        text: "ST1003:"
       - linters:
           - funlen
         source: ^func Test
