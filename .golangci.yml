@@ -75,6 +75,9 @@ linters:
       - std-error-handling
     rules:
       - linters:
+        - stylecheck
+        text: "ST1003:"
+      - linters:
           - funlen
         source: ^func Test
       - linters:
