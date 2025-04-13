@@ -64,9 +64,11 @@ linters:
           disabled: true
     staticcheck:
       checks:
-        - -SA1019
-        - -ST1003
         - all
+        - '-SA1019'
+        - '-ST1003'
+        - '-QF1008'
+        - '-QF1003'
   exclusions:
     generated: lax
     presets:

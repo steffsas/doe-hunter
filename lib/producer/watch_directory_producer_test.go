@@ -387,7 +387,7 @@ func createFileAndWrite(ctx context.Context, tmpFolder string, lineContent strin
 		case <-ctx.Done():
 			return
 		default:
-			_, err = f.WriteString(fmt.Sprintf("%s\n", lineContent))
+			_, err = fmt.Fprintf(f, "%s\n", lineContent)
 			if err != nil {
 				return
 			}
