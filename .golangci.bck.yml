@@ -1,0 +1,128 @@
+linters:
+  enable:
+    - revive
+    - gofmt
+    - errcheck
+    - goimports
+    - goheader
+    - goconst
+    - gochecknoglobals
+    - asasalint
+    - asciicheck
+    - bidichk
+    # - bodyclose
+    - containedctx
+    - contextcheck
+    - decorder
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - copyloopvar
+    # deprecated
+    # - exportloopref
+    - forbidigo
+    # - forcetypeassert
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    # - gocognit # complexity
+    - goconst
+    - gocritic
+    - goheader
+    - goimports
+    # - gomnd # detect loose numbers
+    - gomoddirectives # not sure
+    # - gomodguard # same as depguard?
+    - goprintffuncname
+    # - gosec
+    - gosmopolitan
+    - gosimple
+    - govet
+    - grouper
+    - importas # configure this
+    - interfacebloat # maybe configure
+    - ineffassign
+    # - ireturn
+    # - lll
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    # - musttag
+    # - nakedret # I really don't like this
+    - nilerr
+    - nilnil
+    - noctx
+    # - nolintlint
+    # - nonamedreturns # I really don't like this
+    - nosprintfhostport
+    # - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    # - stylecheck
+    - tagalign
+    # - tagliatelle
+    - usetesting
+    # deprecated
+    # - tenv
+    - testpackage
+    - thelper
+    - tparallel # same with parallel test
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - unused
+    # - varnamelen
+    - wastedassign
+    - whitespace
+    # - wrapcheck
+
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true 
+  exhaustive:
+    default-signifies-exhaustive: true
+  staticcheck:
+    # SA1019 is for checking that we're not using fields marked as deprecated
+    # in a comment. It decides this in a loose way so I'm silencing it. Also because
+    # it's tripping on our own structs.
+    checks: ["all", "-SA1019"]
+
+issues:
+  exclude-rules:
+    # disable funlen for test funcs
+    - source: "^func Test"
+      linters:
+        - funlen
+    - path: "(.+)_test\\.go$"
+      linters:
+        - dupl
+    - path: "consumer/"
+      linters:
+        - dupl
+    - path: "scan/"
+      linters:
+        - dupl
+    - path: "(.+)_test\\.go$"
+      linters:
+        - nilnil
+    - path: "(.+)_test\\.go$"
+      linters:
+        - goconst
+
+run:
+  go: '1.24.0'
+  timeout: 10m

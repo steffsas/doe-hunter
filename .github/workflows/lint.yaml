@@ -22,5 +22,5 @@ jobs:
       - name: lint lib
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.0
+          version: latest
           working-directory: ./lib
