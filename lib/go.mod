@@ -47,7 +47,7 @@ require (
 )
 
 require (
-	github.com/confluentinc/confluent-kafka-go/v2 v2.8.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.10.0
 	github.com/quic-go/quic-go v0.50.1
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.39.0
