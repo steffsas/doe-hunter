@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/joho/godotenv v1.5.1
-	github.com/miekg/dns v1.1.65
+	github.com/miekg/dns v1.1.66
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.3
@@ -49,8 +49,8 @@ require (
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.10.0
 	github.com/quic-go/quic-go v0.51.0
-	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.40.0
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/tools v0.30.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
 )
