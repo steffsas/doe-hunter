@@ -373,6 +373,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20250601121533-ac69b040ab0d h1:1Vwbg5M
 github.com/steffsas/doe-hunter/lib v0.0.0-20250601121533-ac69b040ab0d/go.mod h1:ZndR9CIxs5MG32oepkwldV/Q7lM82HOPuNKRRTGdOxQ=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250607093956-a480c377ae59 h1:dpdJluxtPF2mF7SNl4KlUjav/w/mc82Ys9unFqqYoFs=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250607093956-a480c377ae59/go.mod h1:1gezM0eX3ZOyUzHwb8mhk9FCVydP591oA0oGH2ZcyfA=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250607160328-6e50acbf8fe4 h1:YNsOlDwwXHeCYTrnA9gk3NfgkqD5ONUyWH8pOXdBfc4=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250607160328-6e50acbf8fe4/go.mod h1:SOlBMnjPLvnkDYSEkkBB2WchQzLX+pio9CcgUmar68U=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
@@ -420,6 +422,8 @@ go.mongodb.org/mongo-driver v1.17.2 h1:gvZyk8352qSfzyZ2UMWcpDpMSGEr1eqE4T793Sqyh
 go.mongodb.org/mongo-driver v1.17.2/go.mod h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=
 go.mongodb.org/mongo-driver v1.17.3 h1:TQyXhnsWfWtgAhMtOgtYHMTkZIfBTpMTsMnd9ZBeHxQ=
 go.mongodb.org/mongo-driver v1.17.3/go.mod h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=
+go.mongodb.org/mongo-driver v1.17.4 h1:jUorfmVzljjr0FLzYQsGP8cgN/qzzxlY9Vh0C9KFXVw=
+go.mongodb.org/mongo-driver v1.17.4/go.mod h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 h1:4Pp6oUg3+e/6M4C0A/3kJ2VYa++dsWVTtGgLVj5xtHg=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0/go.mod h1:Mjt1i1INqiaoZOMGR1RIUJN+i3ChKoFRqzrRQhlkbs0=
 go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace v0.46.1 h1:gbhw/u49SS3gkPWiYweQNJGm/uJN5GkI/FrosxSHT7A=

@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20250607093956-a480c377ae59
+	github.com/steffsas/doe-hunter/lib v0.0.0-20250607160328-6e50acbf8fe4
 )
 
 require (
@@ -31,7 +31,7 @@ require (
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	go.mongodb.org/mongo-driver v1.17.3 // indirect
+	go.mongodb.org/mongo-driver v1.17.4 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
