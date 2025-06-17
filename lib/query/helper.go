@@ -16,7 +16,7 @@ import (
 // however, let's be slightly below the threshold
 const MAX_DNS_FQDN_LENGTH = 255
 const MAX_SUBDOMAIN_LENGTH = 25
-const QUERY_HOST = "measurement.raiun.de."
+const QUERY_HOST = "f.root-servers.org."
 
 func validateCertificateError(queryErr error, noCertificateErr custom_errors.DoEErrors, res *DoEResponse, skipCertificateVerification bool) custom_errors.DoEErrors {
 	setCertificateValidationToResponse(queryErr, res, skipCertificateVerification)
@@ -101,8 +101,12 @@ func GetDefaultQueryMsg() *dns.Msg {
 		Id: 0,
 	}
 
-	// let's randomize the query message
-	msg.SetQuestion(GetRandomizedQueryHost(QUERY_HOST), dns.TypeA)
+	// to analyze recursive-to-authoritative queries, use a
+	// query host under your control and set the host
+	// to a randomized subdomain of the query host
+	// msg.SetQuestion(GetRandomizedQueryHost(QUERY_HOST), dns.TypeA)
+
+	msg.SetQuestion(QUERY_HOST, dns.TypeA)
 
 	return msg
 }
