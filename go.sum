@@ -217,6 +217,8 @@ github.com/miekg/dns v1.1.65 h1:0+tIPHzUW0GCge7IiK3guGP57VAw7hoPDfApjkMD1Fc=
 github.com/miekg/dns v1.1.65/go.mod h1:Dzw9769uoKVaLuODMDZz9M6ynFU6Em65csPuoi8G0ck=
 github.com/miekg/dns v1.1.66 h1:FeZXOS3VCVsKnEAd+wBkjMC3D2K+ww66Cq3VnCINuJE=
 github.com/miekg/dns v1.1.66/go.mod h1:jGFzBsSNbJw6z1HYut1RKBKHA9PBdxeHrZG8J+gC2WE=
+github.com/miekg/dns v1.1.67 h1:kg0EHj0G4bfT5/oOys6HhZw4vmMlnoZ+gDu8tJ/AlI0=
+github.com/miekg/dns v1.1.67/go.mod h1:fujopn7TB3Pu3JM69XaawiU0wqjpL9/8xGop5UrTPps=
 github.com/miekg/pkcs11 v1.1.1 h1:Ugu9pdy6vAYku5DEpVWVFPYnzV+bxB+iRdbuFSu7TvU=
 github.com/miekg/pkcs11 v1.1.1/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
@@ -393,6 +395,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20250705130939-e2c00efbf27a h1:2caJs1c
 github.com/steffsas/doe-hunter/lib v0.0.0-20250705130939-e2c00efbf27a/go.mod h1:Z8ANpl84KgUbvBGJbSAtizdo2EBrNm5Yy0r/adFuJgc=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250709040630-a66bfebe1b1b h1:XNLERaAVHItYGqq+Yw+dMl4np8h0Nd12OgfvBgdoCFQ=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250709040630-a66bfebe1b1b/go.mod h1:JnnTYNtlABTNduH5wmFYDPK2dMIIc+Ki4WApIvAbJBU=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250710135338-a6d8b69e45a3 h1:0Iw7H9LZvBRrMzhtVGhFbJpgQIMMqBzmC0w1/erwdCU=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250710135338-a6d8b69e45a3/go.mod h1:C37/dtEW989DHhxOlo4oOAVcYCrteqiI46UtviKGIpw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
