@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 	"time"
@@ -131,7 +132,7 @@ func (df *defaultQueryHandlerDoT) Query(host string, query *dns.Msg, timeout tim
 	tlsConn := conn.(*tls.Conn)
 
 	// handshake
-	if err := tlsConn.Handshake(); err != nil {
+	if err := tlsConn.HandshakeContext(context.Background()); err != nil {
 		return nil, 0, nil, err
 	}
 
