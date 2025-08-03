@@ -77,6 +77,8 @@ func (d *DefaultCertQueryHandler) Query(host string, port int, protocol string, 
 		return &connState.TLS, err
 	} else {
 		d.dialerTCP.Timeout = timeout
+
+		//nolint:all // intentionally using tls.DialWithDialer
 		conn, err := tls.DialWithDialer(d.dialerTCP, "tcp", helper.GetFullHostFromHostPort(host, port), tlsConf)
 		if err != nil {
 			return nil, err
