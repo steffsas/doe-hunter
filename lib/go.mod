@@ -16,6 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.4
+	go.mongodb.org/mongo-driver/v2 v2.2.3
 	golang.org/x/crypto v0.40.0
 	gopkg.in/fsnotify.v1 v1.4.7
 )
@@ -23,7 +24,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/pprof v0.0.0-20211008130755-947d60d73cc0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
