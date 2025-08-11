@@ -12,7 +12,7 @@ jobs:
       # Required: allow read access to the content for analysis.
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-go@v5
       - name: generate test coverage
         run: go test ./lib/... -coverprofile=./profile.cov -covermode=atomic
