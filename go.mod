@@ -6,12 +6,12 @@ toolchain go1.25.0
 
 require (
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20250813053734-bd3998121c5f
+	github.com/steffsas/doe-hunter/lib v0.0.0-20250819004800-f58b228fe570
 )
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/confluentinc/confluent-kafka-go/v2 v2.11.0 // indirect
+	github.com/confluentinc/confluent-kafka-go/v2 v2.11.1 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/dchest/uniuri v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect

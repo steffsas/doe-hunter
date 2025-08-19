@@ -60,6 +60,8 @@ github.com/confluentinc/confluent-kafka-go/v2 v2.10.1 h1:VqL+j6jm35QXfCwm4XVp38/
 github.com/confluentinc/confluent-kafka-go/v2 v2.10.1/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
 github.com/confluentinc/confluent-kafka-go/v2 v2.11.0 h1:rsqfCqZXAHjWQp4TuRgiNPuW1BlF3xO/5+TsE9iHApw=
 github.com/confluentinc/confluent-kafka-go/v2 v2.11.0/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
+github.com/confluentinc/confluent-kafka-go/v2 v2.11.1 h1:qGCQznyp2BxyBNyOE+M7O1YS2tI1/Y60O0jQP452zA4=
+github.com/confluentinc/confluent-kafka-go/v2 v2.11.1/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
 github.com/containerd/console v1.0.4 h1:F2g4+oChYvBTsASRTz8NP6iIAi97J3TtSAsLbIFn4ro=
 github.com/containerd/console v1.0.4/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
 github.com/containerd/containerd v1.7.18 h1:jqjZTQNfXGoEaZdW1WwPU0RqSn1Bm2Ay/KJPUuO8nao=
@@ -415,6 +417,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20250806105308-549db9bcb22c h1:hih4GRO
 github.com/steffsas/doe-hunter/lib v0.0.0-20250806105308-549db9bcb22c/go.mod h1:tfWTI5sMDrsiu8cw+RxUjJw4Yh8BG/pjsqYLwgRiYPY=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250813053734-bd3998121c5f h1:c2cEibQfBsKxWPEGwdqXWkPdyFaARZ2go4XDZOJUstk=
 github.com/steffsas/doe-hunter/lib v0.0.0-20250813053734-bd3998121c5f/go.mod h1:54b+dUjDbH8FdaXgbutZNSckeBySA/BnRqRXWMHe/Bk=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250819004800-f58b228fe570 h1:+QAj34tdJUFZPJp0Y4n3wKGmQpbo47vz0Kx+g7o1Mxs=
+github.com/steffsas/doe-hunter/lib v0.0.0-20250819004800-f58b228fe570/go.mod h1:5y4AFVOg5SHO42smH0PUtsaYuGFD7E1wgxCu4H3vumk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
