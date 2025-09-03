@@ -2,7 +2,7 @@ module github.com/steffsas/doe-hunter/lib
 
 go 1.23.0
 
-toolchain go1.25.0
+toolchain go1.25.1
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
