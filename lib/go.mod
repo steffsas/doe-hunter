@@ -4,7 +4,6 @@ go 1.25.1
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/containerd/fifo v1.1.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/google/uuid v1.6.0
@@ -20,16 +19,13 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/pprof v0.0.0-20211008130755-947d60d73cc0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
-	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
-	github.com/serge-hulne/go_iter v0.0.0-20221013180639-abb65b2b3453 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -46,9 +42,9 @@ require (
 
 require (
 	github.com/confluentinc/confluent-kafka-go/v2 v2.12.0
-	github.com/quic-go/quic-go v0.52.0
+	github.com/quic-go/quic-go v0.54.1
 	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/net v0.46.0
+	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 )
