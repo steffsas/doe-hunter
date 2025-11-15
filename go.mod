@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/sirupsen/logrus v1.9.3
-	github.com/steffsas/doe-hunter/lib v0.0.0-20251112184853-6baf60fd1d01
+	github.com/steffsas/doe-hunter/lib v0.0.0-20251115125849-a7e02916359e
 )
 
 require (
