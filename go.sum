@@ -309,6 +309,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20251111153640-d294b2b6a5a5 h1:6ZmSDng
 github.com/steffsas/doe-hunter/lib v0.0.0-20251111153640-d294b2b6a5a5/go.mod h1:MzVjaNuth38j6AubrxIlLBd9PBswLF22McWeXhTNKqA=
 github.com/steffsas/doe-hunter/lib v0.0.0-20251112184853-6baf60fd1d01 h1:4SVRvb+6PoKeaRsRifKbbQZRMaqaCSzuFDgDlTJsJAc=
 github.com/steffsas/doe-hunter/lib v0.0.0-20251112184853-6baf60fd1d01/go.mod h1:WJsPnPhRdyMq0DPML3DlL6OkQx9lz6fyIYMDMZm/7Ko=
+github.com/steffsas/doe-hunter/lib v0.0.0-20251115125849-a7e02916359e h1:L39XrFreDDM3h0RBkWX/CqP7vhyIer30P5Yr+XTsc8I=
+github.com/steffsas/doe-hunter/lib v0.0.0-20251115125849-a7e02916359e/go.mod h1:WJsPnPhRdyMq0DPML3DlL6OkQx9lz6fyIYMDMZm/7Ko=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
