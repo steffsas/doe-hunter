@@ -73,6 +73,8 @@ github.com/confluentinc/confluent-kafka-go/v2 v2.11.1 h1:qGCQznyp2BxyBNyOE+M7O1Y
 github.com/confluentinc/confluent-kafka-go/v2 v2.11.1/go.mod h1:hScqtFIGUI1wqHIgM3mjoqEou4VweGGGX7dMpcUKves=
 github.com/confluentinc/confluent-kafka-go/v2 v2.12.0 h1:If5Bi+oJVehEdjuhHa7QEFppQtyexvBXJiuZIloJtIw=
 github.com/confluentinc/confluent-kafka-go/v2 v2.12.0/go.mod h1:6ypM/bldGVG8gf1s9/05ICQU76BmXcbhF6K2jtznock=
+github.com/confluentinc/confluent-kafka-go/v2 v2.13.0 h1:y9wh3z7FdqN3RJ9IHW12hzytJx4KjlpviPWn4ncA5u0=
+github.com/confluentinc/confluent-kafka-go/v2 v2.13.0/go.mod h1:aR1aciwbULyLhKkv9eq88JhS4XmGOusEnHZx1R93XZI=
 github.com/containerd/console v1.0.3 h1:lIr7SlA5PxZyMV30bDW0MGbiOPXwc63yRuCP0ARubLw=
 github.com/containerd/console v1.0.3/go.mod h1:7LqA/THxQ86k76b8c/EMSiaJ3h1eZkMkXar0TQ1gf3U=
 github.com/containerd/containerd v1.7.12 h1:+KQsnv4VnzyxWcfO9mlxxELaoztsDEjOuCMPAuPqgU0=
