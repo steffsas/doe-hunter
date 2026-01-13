@@ -282,7 +282,7 @@ func (dp *WatchDirectoryProducer) produceFromFile(ctx context.Context, filepath 
 
 func GetProducibleScansFactory(vp, ipVersion string) func(host, runId string) []ProducibleScan {
 	return func(host, runId string) []ProducibleScan {
-		scans := []ProducibleScan{}
+		scans := make([]ProducibleScan, 0, 1)
 
 		// check if host is on blocklist
 		isOnBlocklist := false
