@@ -53,7 +53,7 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewCertificateQuery()
-		q.Host = "142.250.185.227" // www.google.de
+		q.Host = "172.217.20.131" // www.google.de
 		q.Port = 443
 
 		qh, err := query.NewCertificateQueryHandler(nil)
@@ -71,7 +71,7 @@ func TestCertificateQuery_RealWorld(t *testing.T) {
 		t.Parallel()
 
 		q := query.NewCertificateQuery()
-		q.Host = "142.250.185.227" // www.google.de
+		q.Host = "172.217.20.131" // www.google.de
 		q.Port = 443
 
 		qh, err := query.NewCertificateQueryHandler(nil)
