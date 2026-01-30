@@ -300,6 +300,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20260125105902-8d12e3ea2010 h1:ZKWZwMm
 github.com/steffsas/doe-hunter/lib v0.0.0-20260125105902-8d12e3ea2010/go.mod h1:5JK4SACJnXU5I2bv/al3vvcfiYq9pVimZbkGOskZxrI=
 github.com/steffsas/doe-hunter/lib v0.0.0-20260129123158-5fd66c975f31 h1:MQu7dcLj/3TQ/HIzRjB8RiBG/FUcLoQ3rOoxMNI0jYc=
 github.com/steffsas/doe-hunter/lib v0.0.0-20260129123158-5fd66c975f31/go.mod h1:5JK4SACJnXU5I2bv/al3vvcfiYq9pVimZbkGOskZxrI=
+github.com/steffsas/doe-hunter/lib v0.0.0-20260130153238-0eb1807d02f4 h1:Pj3A6bkBWrqMnGEbYxjAbXPGCHZ7vLK8jTL2ZurmuIE=
+github.com/steffsas/doe-hunter/lib v0.0.0-20260130153238-0eb1807d02f4/go.mod h1:5JK4SACJnXU5I2bv/al3vvcfiYq9pVimZbkGOskZxrI=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
