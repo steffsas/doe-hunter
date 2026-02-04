@@ -304,6 +304,8 @@ github.com/steffsas/doe-hunter/lib v0.0.0-20260130153238-0eb1807d02f4 h1:Pj3A6bk
 github.com/steffsas/doe-hunter/lib v0.0.0-20260130153238-0eb1807d02f4/go.mod h1:5JK4SACJnXU5I2bv/al3vvcfiYq9pVimZbkGOskZxrI=
 github.com/steffsas/doe-hunter/lib v0.0.0-20260202092649-9b52212cf85e h1:QreF9ZYfHSMSXFZtGC+51olLOSGCksPt+2dbiHKFdh4=
 github.com/steffsas/doe-hunter/lib v0.0.0-20260202092649-9b52212cf85e/go.mod h1:v2X74dDTCidpURt9IdC4qOvJI9M6U8InB8X/xqaLMts=
+github.com/steffsas/doe-hunter/lib v0.0.0-20260204155624-f2530db96eba h1:IkWO4fNYK7EpHyBA6rGk3HTNfpyxTVdxXy+emX7qNv0=
+github.com/steffsas/doe-hunter/lib v0.0.0-20260204155624-f2530db96eba/go.mod h1:v2X74dDTCidpURt9IdC4qOvJI9M6U8InB8X/xqaLMts=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
