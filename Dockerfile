@@ -1,7 +1,7 @@
 # see https://docs.docker.com/language/golang/build-images/
 
 ### BUILDER IMAGE
-FROM golang:1.25.7-bookworm AS builder
+FROM golang:1.26.0-bookworm AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN go build -o /app/scanner .
 
 ### RUNTIME IMAGE
 
-FROM golang:1.25.7-bookworm AS runner
+FROM golang:1.26.0-bookworm AS runner
 
 WORKDIR /app
 
