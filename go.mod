@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/sirupsen/logrus v1.9.4
-	github.com/steffsas/doe-hunter/lib v0.0.0-20260212183337-46dc1537a7c1
+	github.com/steffsas/doe-hunter/lib v0.0.0-20260220081324-d2a8ce154df2
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/mod v0.32.0 // indirect
-	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
