@@ -3,7 +3,7 @@ module github.com/steffsas/doe-hunter
 go 1.25.1
 
 require (
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.2
 	github.com/steffsas/doe-hunter/lib v0.0.0-20260212183337-46dc1537a7c1
 )
 
