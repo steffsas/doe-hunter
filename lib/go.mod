@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cenkalti/backoff/v7 v7.0.0
 	github.com/containerd/fifo v1.1.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/google/uuid v1.6.0
