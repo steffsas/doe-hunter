@@ -13,7 +13,7 @@ require (
 	github.com/miekg/dns v1.1.72
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
-	go.mongodb.org/mongo-driver v1.17.9
+	go.mongodb.org/mongo-driver v1.17.10
 	golang.org/x/crypto v0.48.0
 	gopkg.in/fsnotify.v1 v1.4.7
 )
